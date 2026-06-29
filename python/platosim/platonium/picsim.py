@@ -1131,11 +1131,12 @@ General notes:
                 # NOTE Approximate relations from Gaia's docs: Evans et al. relations
                 for i in range(db.shape[0]):
                     B_V = db.Bmag.iloc[i] - db.Vmag.iloc[i]
-                    dx.BP_RP.iloc[i] = 1.25 * B_V
+                    dx.loc[i, "BR_RP"] = 1.25 * B_V
+
                     if B_V < 1:
-                        dx.Gmag.iloc[i] = db.Vmag.iloc[i] - (0.05 + 0.35 * B_V)
+                        dx.loc[i, "Gmag"] = db.Vmag.iloc[i] - (0.05 + 0.35 * B_V)
                     if B_V >= 1:
-                        dx.Gmag.iloc[i] = db.Vmag.iloc[i] - (0.35 + 0.05 * B_V)
+                        dx.loc[i, "Gmag"] = db.Vmag.iloc[i] - (0.35 + 0.05 * B_V)
                 # Concatenate data frames
                 df = pd.concat([df, dx])
 
@@ -1201,10 +1202,11 @@ General notes:
                     try:
                         df0 = pd.read_feather(sims)
                     except FileNotFoundError:
-                        errorcode('error', f'No stars found on CCD {ccd} of {string} {group}.1')
+                        # errorcode('error', f'No stars found on CCD {ccd} of {string} {group}.1')
+                        continue
                     else:
                         df = pd.concat([df, df0])
-                                                    
+
             # Drop a few columns
             df = df.drop(columns=['starID', 'flux', 'xCCD', 'yCCD', 'xFP', 'yFP', 'rOA'])
 
@@ -1229,11 +1231,12 @@ General notes:
                     # Assuming M0 dwarfs for stars
                     if self.verbose > 2:
                         print(f'\nDEBUG: Replacing BP_RP = NaN with 2.0 (mean M0 dwarf star)')
-                    df.BP_RP[df.BP_RP.isna()] = 2.0
+                    df.loc[df.BP_RP.isna(), "BP_RP"] = 2.0
 
             # Convert Gmag to Pmag
-            df = df.rename(columns={'Pmag': 'Gmag'})
+            df = df.rename(columns={'Pmag': 'Gmag'}) # TODO: There is no Pmag to renoame
             dex = df.columns.get_loc('Gmag')
+
             if self.quasar:
                 df.insert(dex, 'Pmag', ut.passbandConversionG2P(df.Gmag, df.BP_RP))
                 pass
@@ -1246,7 +1249,7 @@ General notes:
                 df.insert(dex+2, 'PRmag', PRmag)
 
             # Remove stars with bad colour solutions
-            df.BP_RP.loc[df[(df.BP_RP == 2.000)].index] = np.nan
+            df.loc[(df.BP_RP == 2.000), "BP_RP"] = np.nan
                 
             # Add distances [pc]
             dex = df.columns.get_loc('plx_err'); df.insert(dex+1, 'd', 1/(df.plx/1e3))
