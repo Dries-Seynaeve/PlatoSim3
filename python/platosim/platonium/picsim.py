@@ -1234,11 +1234,11 @@ General notes:
                     df.loc[df.BP_RP.isna(), "BP_RP"] = 2.0
 
             # Convert Gmag to Pmag
-            df = df.rename(columns={'Pmag': 'Gmag'}) # TODO: There is no Pmag to renoame
             dex = df.columns.get_loc('Gmag')
 
             if self.quasar:
-                df.insert(dex, 'Pmag', ut.passbandConversionG2P(df.Gmag, df.BP_RP))
+                df.insert(dex, 'Gmag', ut.passbandConversionG2P(df.Gmag, df.BP_RP))
+                df = df.rename(columns={'Pmag': 'Gmag'})
                 pass
             else:
                 Pmag  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
@@ -1247,7 +1247,7 @@ General notes:
                 df.insert(dex,   'Pmag',  Pmag)
                 df.insert(dex+1, 'PBmag', PBmag)
                 df.insert(dex+2, 'PRmag', PRmag)
-
+                
             # Remove stars with bad colour solutions
             df.loc[(df.BP_RP == 2.000), "BP_RP"] = np.nan
                 
