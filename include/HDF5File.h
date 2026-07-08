@@ -35,6 +35,8 @@ class HDF5File
 
         bool hasGroup(string groupName);
         void createGroup(string groupName);
+        void createGroup(string groupName, string arrayName, hsize_t dims[3],
+                          const H5::PredType &type);
 
         bool hasDataset(string groupName, string datasetName);
 
@@ -50,8 +52,11 @@ class HDF5File
         virtual void writeArray(string groupName, string arrayName, unsigned int* array, int size);
         virtual void writeArray(string groupName, string arrayName, float*        array, int size);
         virtual void writeArray(string groupName, string arrayName, double*       array, int size);
-        template<typename T>
-        void writeArray(string groupName, string arrayName, arma::Mat<T>& A);
+        template <typename T>
+        void writeArray(string groupName, string arrayName, arma::Mat<T> &A);
+        template <typename T>
+        void writeArray(string groupName, string arrayName, int timeStep,
+                         arma::Mat<T> &data);
         template<typename T>
         static H5::PredType getPredType(arma::Mat<T>& A);
 

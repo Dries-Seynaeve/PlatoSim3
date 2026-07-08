@@ -3501,8 +3501,16 @@ void Detector::initHDF5Groups()
 
     if (writeBiasMaps)
       {
-	hdf5File.createGroup("/BiasMapsLeft");
-	hdf5File.createGroup("/BiasMapsRight");
+        hsize_t dim[3] = {
+            static_cast<hsize_t>(finalExposureNr - beginExposureNr),
+            static_cast<hsize_t>(numRowsBiasMap),
+            static_cast<hsize_t>(numColumnsBiasMap)};
+
+	H5::PredType type = H5::PredType::NATIVE_UINT;
+
+        hdf5File.createGroup("/BiasMapsLeft", "Bias", dim, type);
+        hdf5File.createGroup("/BiasMapsRight", "Bias", dim, type);
+
       }
     
     if (writeSmearingMaps)
@@ -3644,25 +3652,16 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
       if (numRowsSmearingMap != 0){hdf5File.writeSmearingMap(smearingMap, includeQuantisation, exposureNr);}
     }
 
-
     if (writeBiasMaps)
     {
-        // Clear the string stream and compose the bias map name
-
-        myStream.str(string());      // insert empty string
-        myStream.clear();            // clear eof bit
-
-        myStream << "biasMap" << setfill('0') << setw(7) << exposureNr;
-        string biasMapName = myStream.str();
-
         // Add the bias map to the "BiasMaps" group
 
         if (!includeQuantisation)
         {
             // Write the float array to HDF5
 
-            hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
-            hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+	    hdf5File.writeArray("/BiasMapsLeft", "Bias", exposureNr, biasMapLeft);
+	    hdf5File.writeArray("/BiasMapsRight", "Bias", exposureNr, biasMapRight);
         }
         else
         {
@@ -3679,10 +3678,10 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             // Convert the float matrix to an unsigned uint16_t matrix
 
             arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapLeft);
-            hdf5File.writeArray("/BiasMapsLeft", biasMapName, uintMap);
+            hdf5File.writeArray("/BiasMapsLeft", "Bias", exposureNr, uintMap);
 
             uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapRight);
-            hdf5File.writeArray("/BiasMapsRight", biasMapName, uintMap);
+            hdf5File.writeArray("/BiasMapsRight", "Bias", exposureNr, uintMap);
         }
     }
 

@@ -2957,3 +2957,119 @@ bool fileExists(string filename)
         return false;
     }
 }
+
+
+
+void HDF5File::createGroup(string groupName, string arrayName, hsize_t dims[3], const H5::PredType &type)
+{
+    // Make sure the path of the group starts with "/" (i.e. the root of the
+    // folder)
+    if (!groupName.compare(0, 1, "/"))
+        groupName.insert(0, "/");
+
+    // Find the parent group
+    // E.g. if the groupName is "/my/path/to/group1" then the parent group is
+    //      "/my/path/to" and the subgroup is "group1".
+    auto position = groupName.find_last_of("/");
+    string parentGroupName = groupName.substr(0, position);
+    string subGroupName = groupName.substr(position + 1);
+
+    // If the parent group name is empty, it means that the group should be
+    // placed in the root group. In that case, make sure that the parentGroupName
+    // is "/".
+    if (parentGroupName.empty())
+    {
+        parentGroupName = "/";
+    }
+
+    // Open the parent group
+    H5::Group parentGroup = file->openGroup(parentGroupName.c_str());
+    parentGroup.createGroup(groupName.c_str());
+
+    // Fill the group with an array of the correct dimension
+    string arrayPath = groupName + "/" + arrayName;
+    H5::DataSpace fileSpace(3, dims); // defines the shape of the data
+
+    // to fill the dataset efficiently we can define the chunks that will
+    // fill the array.
+    hsize_t chunkDims[3] = {1, dims[1], dims[2]};
+
+    H5::DSetCreatPropList propList;
+    propList.setChunk(3, chunkDims);
+    propList.setDeflate(4); // compression of chunks
+
+    // we start by making room for the image array
+    file->createDataSet(arrayPath.c_str(), type,
+                        fileSpace, propList);
+}
+
+
+// HDF5File::writeArray() for a 2D float armadillo array
+//
+// PURPOSE: write a 2D armadillo array to a specifigied group in the HDF5 file
+//          for a certain time step.
+// NOTE: the function assumes that the specified group contains a 3D array. This
+//       array is filled as {timestep, data}. (where data is the 2D armadillo
+//       array).
+//
+// OUTPUT: None
+template <typename T>
+void HDF5File::writeArray(string groupName, string arrayName, int timeStep,
+                          arma::Mat<T> &data)
+{
+
+    H5::PredType predType = getPredType(data);
+
+    // Sanity check if the group exists
+    if (!hasGroup(groupName))
+    {
+      throw H5FileException("HDF5File:writeArray(): Unknown group (" +
+			    groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    if (!hasDataset(groupName, arrayName))
+    {
+      throw H5FileException("HDF5File:writeArray(): Unknown dataset (" + arrayName +
+			    ") in group " + groupName + " of HDF5 file " + file->getFileName());
+    }
+
+    H5::Group group = file->openGroup(groupName.c_str());
+    H5::DataSet dataset = group.openDataSet(arrayName.c_str());
+
+    // Read back the dataset's shape
+    H5::DataSpace fileSpace = dataset.getSpace();
+    hsize_t dims[3];
+    fileSpace.getSimpleExtentDims(dims);
+
+    // Sanity check of the shape of the array
+    if (!((data.n_rows == static_cast<int>(dims[1])) && (data.n_cols == static_cast<int>(dims[2]))))
+    {
+      throw H5FileException("HDF5File::writeArray(): encountered array with wrong shape,\nreceived shape (" + 
+			    to_string(data.n_rows) + ", " + to_string(data.n_cols) + "), but expected shape (" + 
+			    to_string(dims[1]) + ", " + to_string(dims[2]) + ")");
+
+    }
+
+    hsize_t offset[3] = {static_cast<hsize_t>(timeStep), 0, 0};
+    hsize_t count[3] = {1, dims[1], dims[2]};
+
+    fileSpace.selectHyperslab(H5S_SELECT_SET, count, offset);
+    H5::DataSpace memSpace(3, count);
+
+    // Copy the Armadillo array to a vector
+    vector<T> temp(data.n_rows * data.n_cols);
+    for (int n = 0; n < data.n_rows; n++) {
+      for (int k = 0; k < data.n_cols; k++) {
+        const int nk = n * data.n_cols + k;
+	temp[nk] = data(n, k);
+      }
+    }
+
+    dataset.write(temp.data(), predType, memSpace, fileSpace);
+}
+
+
+template void HDF5File::writeArray<float>(std::string, std::string, int,
+                                           arma::Mat<float> &);
+template void HDF5File::writeArray<uint16_t>(
+    std::string, std::string, int, arma::Mat<uint16_t>&);
