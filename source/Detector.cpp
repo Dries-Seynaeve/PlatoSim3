@@ -317,6 +317,15 @@ Detector::~Detector()
         writeBadPixelMapToHDF5();
     }
 
+    if (writeCosmics)
+    {
+      subFieldCosmics.offsetsDataset.write(subFieldCosmics.offsets.data(), H5::PredType::NATIVE_UINT64);
+      smearingCosmics.offsetsDataset.write(smearingCosmics.offsets.data(), H5::PredType::NATIVE_UINT64);
+      leftBiasCosmics.offsetsDataset.write(leftBiasCosmics.offsets.data(), H5::PredType::NATIVE_UINT64);
+      rightBiasCosmics.offsetsDataset.write(rightBiasCosmics.offsets.data(), H5::PredType::NATIVE_UINT64);
+
+    }
+
     flushOutput();
     delete frontEndElectronics;
 }
