@@ -3500,46 +3500,51 @@ void Detector::initHDF5Groups()
 {
     Log.debug("Detector: initialising HDF5 groups");
 
-    //hdf5File.createGroup("/Time");
+    hsize_t exposures = static_cast<hsize_t>(finalExposureNr - beginExposureNr);
 
     if (writePixelMaps)
       {
-	hdf5File.createGroup("/Images");
+	hsize_t dim[3] = {exposures,
+			  static_cast<hsize_t>(numRowsPixelMap),
+			  static_cast<hsize_t>(numColumnsPixelMap)};
+	H5::PredType type = H5::PredType::NATIVE_UINT;
+
+	hdf5File.createGroup("/Images", "subfield", dim, type);
       }
 
     if (writeBiasMaps)
-      {
+    {
         hsize_t dim[3] = {
-            static_cast<hsize_t>(finalExposureNr - beginExposureNr),
-            static_cast<hsize_t>(numRowsBiasMap),
-            static_cast<hsize_t>(numColumnsBiasMap)};
+	  exposures,
+	  static_cast<hsize_t>(numRowsBiasMap),
+	  static_cast<hsize_t>(numColumnsBiasMap)};
 
 	H5::PredType type = H5::PredType::NATIVE_UINT;
 
         hdf5File.createGroup("/BiasMapsLeft", "Bias", dim, type);
         hdf5File.createGroup("/BiasMapsRight", "Bias", dim, type);
 
-      }
+    }
     
     if (writeSmearingMaps)
-      {
+    {
 	hdf5File.createGroup("/SmearingMaps");
-      }
+    }
 
     if (writeThroughputMaps)
-      {
+    {
 	hdf5File.createGroup("/ThroughputMaps");
-      }
+    }
    
     if (writeBackgroundMap || constantSkyBackground)
-      {
+    {
         hdf5File.createGroup("/BackgroundMap");
-      }    
+    }    
     
     if (writeCTI && (CTImodel == "Short2013"))
-      {
+    {
         hdf5File.createGroup("/CTI");
-      }
+    }
 
     if (writeCosmics)
     {
@@ -3636,8 +3641,8 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         if (!includeQuantisation)
         {
             // Write the float array to HDF5
-
-            hdf5File.writeArray("/Images", imageName, pixelMap);
+	    
+	    hdf5File.writeArray("/Images", "subfield", exposureNr, pixelMap);
 
         }
         else
@@ -3654,7 +3659,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             // Convert the float matrix to an unsigned uint16_t matrix
 
             arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(pixelMap);
-            hdf5File.writeArray("/Images", imageName, uintMap);
+	    hdf5File.writeArray("/Images", "subfield", exposureNr, pixelMap);
         }
     }
 
