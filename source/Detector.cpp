@@ -907,8 +907,7 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     if (writeCosmics)
     {
-            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
-            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+      writeCosmicHitsToHDF5(exposureNr);
     }
 
     // Advance the internal clock
@@ -3534,12 +3533,16 @@ void Detector::initHDF5Groups()
       }
 
     if (writeCosmics)
-      {
-        hdf5File.createGroup("/Cosmics");
-        hdf5File.createGroup("/Cosmics/SubField");
-        hdf5File.createGroup("/Cosmics/SmearingMap");
-        hdf5File.createGroup("/Cosmics/BiasMapLeft");
-        hdf5File.createGroup("/Cosmics/BiasMapRight");
+    {
+          hdf5File.createGroup("/Cosmics");
+          subFieldCosmics = hdf5File.createGroupForCosmics(
+              "/SubField", exposures);
+          smearingCosmics = hdf5File.createGroupForCosmics(
+              "/SmearingMap", exposures);
+          leftBiasCosmics = hdf5File.createGroupForCosmics(
+              "/BiasMapLeft", exposures);
+          rightBiasCosmics = hdf5File.createGroupForCosmics(
+	      "/BiasMapRight", exposures);
       }
 
     if (includeStraylight)
@@ -3785,144 +3788,21 @@ void Detector::makeSubGroupForCosmics(string field, int exposureNr)
  * /params exposureNr:   Sequential number of the exposure
  * /note: This function gets called when groupByExposure is true.
  */
-void Detector::writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr)
+void Detector::writeCosmicHitsToHDF5(int exposureNr)
 {
 
    if (includeCosmicsInSubField && writeCosmics)
    {
-        hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "SubField",
-						 cosmicEntryRowSubfield,
-						 cosmicEntryColSubfield,
-						 cosmicsTrailsSubfield,
-						 cosmicsAnglesSubfield,
-						 cosmicsIntensitiesSubfield,
-						 rowsOfCosmicsInSubField,
-						 columnsOfCosmicsInSubField,
-						 fluxOfCosmicsInSubField);
-   }
-
-   if (includeCosmicsInSmearingMap && writeCosmics)
-   {
-        hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "SmearingMap",
-						 cosmicEntryRowSmearingMap,
-						 cosmicEntryColSmearingMap,
-						 cosmicsTrailsSmearingMap,
-						 cosmicsAnglesSmearingMap,
-						 cosmicsIntensitiesSmearingMap,
-						 rowsOfCosmicsInSmearingMap,
-						 columnsOfCosmicsInSmearingMap,
-						 fluxOfCosmicsInSmearingMap);
-   }
-
-   if (includeCosmicsInBiasMap && writeCosmics)
-   {
-       hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "BiasMapLeft",
-						cosmicEntryRowBiasMapLeft,
-						cosmicEntryColBiasMapLeft,
-						cosmicsTrailsBiasMapLeft,
-						cosmicsAnglesBiasMapLeft,
-						cosmicsIntensitiesBiasMapLeft,
-						rowsOfCosmicsInBiasMapLeft,
-						columnsOfCosmicsInBiasMapLeft,
-						fluxOfCosmicsInBiasMapLeft);
-
-       hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "BiasMapRight",
-						cosmicEntryRowBiasMapRight,
-						cosmicEntryColBiasMapRight,
-						cosmicsTrailsBiasMapRight,
-						cosmicsAnglesBiasMapRight,
-						cosmicsIntensitiesBiasMapRight,
-						rowsOfCosmicsInBiasMapRight,
-						columnsOfCosmicsInBiasMapRight,
-						fluxOfCosmicsInBiasMapRight);
-   }
-}
-
-
-
-
-
-
-
-
-/**
- * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
- * calls Detector::writeCosmicsWhithoutGroupByExposure, if cosmics is included
- * in the repective Field.
- *
- * /params exposureNr:   Sequential number of the exposure
- * /note: This function gets called when groupByExposure is false.
- */
-void Detector::writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr)
-{
-   bool makeSubGroup = false;
-
-   if ((cosmicSubgroupIndex < (exposureNr / 1000)))
-   {
-            cosmicSubgroupIndex = exposureNr / 1000;
-            makeSubGroup = true;
-   }
-
-   // Initialize the subgroup if needed
-
-   if (makeSubGroup && writeCosmics)
-   {
-           if (includeCosmicsInSubField){makeSubGroupForCosmics("SubField", exposureNr);}
-           if (includeCosmicsInSmearingMap){makeSubGroupForCosmics("SmearingMap", exposureNr);}
-           if (includeCosmicsInBiasMap)
-           {
-               makeSubGroupForCosmics("BiasMapLeft", exposureNr);
-               makeSubGroupForCosmics("BiasMapRight", exposureNr);
-           }
-   }
-
-   if (includeCosmicsInSubField && writeCosmics)
-   {
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SubField",
-						    cosmicEntryRowSubfield,
-						    cosmicEntryColSubfield,
-						    cosmicsTrailsSubfield,
-						    cosmicsAnglesSubfield,
-						    cosmicsIntensitiesSubfield,
-						    rowsOfCosmicsInSubField,
-						    columnsOfCosmicsInSubField,
-						    fluxOfCosmicsInSubField);
-   }
-
-   if (includeCosmicsInSmearingMap && writeCosmics)
-   {
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SmearingMap",
-						    cosmicEntryRowSmearingMap,
-						    cosmicEntryColSmearingMap,
-						    cosmicsTrailsSmearingMap,
-						    cosmicsAnglesSmearingMap,
-						    cosmicsIntensitiesSmearingMap,
-						    rowsOfCosmicsInSmearingMap,
-						    columnsOfCosmicsInSmearingMap,
-						    fluxOfCosmicsInSmearingMap);
-   }
-
-   if (includeCosmicsInBiasMap && writeCosmics)
-   {
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapLeft",
-						    cosmicEntryRowBiasMapLeft,
-						    cosmicEntryColBiasMapLeft,
-						    cosmicsTrailsBiasMapLeft,
-						    cosmicsAnglesBiasMapLeft,
-						    cosmicsIntensitiesBiasMapLeft,
-						    rowsOfCosmicsInBiasMapLeft,
-						    columnsOfCosmicsInBiasMapLeft,
-						    fluxOfCosmicsInBiasMapLeft);
-
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapRight",
-						    cosmicEntryRowBiasMapRight,
-						    cosmicEntryColBiasMapRight,
-						    cosmicsTrailsBiasMapRight,
-						    cosmicsAnglesBiasMapRight,
-						    cosmicsIntensitiesBiasMapRight,
-						    rowsOfCosmicsInBiasMapRight,
-						    columnsOfCosmicsInBiasMapRight,
-						    fluxOfCosmicsInBiasMapRight);
+       hdf5File.writeCosmics(subFieldCosmics,
+			     exposureNr,
+			     cosmicEntryRowSubfield,
+			     cosmicEntryColSubfield,
+			     cosmicsTrailsSubfield,
+			     cosmicsAnglesSubfield,
+			     cosmicsIntensitiesSubfield,
+			     rowsOfCosmicsInSubField,
+			     columnsOfCosmicsInSubField,
+			     fluxOfCosmicsInSubField);
    }
 }
 

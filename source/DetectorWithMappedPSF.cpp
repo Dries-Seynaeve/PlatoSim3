@@ -530,8 +530,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     if (writeCosmics)
     {
-            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
-            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+        writeCosmicHitsToHDF5(exposureNr);
     }
 
     // Advance the internal clock

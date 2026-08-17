@@ -134,6 +134,11 @@ class Detector: public HDF5Writer
         void generateBadPixelMap();
         void applyBadPixelMap();
 
+        RaggedArray subFieldCosmics;
+        RaggedArray smearingCosmics;
+        RaggedArray leftBiasCosmics;
+        RaggedArray rightBiasCosmics;
+
         StrayLight *straylight;
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
@@ -149,8 +154,8 @@ class Detector: public HDF5Writer
         // TODO implement writing of time here
         //virtual void writeTimeToHDF5(int exposureNr);
         virtual void writePixelMapsToHDF5(int exposureNr);
-        virtual void writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr);
-        virtual void writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr);
+
+        virtual void writeCosmicHitsToHDF5(int exposureNr);
         virtual void writeBackgroundMapToHDF5();
         virtual void writeCTIToHDF5();
         void writeBadPixelMapToHDF5();

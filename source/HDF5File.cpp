@@ -222,6 +222,89 @@ bool HDF5File::hasDataset(string groupName, string datasetName)
 
 
 
+/**
+ *
+ * TODO: We should set up the groups for the cosmics
+ *
+ */
+RaggedArray HDF5File::createGroupForCosmics(string subGroupName, hsize_t numberOfExposures)
+{
+    // Make sure the path of the group starts with a "/" (i.e. the root folder)
+
+    if (!subGroupName.compare(0, 1, "/"))
+    {
+        subGroupName.erase(0, 1);
+    }
+
+    // Open the parent group
+
+    H5::Group parentGroup = file->openGroup("/Cosmics");
+
+    // Create the new subgroup inside the parent group.
+
+    H5::Group group = parentGroup.createGroup(subGroupName.c_str());
+
+    // We need to create data that will persiset over multiple exposures
+
+    RaggedArray data;
+
+    // The first persistend data is the offsets table
+    // for which the size is known (number of exposures + 1)
+
+    hsize_t offDims[1] = { numberOfExposures+1 };
+    H5::DataSpace offSpace(1, offDims);
+    data.offsetsDataset = group.createDataSet("/Cosmics/" + subGroupName + "/offsets", H5::PredType::NATIVE_UINT64, offSpace);
+
+    data.offsets.resize(numberOfExposures + 1);
+    data.offsets[0] = 0;
+
+    // Documentation for the hdf5 file, so it is available from the hdf5 file
+    // viewer.
+    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
+    H5::DataSpace attrSpace(H5S_SCALAR);
+    
+    const char* text = "Ragged array since not every exposure has the same amount of cosmics.\n "
+                       "For exposure i, each field's values for that exposures are:\n\n "
+                       "field[offsets[i]:offsets[i+1]].\n\nRemark that: "
+                       "offsets[0] == 0 and an exposure with no entries has offsets[i] == offsets[i+1].";
+
+    H5::Attribute attr = group.createAttribute("description", strType, attrSpace);
+    attr.write(strType, &text);
+
+
+    // Secondly we initialize the data the will form the rows of our ragged
+    // array. We don't know the initial size of these array, but we will add to
+    // the these array during the simulation. The type of data that is saved is
+    // specified by the key values
+    
+
+    hsize_t initDims[1] = {0};
+    hsize_t maxDims[1] = {H5S_UNLIMITED};
+    H5::DataSpace space(1, initDims, maxDims);
+
+    hsize_t chunkDims[1] = {4096}; // TODO WHy?
+    H5::DSetCreatPropList plist;
+    plist.setChunk(1, chunkDims);
+    plist.setDeflate(4);
+
+    vector<string> uintFieldNames = {"entryRows", "entryColumns", "rows", "columns"};
+    vector<string> doubleFieldNames = {"trailLengths", "entryAngles", "intensities", "flux"};
+
+    for (const auto& name : uintFieldNames)
+    {
+      data.uintDatasets[name] = group.createDataSet("/Cosmics/" + subGroupName + "/" + name,
+						      H5::PredType::NATIVE_UINT, space, plist);
+    }
+
+    for (const auto& name : doubleFieldNames)
+    {
+      data.doubleDatasets[name] = group.createDataSet("/Cosmics/" + subGroupName + "/" + name,
+                            H5::PredType::NATIVE_DOUBLE, space, plist);
+    }
+
+    return data;
+}
+
 
 
 /**
@@ -243,7 +326,7 @@ void HDF5File::createGroup(string groupName)
 {
     // Make sure the path of the group starts with a "/" (i.e. the root folder)
 
-    if (!groupName.compare(0, 1, "/"))
+    if (groupName.compare(0, 1, "/"))
     {
         groupName.insert(0, "/");
     }
@@ -2789,145 +2872,80 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
 }
 
 
+template<typename T>
+void HDF5File::addDataToRaggedArray(map<string, vector<T>>& data, map<string, H5::DataSet>& datasets, const hsize_t offsetVal, const hsize_t n)
+{
+    const H5::PredType &dataType = Hdf5PredType<T>::get();
 
+    hsize_t newSize[1] = { offsetVal + n };
+    hsize_t offset[1]  = {offsetVal};
+    hsize_t count[1]   = { n };
 
+    for (const auto& [name, values] : data)
+    {
+      H5::DataSet& dataset = datasets.at(name);
+      dataset.extend(newSize);
 
+      H5::DataSpace fileSlab = dataset.getSpace();
+      fileSlab.selectHyperslab(H5S_SELECT_SET, count, offset);
+      H5::DataSpace memSpace(1, count);
 
-
-
-
-
-
-
-
-
+      dataset.write(values.data(), dataType, memSpace, fileSlab);
+    }
+}
 
 
 
 
 /**
  * /brief: save the cosmics to the HDF5 file.
- * /note: This functin gets called when groupByExposure is true.
  *
  */
-void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
-                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
-                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+void HDF5File::writeCosmics(
+    RaggedArray &array, int exposureNr, vector<unsigned int> &entryRows,
+    vector<unsigned int> &entryColumns, vector<double> &trailLengths,
+    vector<double> &entryAngles, vector<double> &intensities,
+    vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
-    string imageName;
+    hsize_t newSize[1] = { array.runningTotal + entryRows.size() };
+    hsize_t offset[1] = {array.runningTotal};
+    hsize_t count[1] = {entryRows.size()};
 
-    // Define the name of sub group for every exposure.
+    map<string, vector<unsigned int>> uintData = { {"entryRows",  entryRows}, // 
+						   {"entryColumns", entryColumns},
+						   {"rows", rows},
+						   {"columns", cols} };
+    map<string, vector<double>> doubleData = { {"trailLengths", trailLengths},
+					      {"entryAngles", entryAngles},
+					      {"intensities", intensities},
+					      {"flux", flux} };
 
-    stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
-    imageName = "/Cosmics/" + field + myStream.str();
+    size_t n = uintData.empty() ? doubleData.begin()->second.size()
+                                   : uintData.begin()->second.size();
 
-    // add the columns vector
+    map<string, H5::DataSet> uintDataset = array.uintDatasets;
+    map<string, H5::DataSet> doubleDataset = array.doubleDatasets;
+    
+    addDataToRaggedArray(uintData, uintDataset, array.runningTotal, n);
+    addDataToRaggedArray(doubleData, doubleDataset, array.runningTotal, n);
 
-    createGroup(imageName);
-    if (rows.empty() && cols.empty())
-    {
-        vector<unsigned int> noHitsUnsignedInt{0};
-        vector<double> noHitsDouble{-1.0};
-        writeArray(imageName, "entryRows",    noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryColumns", noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryAngles",  noHitsDouble.data(), 1);
-        writeArray(imageName, "intensities",  noHitsDouble.data(), 1);
-        writeArray(imageName, "trailLengths", noHitsDouble.data(), 1);
-        writeArray(imageName, "rows",         noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "columns",      noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "flux",         noHitsDouble.data(), 1);
-    }
-    else
-    {
-        writeArray(imageName, "entryRows",    entryRows.data(), entryRows.size());
-        writeArray(imageName, "entryColumns", entryColumns.data(), entryColumns.size());
-        writeArray(imageName, "entryAngles",  entryAngles.data(), entryAngles.size());
-        writeArray(imageName, "intensities",  intensities.data(), intensities.size());
-        writeArray(imageName, "trailLengths", trailLengths.data(), trailLengths.size());
-        writeArray(imageName, "rows",         rows.data(), rows.size());
-        writeArray(imageName, "columns",      cols.data(), cols.size());
-        writeArray(imageName, "flux",         flux.data(), flux.size());
-    }
+    // // We add the double values
+    // for (const auto& [name, values] : doubleData)
+    // {
+    //   H5::DataSet& dataset = array.doubleDatasets.at(name);
+    //   dataset.extend(newSize);
+
+    //   H5::DataSpace fileSlab = dataset.getSpace();
+    //   fileSlab.selectHyperslab(H5S_SELECT_SET, count, offset);
+    //   H5::DataSpace memSpace(1, count);
+
+    //   dataset.write(values.data(), H5::PredType::NATIVE_DOUBLE, memSpace, fileSlab);
+    // }
+
+    array.runningTotal += entryRows.size();
+    array.offsets[exposureNr + 1] = array.runningTotal;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * /brief: save the cosmics to the HDF5 file.
- * /note: This functin gets called when groupByExposure is false.
- *
- */
-void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
-                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
-                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
-{
-    string imageGroup;
-    string imageName;
-
-    // Create sub group so that there are no more then 1000 exposures in one sub group
-    
-    stringstream subgroupStream;
-    subgroupStream << "/Exposure" << setfill('0') << setw(3) << exposureNr / 1000;
-
-    // Define the name of sub group for every exposure.
-
-    stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
-    imageGroup = "/Cosmics/" + field + subgroupStream.str();
-    imageName  = imageGroup + myStream.str();
-    
-    // add the columns vector
-
-    createGroup(imageGroup);
-    createGroup(imageName);
-    
-    if (rows.empty() && cols.empty())
-    {
-        vector<unsigned int> noHitsUnsignedInt{0};
-        vector<double> noHitsDouble{-1.0};
-        writeArray(imageName, "entryRows",    noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryColumns", noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryAngles",  noHitsDouble.data(), 1);
-        writeArray(imageName, "intensities",  noHitsDouble.data(), 1);
-        writeArray(imageName, "trailLengths", noHitsDouble.data(), 1);
-        writeArray(imageName, "rows",         noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "columns",      noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "flux",         noHitsDouble.data(), 1);
-    }
-    else
-    {
-        writeArray(imageName, "entryRows",    entryRows.data(), entryRows.size());
-        writeArray(imageName, "entryColumns", entryColumns.data(), entryColumns.size());
-        writeArray(imageName, "entryAngles",  entryAngles.data(), entryAngles.size());
-        writeArray(imageName, "intensities",  intensities.data(), intensities.size());
-        writeArray(imageName, "trailLengths", trailLengths.data(), trailLengths.size());
-        writeArray(imageName, "rows",         rows.data(), rows.size());
-        writeArray(imageName, "columns",      cols.data(), cols.size());
-        writeArray(imageName, "flux",         flux.data(), flux.size());
-    }
-
-}
-
-
-
-
-
-
-
-
 
 
 

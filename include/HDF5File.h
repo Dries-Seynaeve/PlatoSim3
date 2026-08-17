@@ -20,6 +20,15 @@
 
 using namespace std;
 
+struct RaggedArray
+{
+    map<string, H5::DataSet> uintDatasets;  // datasets, keyed by field name of type unsigned int
+    map<string, H5::DataSet> doubleDatasets; // datasets, keyed by field name of type float
+    H5::DataSet offsetsDataset;
+
+    std::vector<uint64_t> offsets;
+    hsize_t runningTotal = 0;
+};
 
 class HDF5File
 {
@@ -35,6 +44,7 @@ class HDF5File
 
         bool hasGroup(string groupName);
         void createGroup(string groupName);
+        RaggedArray createGroupForCosmics(string groupName, hsize_t numberExposures);
         void createGroup(string groupName, string arrayName, hsize_t dims[3],
                           const H5::PredType &type);
 
@@ -91,14 +101,10 @@ class HDF5File
         void writeExtendedGhostByExposure(map<double, map<unsigned int, array<double, 7>>>&
                                  detectedExtendedGhostInfo, int beginExposureNr);
         void writeExtendedGhostByStarID(map<double, map<unsigned int, array<double, 7>>>& detectedExtendedGhostInfo);
-        void writeCosmicsWhenGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
+        void writeCosmics(RaggedArray& array, int exposureNr, vector<unsigned int> &entryRows,
                           vector<unsigned int> &entryColumns, vector<double> &trailLengths,
                           vector<double> &entryAngles, vector<double> &intensities, vector<unsigned int> &rows,
-                                                 vector<unsigned int> &cols, vector<double> &flux);
-        void writeCosmicsWhithoutGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
-                          vector<unsigned int> &entryColumns, vector<double> &trailLengths,
-                          vector<double> &entryAngles, vector<double> &intensities, vector<unsigned int> &rows,
-                                                 vector<unsigned int> &cols, vector<double> &flux);
+			  vector<unsigned int> &cols, vector<double> &flux);
 
     protected:
 
@@ -107,13 +113,27 @@ class HDF5File
         bool noFile;
 
     private:
-
+        template<typename T>
+	void addDataToRaggedArray(map<string, vector<T>>& data, map<string, H5::DataSet>& datasets, const hsize_t offsetVal, const hsize_t n);
 
 };
 
 
 
 bool fileExists(string filename);
+template <typename T> struct Hdf5PredType;
+
+template <>
+struct Hdf5PredType<unsigned int>
+{
+  static const H5::PredType &get() { return H5::PredType::NATIVE_UINT; }
+};
+
+template <>
+struct Hdf5PredType<double>
+{
+  static const H5::PredType &get() { return H5::PredType::NATIVE_DOUBLE; }
+};
 
 
 #endif
