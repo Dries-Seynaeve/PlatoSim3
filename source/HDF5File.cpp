@@ -1644,7 +1644,7 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 //
 // OUTPUT: None
 template<typename T>
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
+void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<T>& A)
 {
     // Sanity check on the shape of the array
 
@@ -1727,7 +1727,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
  * \return PredType to use to write the given matrix to an HDF5file
  */
 template <class T>
-H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
+H5::PredType HDF5File::getPredType(const arma::Mat<T>& A)
 {
     if(typeid(T) == typeid(float))
         return H5::PredType::NATIVE_FLOAT;
@@ -1740,7 +1740,7 @@ H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
 
 
 
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A)
+void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<uint16_t>& A)
 {
     // Sanity check on the shape of the array
 
@@ -1812,7 +1812,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t
 
 
 
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
+void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<float>& A)
 {
     // Sanity check on the shape of the array
 
@@ -3033,7 +3033,7 @@ void HDF5File::createGroup(string groupName, string arrayName, hsize_t dims[3], 
 // OUTPUT: None
 template <typename T>
 void HDF5File::writeArray(string groupName, string arrayName, int timeStep,
-                          arma::Mat<T> &data)
+                          const arma::Mat<T> &data)
 {
 
     H5::PredType predType = getPredType(data);
@@ -3088,6 +3088,6 @@ void HDF5File::writeArray(string groupName, string arrayName, int timeStep,
 
 
 template void HDF5File::writeArray<float>(std::string, std::string, int,
-                                           arma::Mat<float> &);
+                                           const arma::Mat<float> &);
 template void HDF5File::writeArray<uint16_t>(
-    std::string, std::string, int, arma::Mat<uint16_t>&);
+    std::string, std::string, int, const arma::Mat<uint16_t>&);

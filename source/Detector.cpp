@@ -3503,13 +3503,15 @@ void Detector::initHDF5Groups()
     hsize_t exposures = static_cast<hsize_t>(finalExposureNr - beginExposureNr);
 
     if (writePixelMaps)
-      {
+    {
 	hsize_t dim[3] = {exposures,
 			  static_cast<hsize_t>(numRowsPixelMap),
 			  static_cast<hsize_t>(numColumnsPixelMap)};
-	H5::PredType type = H5::PredType::NATIVE_UINT;
 
-	hdf5File.createGroup("/Images", "subfield", dim, type);
+        H5::PredType type = includeQuantisation ? H5::PredType::NATIVE_UINT
+                                                : H5::PredType::NATIVE_FLOAT;
+
+        hdf5File.createGroup("/Images", "subfield", dim, type);
       }
 
     if (writeBiasMaps)
@@ -3519,21 +3521,34 @@ void Detector::initHDF5Groups()
 	  static_cast<hsize_t>(numRowsBiasMap),
 	  static_cast<hsize_t>(numColumnsBiasMap)};
 
-	H5::PredType type = H5::PredType::NATIVE_UINT;
+	H5::PredType type = includeQuantisation ? H5::PredType::NATIVE_UINT
+                                                : H5::PredType::NATIVE_FLOAT;
 
-        hdf5File.createGroup("/BiasMapsLeft", "Bias", dim, type);
-        hdf5File.createGroup("/BiasMapsRight", "Bias", dim, type);
+        hdf5File.createGroup("/BiasMapsLeft", "bias", dim, type);
+        hdf5File.createGroup("/BiasMapsRight", "bias", dim, type);
 
     }
-    
+
     if (writeSmearingMaps)
     {
-	hdf5File.createGroup("/SmearingMaps");
+      hsize_t dim[3] = {exposures,
+			static_cast<hsize_t>(numRowsSmearingMap),
+			static_cast<hsize_t>(numColumnsPixelMap)};
+
+      H5::PredType type = includeQuantisation ? H5::PredType::NATIVE_UINT
+	                                      : H5::PredType::NATIVE_FLOAT;
+      hdf5File.createGroup("/SmearingMaps", "smearing", dim, type);
     }
 
     if (writeThroughputMaps)
     {
-	hdf5File.createGroup("/ThroughputMaps");
+        hsize_t dim[3] = {exposures,
+			  static_cast<hsize_t>(numRowsSmearingMap),
+			  static_cast<hsize_t>(numColumnsPixelMap)};
+
+	H5::PredType type = H5::PredType::NATIVE_FLOAT;
+      
+	hdf5File.createGroup("/ThroughputMaps", "throughput", dim, type);
     }
    
     if (writeBackgroundMap || constantSkyBackground)
@@ -3622,89 +3637,51 @@ void Detector::writeBackgroundMapToHDF5()
 
 
 /**
- * \brief: Writes the pixel map for the HDF5 file.
+ * \brief: Writes the pixel map, smearing map, bias maps and throughput maps into the HDF5 file.
  *
  * \param exposureNr:   Sequential number of the exposure
  */
 void Detector::writePixelMapsToHDF5(int exposureNr)
 {
-    stringstream myStream;
-    if (writePixelMaps)
-    {
-        // Compose the image name
 
-        myStream << "image" << setfill('0') << setw(7) << exposureNr;
-        string imageName = myStream.str();
+    // Write the float arrays to HDF5
+    if (!includeQuantisation) {
 
         // Add the image to the "Images" group
-
-        if (!includeQuantisation)
-        {
-            // Write the float array to HDF5
-	    
+        if (writePixelMaps) {
 	    hdf5File.writeArray("/Images", "subfield", exposureNr, pixelMap);
-
-        }
-        else
-        {
-            // Write the pixel maps as 2-byte (16 bit) unsigned short integers.
-            // As a safety check, first check that the extrema of the map are indeed
-            // within the boundaries of such a data type.
-
-            if((pixelMap.min() < 0) || (pixelMap.max() >= (1 << 16)))
-            {
-                throw ConfigurationException("Detector: quantisation was applied but pixel map values are not in [0, 2^16[");
-            }
-
-            // Convert the float matrix to an unsigned uint16_t matrix
-
-            arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(pixelMap);
-	    hdf5File.writeArray("/Images", "subfield", exposureNr, pixelMap);
-        }
+	}
+	// Add the smearing map
+	if (writeSmearingMaps) {
+	    hdf5File.writeArray("/SmearingMaps", "smearing", exposureNr, smearingMap);
+	}
+	// Add the bias maps
+	if (writeBiasMaps) {
+	    hdf5File.writeArray("/BiasMapsLeft", "bias", exposureNr, biasMapLeft);
+	    hdf5File.writeArray("/BiasMapsRight", "bias", exposureNr, biasMapRight);
+	}
     }
 
-
-    if (writeSmearingMaps)
+    else
     {
-      if (numRowsSmearingMap != 0){hdf5File.writeSmearingMap(smearingMap, includeQuantisation, exposureNr);}
-    }
-
-    if (writeBiasMaps)
-    {
-        // Add the bias map to the "BiasMaps" group
-
-        if (!includeQuantisation)
-        {
-            // Write the float array to HDF5
-
-	    hdf5File.writeArray("/BiasMapsLeft", "Bias", exposureNr, biasMapLeft);
-	    hdf5File.writeArray("/BiasMapsRight", "Bias", exposureNr, biasMapRight);
-        }
-        else
-        {
-            if ((biasMapLeft.min() < 0) || (biasMapLeft.max() >= (1 << 16)))
-            {
-                throw ConfigurationException("Detector: quantisation was applied but pixel values in the left bias map are not in [0, 2^16[");
-            }
-
-            if ((biasMapRight.min() < 0) || (biasMapRight.max() >= (1 << 16)))
-            {
-                throw ConfigurationException("Detector: quantisation was applied but pixel values in the right bias map are not in [0,2^16[");
-            }
-
-            // Convert the float matrix to an unsigned uint16_t matrix
-
-            arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapLeft);
-            hdf5File.writeArray("/BiasMapsLeft", "Bias", exposureNr, uintMap);
-
-            uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapRight);
-            hdf5File.writeArray("/BiasMapsRight", "Bias", exposureNr, uintMap);
-        }
+        // Add the image to the "Images" group
+        if (writePixelMaps) {
+            hdf5File.writeArray("/Images", "subfield", exposureNr, floatToUint(pixelMap, "pixelMap"));
+	}
+	// Add the smearing map
+	if (writeSmearingMaps) {
+	   hdf5File.writeArray("/SmearingMaps", "smearing", exposureNr, floatToUint(smearingMap, "smearingMap"));
+	}
+	// Add the bias maps
+	if (writeBiasMaps) {
+	    hdf5File.writeArray("/BiasMapsLeft", "bias", exposureNr, floatToUint(biasMapLeft, "biasMapLeft"));
+	    hdf5File.writeArray("/BiasMapsRight", "bias", exposureNr, floatToUint(biasMapRight, "biasMapRight"));
+	}
     }
 
     if (writeThroughputMaps)
     {
-      hdf5File.writeThroughput(exposureNr, throughputMap);
+        hdf5File.writeThroughput(exposureNr, throughputMap);
     }
 }
 
@@ -3924,3 +3901,31 @@ void Detector::addStraylightToPixelMap(double time)
 
 
 };
+
+
+
+
+
+/**
+ *
+ * \brief: Converts the input map to a 2-byte unsinged short
+           Includes a safety check, first check that the extrema
+	   of the map are indeed within the boundaries of such a data type.
+ * 
+ */
+arma::Mat<uint16_t> floatToUint(arma::Mat<float> &A, string mapName)
+{
+    // Write the input map as 2-byte (16 bit) unsigned short integers.
+    // As a safety check, first check that the extrema of the map are indeed
+    // within the boundaries of such a data type.
+
+    if((A.min() < 0) || (A.max() >= (1 << 16)))
+    {
+        throw ConfigurationException("Detector: quantisation was applied but " + mapName + " values are not in [0, 2^16[");
+    }
+
+    // Convert the float matrix to an unsigned uint16_t matrix
+
+    arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(A);
+    return uintMap;
+}

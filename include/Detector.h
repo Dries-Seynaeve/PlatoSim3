@@ -397,4 +397,6 @@ class Detector: public HDF5Writer
         void readCTIinputFile(string ctiInputFile);
 };
 
+arma::Mat<uint16_t> floatToUint(arma::Mat<float> &A, string mapName);
+
 #endif

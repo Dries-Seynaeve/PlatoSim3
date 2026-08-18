@@ -63,15 +63,15 @@ class HDF5File
         virtual void writeArray(string groupName, string arrayName, float*        array, int size);
         virtual void writeArray(string groupName, string arrayName, double*       array, int size);
         template <typename T>
-        void writeArray(string groupName, string arrayName, arma::Mat<T> &A);
+        void writeArray(string groupName, string arrayName, const arma::Mat<T> &A);
         template <typename T>
         void writeArray(string groupName, string arrayName, int timeStep,
-                         arma::Mat<T> &data);
+			const arma::Mat<T> &data);
         template<typename T>
-        static H5::PredType getPredType(arma::Mat<T>& A);
+        static H5::PredType getPredType(const arma::Mat<T>& A);
 
-        virtual void writeArray(string groupName, string arrayName, arma::Mat<float>& A);
-        virtual void writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A);
+        virtual void writeArray(string groupName, string arrayName, const arma::Mat<float>& A);
+        virtual void writeArray(string groupName, string arrayName, const arma::Mat<uint16_t>& A);
 
         double readDoubleGroupAttribute(string groupName, string attributeName);
         int readIntegerGroupAttribute(string groupName, string attributeName);
