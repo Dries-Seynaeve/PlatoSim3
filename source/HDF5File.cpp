@@ -2174,41 +2174,6 @@ void HDF5File::writeTransmissionEfficiencyValues(double* array, int size)
 
 
 
-
-
-
-
-
-
-
-/**
- * \brief: include the throughput map to the HDF5 file.
- *
- */
-void HDF5File::writeThroughput(int exposureNr, arma::Mat<float>& throughputMap)
-{
-    // Clear the string stream and compose the throughput map name
-    stringstream myStream;
-    myStream.str(string());      // insert empty string
-    myStream.clear();            // clear eof bit
-
-    myStream << "throughputMap" << setfill('0') << setw(7) << exposureNr;
-    string throughputMapName = myStream.str();
-
-    // Add the throughput map to the "ThroughputMaps" group
-    writeArray("/ThroughputMaps", throughputMapName, throughputMap);
-}
-
-
-
-
-
-
-
-
-
-
-
 /**
  * /brief: Write smearing map into the HDF5 file.
  *

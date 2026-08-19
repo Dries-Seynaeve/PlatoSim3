@@ -3543,7 +3543,7 @@ void Detector::initHDF5Groups()
     if (writeThroughputMaps)
     {
         hsize_t dim[3] = {exposures,
-			  static_cast<hsize_t>(numRowsSmearingMap),
+			  static_cast<hsize_t>(numRowsPixelMap),
 			  static_cast<hsize_t>(numColumnsPixelMap)};
 
 	H5::PredType type = H5::PredType::NATIVE_FLOAT;
@@ -3681,7 +3681,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     if (writeThroughputMaps)
     {
-        hdf5File.writeThroughput(exposureNr, throughputMap);
+      hdf5File.writeArray("/ThroughputMaps", "throughput", exposureNr, throughputMap);
     }
 }
 
