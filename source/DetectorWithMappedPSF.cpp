@@ -522,7 +522,9 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     if (writeSubPixelImagesToHDF5)
     {
         Log.debug("DetectorWithMappedPSF: Writing SubPixelMap " + to_string(exposureNr) + " to HDF5 file.");
-        writeSubPixelMapToHDF5(exposureNr);
+
+
+	hdf5File.writeArray("/SubPixelImages", "images", exposureNr-beginExposureNr, subPixelMap);
     }
     // Write the cosmic hits to the HDF5 file
 
@@ -1076,36 +1078,18 @@ void DetectorWithMappedPSF::convolveWithPsf()
  */
 void DetectorWithMappedPSF::initHDF5Groups()
 {
+  hsize_t exposures = static_cast<hsize_t>(finalExposureNr - beginExposureNr);
+
+  Log.debug("DetectorWithMappedPSF: creating SubPixelImages entry in HDF5");
   if (writeSubPixelImagesToHDF5)
-    {
-      Log.debug("DetectorWithMappedPSF: creating SubPixelImages entry in HDF5");
-      hdf5File.createGroup("/SubPixelImages");
-    }
+  {
+      hsize_t dim[3] = {exposures,
+			static_cast<hsize_t>(numRowsSubPixelMap),
+			static_cast<hsize_t>(numColumnsSubPixelMap)};
+
+      hdf5File.createGroup("/SubPixelImages", "images", dim, H5::PredType::NATIVE_FLOAT);
+  }
 }
-
-
-
-
-
-
-
-
-/**
- * \brief: Writes the subpixel map for the HDF5 file.
- */
-
-void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
-{
-    stringstream myStream;
-    myStream << "subPixelImage" << setfill('0') << setw(7) << exposureNr;
-    string imageName = myStream.str();
-
-    // Add the image to the "SubPixelImages" group
-
-    hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
-}
-
-
 
 
 

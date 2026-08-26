@@ -49,7 +49,6 @@ class DetectorWithMappedPSF : public Detector
         void readInFlatfieldMap();
         void generateDiffusionKernel(double kernelWidth);
         void rebin();
-        void writeSubPixelMapToHDF5(int exposureNr);
         void setPsfForSubfield();
         void convolveWithPsf();
         void addBackgroundMapToSubpixelMap(Camera &camera, double startTime);

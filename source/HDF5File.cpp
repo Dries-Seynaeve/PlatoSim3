@@ -3047,8 +3047,14 @@ void HDF5File::writeArray(string groupName, string arrayName, int timeStep,
 	temp[nk] = data(n, k);
       }
     }
-
-    dataset.write(temp.data(), predType, memSpace, fileSpace);
+    try {
+      // dataset.write(data.data(), dataType, memSpace, fileSlab);
+      dataset.write(temp.data(), predType, memSpace, fileSpace);
+    }
+    catch (H5::DataSetIException& e) {
+      e.printErrorStack();   // dumps the full internal HDF5 error stack to stderr
+      throw;  // or handle as appropriate
+    }
 }
 
 
