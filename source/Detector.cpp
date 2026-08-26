@@ -3501,15 +3501,13 @@ void Detector::initHDF5Groups()
     Log.debug("Detector: initialising HDF5 groups");
 
     hsize_t exposures = static_cast<hsize_t>(finalExposureNr - beginExposureNr);
-
+    H5::PredType type = includeQuantisation ? H5::PredType::NATIVE_UINT16
+                                            : H5::PredType::NATIVE_FLOAT;
     if (writePixelMaps)
     {
 	hsize_t dim[3] = {exposures,
 			  static_cast<hsize_t>(numRowsPixelMap),
 			  static_cast<hsize_t>(numColumnsPixelMap)};
-
-        H5::PredType type = includeQuantisation ? H5::PredType::NATIVE_UINT
-                                                : H5::PredType::NATIVE_FLOAT;
 
         hdf5File.createGroup("/Images", "subfield", dim, type);
       }
@@ -3520,9 +3518,6 @@ void Detector::initHDF5Groups()
 	  exposures,
 	  static_cast<hsize_t>(numRowsBiasMap),
 	  static_cast<hsize_t>(numColumnsBiasMap)};
-
-	H5::PredType type = includeQuantisation ? H5::PredType::NATIVE_UINT
-                                                : H5::PredType::NATIVE_FLOAT;
 
         hdf5File.createGroup("/BiasMapsLeft", "bias", dim, type);
         hdf5File.createGroup("/BiasMapsRight", "bias", dim, type);
@@ -3535,8 +3530,6 @@ void Detector::initHDF5Groups()
 			static_cast<hsize_t>(numRowsSmearingMap),
 			static_cast<hsize_t>(numColumnsPixelMap)};
 
-      H5::PredType type = includeQuantisation ? H5::PredType::NATIVE_UINT
-	                                      : H5::PredType::NATIVE_FLOAT;
       hdf5File.createGroup("/SmearingMaps", "smearing", dim, type);
     }
 
@@ -3546,9 +3539,7 @@ void Detector::initHDF5Groups()
 			  static_cast<hsize_t>(numRowsPixelMap),
 			  static_cast<hsize_t>(numColumnsPixelMap)};
 
-	H5::PredType type = H5::PredType::NATIVE_FLOAT;
-      
-	hdf5File.createGroup("/ThroughputMaps", "throughput", dim, type);
+	hdf5File.createGroup("/ThroughputMaps", "throughput", dim, H5::PredType::NATIVE_FLOAT);
     }
    
     if (writeBackgroundMap || constantSkyBackground)
