@@ -152,7 +152,7 @@ class Detector: public HDF5Writer
 
         virtual void initHDF5Groups() override;
         // TODO implement writing of time here
-        //virtual void writeTimeToHDF5(int exposureNr);
+
         virtual void writePixelMapsToHDF5(int exposureNr);
 
         virtual void writeCosmicHitsToHDF5(int exposureNr);
