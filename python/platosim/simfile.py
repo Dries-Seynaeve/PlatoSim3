@@ -381,21 +381,24 @@ class SimFile (object):
             Requested image map saved to the HDF5 file.
             Options: PSF
 
+        imageNr : int
+            The exposureNr of the map that we are interested in (if sensible).
+
         Return
         ------
         ndarray : 2D numpy array containing the image map.
         """
 
-        data = {"highResPSF":      "highResPSF",
+        data= {"highResPSF":      "highResPSF",
                 "diffusedPSF":     "diffusedPSF",
                 "PRNU":            "PRNU",
                 "BackgroundMap":   "skyBackground",
-                "ThroughputMaps": f"throughputMap{imageNr:07d}",
-                "SmearingMaps":   f"smearingMap{imageNr:07d}",
-                "BiasMapsLeft":   f"biasMap{imageNr:07d}",
-                "BiasMapsRight":  f"biasMap{imageNr:07d}",
-                "Images":         f"image{imageNr:07d}",
-                "SubPixelImages": f"subPixelImage{imageNr:07d}"}
+                "ThroughputMaps": f"throughputMap",
+                "SmearingMaps":   f"smearingMap",
+                "BiasMapsLeft":   f"bias",
+                "BiasMapsRight":  f"bias",
+                "Images":         f"subfield",
+                "SubPixelImages": f"images"}
 
         datasetName = data[imageMap]
 
@@ -416,27 +419,14 @@ class SimFile (object):
 
         if imageNr is False:
             
-            # Fetch images names
+            # Fetch images
 
-            imgNames = list(self.hdf5file[imageMap].keys())
-
-            # Create numpy data cube
-
-            nimg = len(imgNames)
-            nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
-            ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
-            if len(imgNames) == 1:
-                cube = self.hdf5file[imageMap][imgNames[0]][:]
-
-            else:
-                cube = np.zeros((nimg, nrow, ncol))
-                for i in range(nimg):
-                    cube[i,:,:] = np.array(self.hdf5file[imageMap][imgNames[i]])
-
-            return cube
+            image = self.hdf5file[imageMap][datasetName]
+            return image
 
         else:
-            return self.hdf5file[imageMap][datasetName][:]
+            firstNr = self.getInputParameter("ObservingParameters", "BeginExposureNr")
+            return self.hdf5file[imageMap][datasetName][imageNr-firstNr,:,:]
 
 
 
@@ -450,7 +440,7 @@ class SimFile (object):
 
         """
 
-        return self.getMap(psfName, imageNr=0)
+        return self.getMap(psfName)
 
 
 
@@ -461,7 +451,7 @@ class SimFile (object):
         """Get the normalized flat-field map.
         """
 
-        return self.getMap("PRNU", imageNr=0)
+        return self.getMap("PRNU")
 
 
 
