@@ -3649,39 +3649,38 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
         // Add the image to the "Images" group
         if (writePixelMaps) {
-	    hdf5File.writeArray("/Images", "subfield", exposureNr, pixelMap);
+	    hdf5File.writeArray("/Images", "subfield", exposureNr-beginExposureNr, pixelMap);
 	}
 	// Add the smearing map
 	if (writeSmearingMaps) {
-	    hdf5File.writeArray("/SmearingMaps", "smearing", exposureNr, smearingMap);
+	    hdf5File.writeArray("/SmearingMaps", "smearing", exposureNr-beginExposureNr, smearingMap);
 	}
 	// Add the bias maps
 	if (writeBiasMaps) {
-	    hdf5File.writeArray("/BiasMapsLeft", "bias", exposureNr, biasMapLeft);
-	    hdf5File.writeArray("/BiasMapsRight", "bias", exposureNr, biasMapRight);
+	    hdf5File.writeArray("/BiasMapsLeft", "bias", exposureNr-beginExposureNr, biasMapLeft);
+	    hdf5File.writeArray("/BiasMapsRight", "bias", exposureNr-beginExposureNr, biasMapRight);
 	}
     }
-
     else
     {
         // Add the image to the "Images" group
         if (writePixelMaps) {
-            hdf5File.writeArray("/Images", "subfield", exposureNr, floatToUint(pixelMap, "pixelMap"));
+            hdf5File.writeArray("/Images", "subfield", exposureNr-beginExposureNr, floatToUint(pixelMap, "pixelMap"));
 	}
 	// Add the smearing map
 	if (writeSmearingMaps) {
-	   hdf5File.writeArray("/SmearingMaps", "smearing", exposureNr, floatToUint(smearingMap, "smearingMap"));
+	   hdf5File.writeArray("/SmearingMaps", "smearing", exposureNr-beginExposureNr, floatToUint(smearingMap, "smearingMap"));
 	}
 	// Add the bias maps
 	if (writeBiasMaps) {
-	    hdf5File.writeArray("/BiasMapsLeft", "bias", exposureNr, floatToUint(biasMapLeft, "biasMapLeft"));
-	    hdf5File.writeArray("/BiasMapsRight", "bias", exposureNr, floatToUint(biasMapRight, "biasMapRight"));
+	    hdf5File.writeArray("/BiasMapsLeft", "bias", exposureNr-beginExposureNr, floatToUint(biasMapLeft, "biasMapLeft"));
+	    hdf5File.writeArray("/BiasMapsRight", "bias", exposureNr-beginExposureNr, floatToUint(biasMapRight, "biasMapRight"));
 	}
     }
 
     if (writeThroughputMaps)
     {
-      hdf5File.writeArray("/ThroughputMaps", "throughput", exposureNr, throughputMap);
+      hdf5File.writeArray("/ThroughputMaps", "throughput", exposureNr-beginExposureNr, throughputMap);
     }
 }
 
