@@ -282,7 +282,7 @@ RaggedArray HDF5File::createGroupForCosmics(string subGroupName, hsize_t numberO
     hsize_t maxDims[1] = {H5S_UNLIMITED};
     H5::DataSpace space(1, initDims, maxDims);
 
-    hsize_t chunkDims[1] = {4096}; // TODO WHy?
+    hsize_t chunkDims[1] = {4096};  
     H5::DSetCreatPropList plist;
     plist.setChunk(1, chunkDims);
     plist.setDeflate(4);
@@ -1362,10 +1362,8 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
 {
     // Create a DataSpace defining the shape and type of the data 
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {size};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1433,10 +1431,8 @@ void HDF5File::writeArray(string groupName, string arrayName, unsigned int* arra
 {
     // Create a DataSpace defining the shape and type of the data 
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {size};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1508,10 +1504,8 @@ void HDF5File::writeArray(string groupName, string arrayName, float* array, int 
 {
      // Create a DataSpace defining the shape and type of the data 
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {size};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1578,10 +1572,8 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 {
     // Create a DataSpace defining the shape and type of the data 
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {size};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1751,11 +1743,8 @@ void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<ui
 
     // Create a DataSpace defining the shape and type of the data 
 
-    unsigned int Ndimensions = 2;
-    unsigned long long shape[Ndimensions];
-    shape[0] = A.n_rows;
-    shape[1] = A.n_cols;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[2] = {A.n_rows, A.n_cols};
+    H5::DataSpace arraySpace(2, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1823,11 +1812,8 @@ void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<fl
 
     // Create a DataSpace defining the shape and type of the data 
 
-    unsigned int Ndimensions = 2;
-    unsigned long long shape[Ndimensions];
-    shape[0] = A.n_rows;
-    shape[1] = A.n_cols;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[2] = {A.n_rows, A.n_cols};
+    H5::DataSpace arraySpace(2, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
