@@ -65,7 +65,7 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     else
     {
         // We generate the flatfield at subpixel level
-        flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+        flatfieldSubpixelMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
     }
 
     // Initialize the subpixel background map
@@ -361,21 +361,21 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     unsigned int numRowsFlatfield = Nrows / 2;
     unsigned int numColumnsFlatfield = Ncolumns / 2;
 
-    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRowsFlatfield - 1), arma::span(0, numColumnsFlatfield - 1));
-    flatfieldMap.reshape(numRowsFlatfield * numColumnsFlatfield, 1);
+    flatfieldSubpixelMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRowsFlatfield - 1), arma::span(0, numColumnsFlatfield - 1));
+    flatfieldSubpixelMap.reshape(numRowsFlatfield * numColumnsFlatfield, 1);
 
     // Normalisation
     //  - divide by mean and subtract 1.0 -> mean = 0.0
     //  - scale such that std.dev. = flatfield RMS and mean = 0.0
     //  - add 1.0
 
-    flatfieldMap /= arma::mean(flatfieldMap.col(0));
-    flatfieldMap -= 1;
-    double scale = flatfieldNoiseRMS / arma::stddev(flatfieldMap.col(0));
-    flatfieldMap *= scale;
-    flatfieldMap += 1;
+    flatfieldSubpixelMap /= arma::mean(flatfieldSubpixelMap.col(0));
+    flatfieldSubpixelMap -= 1;
+    double scale = flatfieldNoiseRMS / arma::stddev(flatfieldSubpixelMap.col(0));
+    flatfieldSubpixelMap *= scale;
+    flatfieldSubpixelMap += 1;
 
-    flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
+    flatfieldSubpixelMap.reshape(numRowsFlatfield, numColumnsFlatfield);
 
     // Write the result to the HDF5 output file
 
@@ -383,7 +383,7 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     {
         Log.debug("DetectorWithMappedPSF: writing IRNU to HDF5");
         hdf5File.createGroup("/Flatfield");
-        hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+        hdf5File.writeArray("/Flatfield", "IRNU", flatfieldSubpixelMap);
     }
 
     // Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
@@ -401,7 +401,7 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
             const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
             const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
 
-            prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol)) / (numSubPixelsPerPixel * numSubPixelsPerPixel);
+            prnu(row, column) = arma::accu(flatfieldSubpixelMap.submat(beginRow, beginCol, endRow, endCol)) / (numSubPixelsPerPixel * numSubPixelsPerPixel);
         }
     }
 
@@ -626,7 +626,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
             // Sky.cpp First we apply the flatfield
 
-            applyFlatfield();
+            applyFlatfieldAtSubpixel();
 
             // Secondly we rebin from subpixel map to a pixel map
 
@@ -987,7 +987,7 @@ void DetectorWithMappedPSF::addFlux(double flux)
  *
  * \post Pixel, bias, and smearing maps filled with zeroes.
  */
-void DetectorWithMappedPSF::applyFlatfield()
+void DetectorWithMappedPSF::applyFlatfieldAtSubpixel()
 {
     const unsigned int numEdgeSubPixels = numEdgePixels * numSubPixelsPerPixel;
     const unsigned int beginRow = numEdgeSubPixels;
@@ -995,7 +995,7 @@ void DetectorWithMappedPSF::applyFlatfield()
     const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
     const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
 
-    subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
+    subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldSubpixelMap;
 }
 
 

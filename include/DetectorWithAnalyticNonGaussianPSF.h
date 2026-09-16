@@ -51,13 +51,11 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
     protected:
 
         void integrateLight(int exposureNr, double startTime, double exposureTime) override;
-        void applyFlatfield() override;
         void generateFlatfieldMap();
         void readInFlatfieldMap();
 
         Parameter<double> *sigma;           // Width of the analytic PSF, equal to sigma for a Gaussian PSF
         vector<vector<double>> params;      // Table of analytic PSF parameters
-        arma::Mat<float> flatfieldMap;      // Pixel flatfield map
         unsigned int numExposures;          // Number of exposures
         unsigned int beginExposureNr;       // Exposure nr of the first exposure in the time series
         double cycleTime;                   // Image cycle time (exposure + readout before next exposure starts)  [s]
