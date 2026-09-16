@@ -35,11 +35,8 @@ class DetectorWithAnalyticGaussianPSF: public Detector
     protected:
 
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
-        virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
         virtual void readInFlatfieldMap();
-
-        arma::Mat<float> flatfieldMap;      // Pixel flatfield map
 
         double sigma00;                     // Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
         double sigmaX18;                    // Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
