@@ -948,38 +948,6 @@ void DetectorWithAnalyticNonGaussianPSF::addFlux(double flux)
 
 
 
-
-/**
- * \brief: Multiply the sub-pixel map with the flatfield.
- *
- * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
- *       map does not. These edge pixels are excluded from this flatfield
- *       multiplication.
- *
- * \pre Unit of the sub-pixels: [photons].
- * \pre Flatfield map at sub-pixel level, excl. edge pixels.
- * \pre Pixel, bias register, and smearing maps filled with zeroes.
- *
- * \post Pixel value in the sub-pixel map: [photons].
- * \post Pixel, bias, and smearing maps filled with zeroes.
- */
-
-void DetectorWithAnalyticNonGaussianPSF::applyFlatfield()
-{
-    const unsigned int beginRow = numEdgePixels;
-    const unsigned int beginCol = numEdgePixels;
-    const unsigned int endRow = numRowsPixelMap - numEdgePixels - 1;
-    const unsigned int endCol = numColumnsPixelMap - numEdgePixels - 1;
-
-    pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
-}
-
-
-
-
-
-
-
 /**
  *  \brief Before destroying this object, save all info to the HDF5 file
  *

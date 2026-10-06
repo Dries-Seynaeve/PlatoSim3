@@ -677,6 +677,30 @@ void Detector::updateParameters(double time)
 
 
 
+/**
+ * \brief: Multiply the pixel map with the flatfield.
+ *
+ * NOTE: The pixel map contains extra edge pixels, but the flatfield
+ *       map does not. These edge pixels are excluded from this flatfield
+ *       multiplication.
+ *
+ * \pre Unit of the pixels: [photons].
+ * \pre Flatfield map at pixel level, excl. edge pixels.
+ * \pre Pixel, bias register, and smearing maps filled with zeroes.
+ *
+ * \post Pixel value in the sub-pixel map: [photons].
+ * \post Pixel, bias, and smearing maps filled with zeroes.
+ */
+
+void Detector::applyFlatfield()
+{
+    const unsigned int beginRow = numEdgePixels;
+    const unsigned int beginCol = numEdgePixels;
+    const unsigned int endRow = numRowsPixelMap - numEdgePixels - 1;
+    const unsigned int endCol = numColumnsPixelMap - numEdgePixels - 1;
+
+    pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
+}
 
 
 
