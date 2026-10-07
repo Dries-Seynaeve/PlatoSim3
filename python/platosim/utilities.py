@@ -787,7 +787,7 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
 
 
 
-def getContaminants(dt, dc, column='PIC', radius=45):
+def getContaminants(dt, dc, column='PIC', radius=60):
     """Match contaminating sources from dc to targets of dt.
     """
     from tqdm import tqdm
@@ -805,10 +805,10 @@ def getContaminants(dt, dc, column='PIC', radius=45):
         dc_i = dc[(dc.ra  > dt_i.ra  - x) & (dc.ra  < dt_i.ra  + x) &
                   (dc.dec > dt_i.dec - x) & (dc.dec < dt_i.dec + x)]
         dc_i = dc_i.reset_index(drop=True)
-        
+
         # Remove target star if present
         dc_i = dc_i.drop(dc_i[dc_i[column] == dt_i[column]].index)
-
+        
         # Find radial distance [arcsec] 
         dc_i['dis'] = radialDistance(dt_i.ra, dt_i.dec, dc_i.ra, dc_i.dec).to_numpy() * 3600.
         dc_i = dc_i.sort_values(by=['dis'])
@@ -824,6 +824,7 @@ def getContaminants(dt, dc, column='PIC', radius=45):
             df = pd.concat([df, dc_i])
 
     # Save to feather files
+
     return df.reset_index(drop=True)
 
 

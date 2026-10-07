@@ -425,6 +425,7 @@ class SimFile (object):
             nimg = len(imgNames)
             nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
             ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
+
             if len(imgNames) == 1:
                 cube = self.hdf5file[imageMap][imgNames[0]][:]
 

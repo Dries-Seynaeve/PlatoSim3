@@ -564,7 +564,7 @@ def drawStarInFocalPlane(sim, raStar, decStar, ccd=None):
     xFPmm, yFPmm = rf.skyToFocalPlaneCoordinates(raStar, decStar, raPlatform,
                                                  decPlatform, solarPanelOrientation,
                                                  tiltTelescope, azimuthTelescope,
-                                                 focalPlaneAngle, focalLength, ccd)
+                                                 focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
         if isMapped:
