@@ -23,16 +23,14 @@ Juan Cabrera Pérez
 
 import numpy as np
 from numpy.random import Generator, PCG64
-
 import pandas as pd
-
+import astropy.table as apt
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
+from astropy.table import Table
 
-import astropy.table as apt
-
-
+import platosim.utilities as ut
 
 #%% Star class
 #*******************************************************************************
@@ -3990,3 +3988,1132 @@ class PIC2101( PIC):
 # ('EOLrandomSysNSRFCAMR_R', '>f4'), 
 # ('EOLnCameraObsFCAMR_R', '>i2'), 
 # ('EOLnCameraSatFCAMR_R', '>i2')]))
+
+#_______________________________________________________________________________
+#
+# class dealing with the 2.1.0.1 release in January/February 2025 of the PIC
+#_______________________________________________________________________________
+class PIC2201(PIC):
+    """This class manages the PIC release 2.2.0.1 in March 2026.
+    
+    There are several differences between this release and the previous major
+    release of the PIC in 2023 (which was PIC 2.0.0 or PIC200):
+    - The 2023 release only included the tPIC, while the 2025 release includes
+      tPIC, scvPIC, cPIC, and fgPIC.
+    - The 2023 release included all data (stellar parameters and full PPT NSR 
+      analysis) in a single VOTable file, while the 2025 release separates
+      the data in different fits files, one for the stellar parameters and 
+      another for the NSR analysis.
+    - We will not implement a 'simulate_stellar_parameters' anymore. This is a 
+      different approach to previous analyses, but it should not be a big deal.
+
+    Attributes:
+      target_table_file_name (string) : the name of the FITS file with the PIC 
+        target table for the LOPS2 pointing (see chapter 3 in 
+        PLATO-SSDC-PDC-DD-0003).
+      nsr_table_file_name (string) : the name of the FITS file with the PIC 
+        target NSR table for the LOPS2 pointing (see chapter 6 in 
+        PLATO-SSDC-PDC-DD-0003).
+      stellar_data (numpy.ndarray) : the array with the data in PIC target 
+        table extracted from the FITS file.
+      nsr_data (numpy.ndarray) : the array with the data in the PIC NSR table 
+        extracted from the FITS file
+      gaiaDR3no (numpy.ndarray) : a int64 array with the Gaia DR3 id numbers
+        of the stars in the catalogue (for convenience).
+
+    Methods:
+      readfiles() : method that accesses the fits files and extracts the data
+        into the attributes 'stellar_data' and 'nsr_data'
+      calculate_valid() : method that initializes the attribute valid with a 
+        mask that identifies the StarPIC elements having positive (non zero) 
+        values of the stellar mass, radius, effective temperature, and total 
+        NSR.
+
+      get_nelements() : returns the number of elements in the merged catalog.
+      get_valid_nelements() : returns the number of elements in the merged.
+
+      get merge() : proxy for get_stars().get().
+      get_stars() : builds a Star class with all valid entries in the catalog.
+
+      get_id()              : returns the stellar id of the matches.
+      get_GDR3id()          : returns the Gaia DR3 id of the matches.
+      get_GDR3idnumber()    : returns the Gaia DR3 id number of the matches.
+      get_ra()              : returns right ascension of the matches.
+      get_de()              : returns the declination of the matches.
+      get_vmag()            : returns the V mag of the matches.
+      get_gmag()            : returns the G mag of the matches.
+      get_pmag()            : returns the PLATO magnitude (N-CAM) of the matches.
+      get_pmagblue()        : returns the PLATO magnitude blue (F-CAM) of the matches.
+      get_pmagred()         : returns the PLATO magnitude red (F-CAM) of the matches.
+      get_rs()              : returns the stellar radii of the matches.
+      get_urs()             : returns the stellar radius uncertainties of the matches.
+      get_ms()              : returns the stellar masses of the matches.
+      get_ums()             : returns the stellar mass uncertainties of the matches.
+      get_ts()              : returns the stellar effective temperature of the matches.
+      get_uts()             : returns the stellar effective temperature uncertainties of the matches.
+      get_logg()            : returns the stellar log g of the matches.
+      get_plx()             : returns the stellar parallax of the matches.
+      get_uplx()            : returns the stellar effective temperature uncertainties of the matches.
+      get_random()          : returns the random noise value of the matches.
+      get_total()           : returns the total noise value of the matches.
+      get_bolrandom()       : returns the random noise value of the matches BOL.
+      get_boltotal()        : returns the total noise value of the matches BOL.
+      get_ncamsbol()        : returns the number of cameras observing the star BOL.
+      get_ncamseol()        : returns the number of cameras observing the star EOL.
+      get_cPICrandomBOL()   : returns the random noise value at camera level BOL.
+      get_cPICtotalBOL()    : returns the total noise value at camera level BOL.
+      get_cPICrandomEOL()   : returns the random noise value at camera level EOL.
+      get_cPICtotalEOL()    : returns the total noise value at camera level EOL
+      get_fgPICbrandomBOL() : returns the random noise value at camera level BOL for the F-CAM blue.
+      get_fgPICbtotalBOL()  : returns the total noise value at camera level BOL for the F-CAM blue
+      get_fgPICbrandomEOL() : returns the random noise value at camera level EOL for the F-CAM blue.
+      get_fgPICbtotalEOL()  : returns the total noise value at camera level EOL for the F-CAM blue.
+      get_fgPICrrandomBOL() : returns the random noise value at camera level BOL for the F-CAM red.
+      get_fgPICrtotalBOL()  : returns the total noise value at camera level BOL for the F-CAM red.
+      get_fgPICrrandomEOL() : returns the random noise value at camera level EOL for the F-CAM red.
+      get_fgPICrtotalBOL()  : returns the total noise value at camera level EOL for the F-CAM red.
+      
+      get_simulated_rs() : returns the simulated stellar radii.
+      get_simulated_ms() : returns the simulated stellar masses.
+      get_skycoord()     : returns an Astropy SkyCoord object with the stars
+
+      get_p1flag()       : returns an array with True values for the P1 
+        In principle, P2 belongs to P1, but I am not including P2 here on 
+        purpose!
+      get_p1flag_including_known_planet_hosts() : returns an array with True 
+        value for the P1 targets including stars known to host a planet. In 
+        principle, P2 belongs to P1, but I am not including P2 here on purpose!
+      
+      get_p2flag()       : returns an array with True value for the P2 targets
+      get_p2flag_including_known_planet_hosts() : returns an array with True 
+        value for the P2 targets including stars known to host a planet.
+      
+      get_p4flag()       : returns an array with True value for the P4 targets
+      get_p4flag_including_known_planet_hostss() : returns an array with True 
+        value for the P4 targets including stars known to host a planet.
+      
+      get_p5flag()       : returns an array with True value for the P5 targets
+      get_planetflag()   : returns an array with True value for the stars known 
+        to host a planet, irrespective of the sample id.
+
+      get_planetflag() : returns an array with True value for P1, P2, P4, and P5 
+        stars (FGK and M) known to host a planet
+
+      get_tPICflag()   : returns an array with True value for the tPIC targets
+      get_fgPICflag()  : returns an array with True value for the fgPIC targets
+      get_cflag()      : returns an array with True value for the cPIC targets
+      get_scvPICflag() : returns an array with True value for the scvPIC targets
+
+      get_tPICP1flag() : returns an array with True value for the P1 targets in 
+        the tPIC targets. The list includes P2 stars and stars hosting planets.
+      get_tPICP2flag() : returns an array with True value for the P2 targets in 
+        the tPIC targets. The list includes stars hosting planets.
+      get_tPICP4flag() : returns an array with True value for the P4 targets in 
+        the tPIC targets. The list includes stars hosting planets.
+      get_tPICP5flag() : returns an array with True value for the P5 targets in 
+        the tPIC targets. The list includes stars hosting planets.
+      
+      get_fgPICbflag() returns an array with True value for the stars in the fgPIC observed by F-CAM blue
+      get_fgPICrflag() returns an array with True value for the stars in the fgPIC observed by F-CAM red
+
+      get_cPICR1FCAMflag() returns an array with True value for the stars 
+        belonging to the R1 sample (attitude and IGM) in the cPIC observed with 
+        the F-CAMs. This result includes stars that also belong to R2, R3, and 
+        R4 samples.
+      get_cPICR2FCAMflag() returns an array with True value for the stars 
+        belonging to the R2 sample (microscanning) in the cPIC observed with 
+        the F-CAMs. This result includes stars that also belong to R1, R3, and 
+        R4 samples.
+      get_cPICR3FCAMflag() returns an array with True value for the stars 
+        belonging to the R3 sample (best focus) in the cPIC observed with the 
+        F-CAMs. This result includes stars that also belong to R1, R2, and R4 
+        samples.
+      get_cPICR4FCAMflag() returns an array with True value for the stars 
+        belonging to the R4 sample (throughput) in the cPIC observed with the 
+        F-CAMs. This result includes stars that also belong to R1, R2, and R3 
+        samples.
+      get_cPICR5FCAMflag() returns an array with True value for the stars 
+        belonging to the R5 sample (outlier rejection) in the cPIC observed
+        with the F-CAMs. 
+
+      get_cPICR1flag() returns an array with True value for the stars 
+        belonging to the R1 sample (attitude and IGM) in the cPIC observed with 
+        the N-CAMs. This result includes stars that also belong to R2, R3, and 
+        R4 samples.
+      get_cPICR2flag() returns an array with True value for the stars 
+        belonging to the R2 sample (microscanning) in the cPIC observed with the 
+        N-CAMs. This result includes stars that also belong to R1, R3, and R4 
+        samples.
+      get_cPICR3flag() returns an array with True value for the stars 
+        belonging to the R3 sample (best focus) in the cPIC observed with the 
+        N-CAMs. This result includes stars that also belong to R1, R2, and R4 
+        samples.
+      get_cPICR4flag() returns an array with True value for the stars 
+        belonging to the R4 sample (throughput) in the cPIC observed with the 
+        N-CAMs. This result includes stars that also belong to R1, R2, and R3 
+        samples.
+      get_cPICR5flag() returns an array with True value for the stars 
+        belonging to the R5 sample (outlier rejection) in the cPIC observed 
+        with the N-CAMs. 
+     
+      get_scvPIC1aflag() returns an array with True value for the stars
+        belonging to the SCV1a sample in the scvPIC (eclipsing binaries).
+      get_scvPIC1bflag() returns an array with True value for the stars 
+        belonging to the SCV1b sample in the scvPIC (astrometric binaries).
+      get_scvPIC1cflag() returns an array with True value for the stars 
+        belonging to the SCV1c sample in the scvPIC (wide binaries).
+      get_scvPIC1dflag() returns an array with True value for the stars 
+        belonging to the SCV1d sample in the scvPIC HW Vir-type binaries).
+      get_scvPIC2eflag() returns an array with True value for the stars 
+        belonging to the SCV1e sample in the scvPIC (wide white dwarf binaries).
+      get_scvPIC2aflag() returns an array with True value for the stars 
+        belonging to the SCV2a sample in the scvPIC (legacy and benchmark stars).
+      get_scvPIC2bflag() returns an array with True value for the stars 
+        belonging to the SCV2b sample in the scvPIC (legacy and benchmark stars).
+      get_scvPIC3aflag() returns an array with True value for the stars 
+        belonging to the SCV3a sample in the scvPIC (photometrically stable stars).
+      get_scvPIC3bflag() returns an array with True value for the stars 
+        belonging to the SCV3b sample in the scvPIC (photometrically stable stars).
+      get_scvPIC4aflag() returns an array with True value for the stars 
+        belonging to the SCV4a sample in the scvPIC (solar-like pulsators).
+      get_scvPIC4bflag() returns an array with True value for the stars 
+        belonging to the SCV4b sample in the scvPIC (solar-like pulsators).
+      get_scvPIC5flag() returns an array with True value for the stars 
+        belonging to the SCV5 sample in the scvPIC (gamma Dor stars).
+      get_scvPIC6flag() returns an array with True value for the stars 
+        belonging to the SCV6 sample in the scvPIC (transiting exoplanets).
+
+      get_valid_id()           : returns the stellar id of the valid matches.
+      get_valid_GDR3id()       : returns the Gaia DR3 id of the valid matches.
+      get_valid_GDR3idnumber() : returns the Gaia DR3 id number of the valid matches.
+      get_valid_ra()           : returns right ascension of the valid matches.
+      get_valid_de()           : returns the declination of the valid matches.
+      get_valid_vmag()         : returns the V mag of the valid matches.
+      get_valid_gmag()         : returns the G mag of the valid matches.
+      get_valid_pmag()         : returns the PLATO magnitude (N-CAM) of the valid matches.
+      get_valid_pmagblue()     : returns the PLATO magnitude blue (F-CAM) of the valid matches.
+      get_valid_pmagred()      : returns the PLATO magnitude red (F-CAM) of the valid matches.
+      get_valid_rs()           : returns the stellar radii of the valid matches.
+      get_valid_urs()          : returns the stellar radius uncertainties of the valid matches.
+      get_valid_ms()           : returns the stellar masses of the valid matches.
+      get_valid_ums()          : returns the stellar mass uncertainties of the valid matches.
+      get_valid_ts()           : returns the stellar effective temperature of the valid matches.
+      get_valid_uts()          : returns the stellar effective temperature uncertainties of the valid matches.
+      get_valid_logg()         : returns the stellar logg of the valid matches.
+      get_valid_plx()          : returns the stellar parallax of the valid matches.
+      get_valid_uplx()         : returns the stellar effective temperature uncertainties of the valid matches.
+      get_valid_random()       : returns the random noise value of the valid matches.
+      get_valid_total()        : returns the total noise value of the valid matches.
+      get_valid_randombol()    : returns the random noise value BOL of the valid matches.
+      get_valid_totalbol()     : returns the total noise value BOL of the valid matches.
+      get_valid_ncamsbol()     : returns the number of cameras observing the star BOL of the valid matches.
+      get_valid_ncamseol()     : returns the number of cameras observing the star EOL of the valid matches.
+      get_valid_simulated_rs() : returns the simulated stellar radii for the valid matches.
+      get_valid_simulated_ms() : returns the simulated stellar masses for the valid matches.
+    """
+    # PIC2101::__init__() 
+    def __init__(self, target_table_file_name=None):
+        """Method initializing the PIC 2.1.0.1 class.
+        
+        Arguments:
+          target_table_file_name (string) : the name of the FITS file with the 
+            PIC target table for the LOPS2 pointing (see chapter 3 in 
+            PLATO-SSDC-PDC-DD-0003).
+          nsr_table_file_name (string) : the name of the FITS file with the 
+            PIC target NSR table for the LOPS2 pointing (see chapter 6 in 
+            PLATO-SSDC-PDC-DD-0003).
+        """
+        if target_table_file_name is not None:
+            self.target_table_file_name = target_table_file_name
+            
+            self.data = None
+            self.readfiles()
+            self.calculate_valid()
+
+    #-----
+    # PIC2101::readfiles() reads the catalog information from the fits files
+    def readfiles(self):
+        
+        # read stellar data
+        hdul = fits.open(self.target_table_file_name)
+        self.data = hdul[1].data
+        
+        # here we propose a workaround for HIP 28393 B. As for now, we set it's 
+        # Gaia DR3 number to 0 and hope for the best. Actually, it is funny
+        # because the Hipparcos catalogue has only the A star of the system 
+        # (HIP 28393) with Gaia DR3 4794830231453653888 and a magnitude of ~8.7
+        # while the companion (HD 41004 B) has no Gaia DR3 id, magnitude ~12.3
+        # and is accompanied by a Jupiter-sized planet/brown dwarf (20 MJ)
+        # See Santos et al. 2002 and Zucker et al. 2004.
+        def split_gaia_dr3_id(x):
+            split = x.split(' ')
+            if split[0] == 'Gaia':
+                return split[-1]
+            else:
+                return 0
+        
+        self.gaiaDR3no = np.array([split_gaia_dr3_id(x) for x in self.data['StarName']], dtype='uint64')
+
+    #-----
+    # PIC2101::calculate_valid valid entries are those with positive R, M, T
+    # and NSR > 0 (which by default removes nan)
+    def calculate_valid( self):
+        """[Summary]
+        
+        Method that initializes the attribute valid with a mask that identifies 
+        the PIC elements having positive (non zero) values of the stellar mass,
+        radius, effective temperature, and total NSR.
+        """
+        self.valid = (self.get_rs() > 0) * (self.get_ms() > 0) * (self.get_ts() > 0) * (self.get_total() > 0)
+
+
+    #-----
+    # PIC2101::get_nelements() returns the number of elements in the catalog
+    def get_nelements(self):
+        return len(self.data)
+
+    #-----
+    # PIC2101::get_valid_nelements() returns the number of elements in the  
+    # catalog (using the self.valid mask)
+    def get_valid_nelements( self):
+        return len( np.where( self.valid)[ 0])
+
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_stars() builds a Star class with all valid entries in the
+    # catalog.
+    def get_stars( self):
+        stars = Star( ids  = self.get_valid_id(),
+                      ra   = self.get_valid_ra(),
+                      de   = self.get_valid_de(),
+                      mag  = self.get_valid_vmag(),
+                      rs   = self.get_valid_simulated_rs(),
+                      urs  = self.get_valid_urs(),
+                      ms   = self.get_valid_simulated_ms(),
+                      ums  = self.get_valid_ums(),
+                      ts   = self.get_valid_ts(),
+                      uts  = self.get_valid_uts(),
+                      plx  = self.get_valid_plx(),
+                      uplx = self.get_valid_uplx(),
+                      nsr  = self.get_valid_total())
+        return stars
+        
+    #-----
+    # PIC2101::get_id() returns the stellar id from the catalog.
+    # not defined in the catalogue
+    def get_id( self):
+        return self.get_GDR3idnumber()
+
+    #-----
+    # PIC2101::get_GDR3id() returns the stellar id from the Gaia DR3 catalogue.
+    # note:
+    # np.all( np.compare_chararrays( pic.stellar_data[ 'StarName'], pic.data[ 'StarName'], "==", False))
+    # True
+    def get_GDR3id( self):
+        return self.data[ 'StarName']
+
+    #-----
+    # PIC2101::get_GDR3idnumber() returns the stellar id number from the Gaia DR3 catalogue.
+    def get_GDR3idnumber( self):
+        return self.gaiaDR3no
+
+    #-----
+    # PIC2101::get_ra() returns right ascension from the catalog.
+    def get_ra( self):
+        return self.data[ 'RAdeg']
+
+    #-----
+    # PIC2101::get_de() returns the declination from the catalog.
+    def get_de( self):
+        return self.data[ 'DEdeg']
+
+    #-----
+    # PIC2101::get_ra() returns right ascension from the catalog.
+    def get_pmra( self):
+        return self.data[ 'pmRA']
+
+    #-----
+    # PIC2101::get_de() returns the declination from the catalog.
+    def get_pmde( self):
+        return self.data[ 'pmDE']
+    
+    #-----
+    # PIC2101::get_vmag() returns the V mag from the catalog.
+    def get_vmag( self):
+        return self.data[ 'VmagCalculated']
+
+    #-----
+    # PIC2101::get_gmag() returns the G mag from the catalog.
+    def get_gmag( self):
+        return self.data[ 'Gmag']
+
+    #-----
+    # PIC2101::get_pmag() returns the P mag (N-CAM) from the catalog.
+    def get_pmag( self):
+        return self.data[ 'PlatoMagNCAM']
+    
+    #-----
+    # PIC2101::get_pmagblue() returns the P mag F-CAM blue from the catalog.
+    def get_pmagblue( self):
+        return self.data[ 'PlatoMagFCAMb']
+
+    #-----
+    # PIC2101::get_pmagred() returns the P mag F-CAM red from the catalog.
+    def get_pmagred( self):
+        return self.data[ 'PlatoMagFCAMr']
+
+    #-----
+    # PIC2101::get_rs() returns the stellar radii from the catalog.
+    def get_rs( self):
+        return self.data[ 'Radius']
+
+    #-----
+    # PIC2101::get_urs() returns the stellar radius uncertainties from the catalog.
+    def get_urs( self):
+        return self.data[ 'eRadius']
+
+    #-----
+    # PIC2101::get_ms() returns the stellar masses from the catalog.
+    def get_ms( self):
+        return self.data[ 'Mass']
+
+    #-----
+    # PIC2101::get_ums() returns the stellar mass uncertainties from the catalog.
+    def get_ums( self):
+        return self.data[ 'eMass']
+
+    #-----
+    # PIC2101::get_ts() returns the stellar effective temperature from the catalog.
+    def get_ts( self):
+        return self.data[ 'Teff']
+
+    #-----
+    # PIC2101::get_uts() returns the stellar effective temperature from the catalog.
+    def get_uts( self):
+        return self.data[ 'eTeff']
+
+    #-----
+    # PIC2101::get_logg() returns the stellar lgog from the catalog.
+    def get_logg( self):
+        return 4.44 + np.log10( self.get_ms()) - 2.*np.log10( self.get_rs()) 
+
+    #-----
+    # PIC2101::get_plx() returns the stellar parallax from the catalog.
+    def get_plx( self):
+        return self.data[ 'Plx']
+
+    #-----
+    # PIC2101::get_uplx() returns the stellar effective temperature uncertainties from the catalog.
+    def get_uplx( self):
+        return self.data[ 'ePlx']
+
+    #-----
+    # PIC2101::get_random() returns the random noise value from the catalog.
+    # currently, only EOL implemented
+    def get_random( self):
+        return self.get_randomeol()
+
+    #-----
+    # PIC2101::get_total() returns the total noise value from the catalog.
+    # currently, only EOL implemented
+    def get_total( self):
+        return self.get_totaleol()
+
+    #-----
+    # PIC2101::get_randombol() returns the random noise value from the catalog BOL.
+    def get_randombol( self):
+        return self.data[ 'BOLrandomNSRNCAM_T']
+
+    #-----
+    # PIC2101::get_totalbol() returns the total noise value from the catalog BOL.
+    def get_totalbol( self):
+        return self.data[ 'BOLrandomSysNSRNCAM_T']
+
+    #-----
+    # PIC2101::get_ncamsbol() returns the number of cameras observing the star BOL
+    def get_ncamsbol( self):
+        return self.data[ 'BOLnCameraObsNCAM_T']
+
+    #-----
+    # PIC2101::get_randomeol() returns the random noise value from the catalog ·OL.
+    def get_randomeol( self):
+        return self.data[ 'EOLrandomNSRNCAM_R']
+
+    #-----
+    # PIC2101::get_totaleol() returns the total noise value from the catalog BOL.
+    def get_totaleol( self):
+        return self.data['EOLrandomSysNSRNCAM_R']
+
+    #-----
+    # PIC2101::get_ncamseol() returns the number of cameras observing the star BOL
+    def get_ncamseol( self):
+        return self.data[ 'EOLnCameraObsNCAM_R']
+    
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_cPICrandomBOL() returns the random noise value at camera 
+    # level BOL (see PLATO-SSDC-PDC-DD-0003, section 6.1, page 32)
+    def get_cPICrandomBOL( self):
+        return self.data[ 'BOL1randomNSRNCAM_T']
+    
+    #-----
+    # PIC2101::get_cPICtotalBOL() returns the total noise value at camera 
+    # level BOL (see PLATO-SSDC-PDC-DD-0003, section 6.1, page 32)
+    def get_cPICtotalBOL( self):
+        return self.data[ 'BOL1randomSysNSRNCAM_T']
+    
+    #-----
+    # PIC2101::get_cPICrandomEOL() returns the random noise value at camera 
+    # level EOL (see PLATO-SSDC-PDC-DD-0003, section 6.1, page 33)
+    def get_cPICrandomEOL( self):
+        return self.data[ 'EOL1randomNSRNCAM_R']
+    
+    #-----
+    # PIC2101::get_cPICtotalEOL() returns the total noise value at camera 
+    # level EOL (see PLATO-SSDC-PDC-DD-0003, section 6.1, page 33)
+    def get_cPICtotalEOL( self):
+        return self.data[ 'EOL1randomSysNSRNCAM_R']
+    
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_fgPICbrandomBOL() returns the random noise value at camera 
+    # level BOL for the F-CAM blue (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 33)
+    def get_fgPICbrandomBOL( self):
+        return self.data[ 'BOLrandomNSRFCAMB_T']
+    
+    #-----
+    # PIC2101::get_fgPICbtotalBOL() returns the total noise value at camera 
+    # level BOL for the F-CAM blue (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 33)
+    def get_fgPICbtotalBOL( self):
+        return self.data[ 'BOLrandomSysNSRFCAMB_T']
+    
+    #-----
+    # PIC2101::get_fgPICbrandomEOL() returns the random noise value at camera 
+    # level EOL for the F-CAM blue (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 34)
+    def get_fgPICbrandomEOL( self):
+        return self.data[ 'EOLrandomNSRFCAMB_R']
+    
+    #-----
+    # PIC2101::get_fgPICbtotalEOL() returns the total noise value at camera 
+    # level EOL for the F-CAM blue (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 34)
+    def get_fgPICbtotalEOL( self):
+        return self.data[ 'EOLrandomSysNSRFCAMB_R']
+
+
+    #-----
+    # PIC2101::get_fgPICrrandomBOL() returns the random noise value at camera 
+    # level BOL for the F-CAM red (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 34)
+    def get_fgPICrrandomBOL( self):
+        return self.data[ 'BOLrandomNSRFCAMR_T']
+    
+    #-----
+    # PIC2101::get_fgPICrtotalBOL() returns the total noise value at camera 
+    # level BOL for the F-CAM red (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 34)
+    def get_fgPICrtotalBOL( self):
+        return self.data[ 'BOLrandomSysNSRFCAMR_T']
+    
+    #-----
+    # PIC2101::get_fgPICrrandomEOL() returns the random noise value at camera 
+    # level EOL for the F-CAM red (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 35)
+    def get_fgPICrrandomEOL( self):
+        return self.data[ 'EOLrandomNSRFCAMR_R']
+    
+    #-----
+    # PIC2101::get_fgPICrtotalBOL() returns the total noise value at camera 
+    # level EOL for the F-CAM red (see PLATO-SSDC-PDC-DD-0003, section 6.1, 
+    # page 34)
+    def get_fgPICrtotalEOL( self):
+        return self.data[ 'EOLrandomSysNSRFCAMR_R']
+
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_simulated_rs() just in case
+    def get_simulated_rs( self):
+        return self.get_rs()
+
+    #-----
+    # PIC2101::get_simulated_ms() just in case
+    def get_simulated_ms( self):
+        return self.get_ms()
+
+    #-----
+    # PIC2101::get_skycoord() returns an Astropy SkyCoord object with the
+    # coordinates of the stars in the catalogue.
+    def get_skycoord( self):
+        return SkyCoord( ra = self.get_ra(), dec = self.get_de(), unit = 'deg', frame = 'icrs')
+
+    #---------- Added for PICSIM ---------------
+    
+    def get_caseFlag(self):
+        return self.data['caseFlag']
+
+    def get_PICmainSourceFlagBOL(self):
+        return self.data['PICmainSourceFlagBOL']
+
+    def get_tPICsourceFlagNCAM_BOL(self):
+        return self.data['tPICsourceFlagNCAM_BOL']
+    
+    def get_fgPICsourceFlag(self):
+        return self.data['fgPICsourceFlag']
+
+    def get_cPICsourceFlag(self):
+        return self.data['cPICsourceFlag']
+
+    def get_scvPICsourceFlag(self):
+        return self.data['scvPICsourceFlag']    
+    
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_p1flag() returns an array with True value for the P1 targets
+    def get_p1flag( self):
+        # P1 sample bitmask is 1 (in binary) in tPICsourceFlagNCAM_BOL
+        # as per PLATO-SSDC-PDC-DN-0001 (page 15) and Table 6 in PLATO-UPD-SCI-TN-0022
+        # In principle, P2 belongs to P1, but I am not including P2 here on purpose!
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 1)
+
+    #-----
+    # PIC2101::get_p1flag_including_known_planet_hosts() returns an array with True value for the P1 targets
+    # including stars known to host a planet
+    def get_p1flag_including_known_planet_hosts( self):
+        # P1 sample bitmask is 1 (in binary) in tPICsourceFlagNCAM_BOL
+        # as per PLATO-SSDC-PDC-DN-0001 (page 15) and Table 6 in PLATO-UPD-SCI-TN-0022
+        # but planet hosting stars have bitmask 17 (16+1)
+        # In principle, P2 belongs to P1, but I am not including P2 here on purpose!
+        return (( self.data[ 'tPICsourceFlagNCAM_BOL'] == 1) +
+                ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 17))
+
+    #-----
+    # PIC2101::get_p2flag() returns an array with True value for the P2 targets
+    def get_p2flag( self):
+        # P2 sample bitmask is 2 (in binary) in tPICsourceFlagNCAM_BOL
+        # as per PLATO-SSDC-PDC-DN-0001 (page 15) and Table 6 in PLATO-UPD-SCI-TN-0022
+        # but P2 is included in P1 (bitmask 1), so all P2 stars have bitmask 3 (2+1)
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 3) 
+
+    #-----
+    # PIC2101::get_p2flag()_including_known_planet_hosts returns an array with True value for the P2 targets
+    # including stars known to host a planet
+    def get_p2flag_including_known_planet_hosts( self):
+        # P2 sample bitmask is 2 (in binary) in tPICsourceFlagNCAM_BOL
+        # as per PLATO-SSDC-PDC-DN-0001 (page 15) and Table 6 in PLATO-UPD-SCI-TN-0022
+        # but P2 is included in P1 (bitmask 1), so all P2 stars have bitmask 3 (2+1)
+        # unless they host a planet (bitmask 16), in which case they have bitmask 19
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 3) + ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 19)
+
+    #-----
+    # PIC2101::get_p4flag() returns an array with True value for the P4 targets
+    def get_p4flag( self):
+        # P4 sample bitmask is 8 (in binary) in tPICsourceFlagNCAM_BOL
+        # as per PLATO-SSDC-PDC-DN-0001 (page 15) and Table 6 in PLATO-UPD-SCI-TN-0022
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 8)
+
+    #-----
+    # PIC2101::get_p4flag()_including_known_planet_hosts returns an array with True value for the P4 targets
+    # including stars known to host a planet
+    def get_p4flag_including_known_planet_hosts( self):
+        # P4 sample bitmask is 8 (in binary) in tPICsourceFlagNCAM_BOL
+        # as per PLATO-SSDC-PDC-DN-0001 (page 15) and Table 6 in PLATO-UPD-SCI-TN-0022
+        # unless they host a planet (bitmask 16), in which case they have bitmask 24
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 8) + ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 24)
+
+    #-----
+    # PIC2101::get_p5flag() returns an array with True value for the P5 targets
+    def get_p5flag( self):
+        # P5 sample bitmask is 4 (in binary) in tPICsourceFlagNCAM_BOL
+        # unless they host a planet (bitmask 16), in which case they have bitmask 24.
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 4)
+
+    #-----
+    # PIC2101::get_p5flag() returns an array with True value for the P5 targets
+    # including stars known to host a planet
+    def get_p5flag_including_known_planet_hosts( self):
+        # P5 sample bitmask is 4 (in binary) in tPICsourceFlagNCAM_BOL
+        # unless they host a planet (bitmask 16), in which case they have bitmask 24.
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 4) + ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 20)
+
+    #-----
+    # PIC2101::get_planetflag() returns an array with True value for P1, P2, P4, and P5 stars known to host a planet
+    def get_planetflag( self):
+        # planet hosting stars beyond FGK or M have bitmask 16 [we ignore those]
+        # P1 sample bitmask ( 1) hosting a planet (bitmask 16) is 17
+        # P2 sample bitmask ( 3) hosting a planet (bitmask 16) is 19
+        # P4 sample bitmask ( 8) hosting a planet (bitmask 16) is 24
+        # P5 sample bitmask ( 4) hosting a planet (bitmask 16) is 20
+        return ( 
+            ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 17) + 
+            ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 19) + 
+            ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 24) + 
+            ( self.data[ 'tPICsourceFlagNCAM_BOL'] == 20)   )
+
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_tPICflag() returns an array with True value for the stars belonging to the tPIC
+    # see chapter 3.1, page 16, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_tPICflag( self):
+        return ( self.data[ 'PICmainSourceFlagBOL'] & 4 == 4)
+
+    #-----
+    # PIC2101::get_fgPICflag() returns an array with True value for the stars belonging to the fgPIC
+    # see chapter 3.1, page 16, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_fgPICflag( self):
+        return ( self.data[ 'PICmainSourceFlagBOL'] & 8 == 8)
+
+    #-----
+    # PIC2101::get_cPICflag() returns an array with True value for the stars belonging to the cPIC
+    # see chapter 3.1, page 16, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICflag( self):
+        return ( self.data[ 'PICmainSourceFlagBOL'] & 16 == 16)
+
+    #-----
+    # PIC2101::get_scvPICflag() returns an array with True value for the stars belonging to the scvPIC
+    # see chapter 3.1, page 16, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPICflag( self):
+        return ( self.data[ 'PICmainSourceFlagBOL'] & 32 == 32)
+
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_tPICP1flag() returns an array with True value for the stars belonging to the P1 sample in the tPIC
+    # this result includes stars in the P2 sample and hosting planets
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_tPICP1flag( self):
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] & 1 == 1)
+
+    #-----
+    # PIC2101::get_tPICP2flag() returns an array with True value for the stars belonging to the P2 sample in the tPIC
+    # this result includes stars hosting planets
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_tPICP2flag( self):
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] & 2 == 2)
+
+    #-----
+    # PIC2101::get_tPICP4flag() returns an array with True value for the stars belonging to the P4 sample in the tPIC
+    # this result includes stars hosting planets
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_tPICP4flag( self):
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] & 8 == 8)
+
+    #-----
+    # PIC2101::get_tPICP5flag() returns an array with True value for the stars belonging to the P5 sample in the tPIC
+    # this result includes stars hosting planets
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_tPICP5flag( self):
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] & 4 == 4)
+
+    #-----
+    # PIC2101::get_tPICplanetflag() returns an array with True value for the stars hosting planets
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_tPICplanetflag( self):
+        return ( self.data[ 'tPICsourceFlagNCAM_BOL'] & 16 == 16)
+
+    #--------------------------------------------------------------------
+
+    #-----
+    # PIC2101::get_fgPICbflag() returns an array with True value for the stars in the fgPIC observed by F-CAM blue
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_fgPICbflag( self):
+        return ( self.data[ 'fgPICsourceFlag'] & 1 == 1)
+
+    #-----
+    # PIC2101::get_fgPICrflag() returns an array with True value for the stars in the fgPIC observed by F-CAM red
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_fgPICrflag( self):
+        return ( self.data[ 'fgPICsourceFlag'] & 2 == 2)
+
+    #--------------------------------------------------------------------
+
+    #-----
+    # PIC2101::get_cPICR1FCAMflag() returns an array with True value for the stars belonging to the R1 sample (attitude and IGM) in the cPIC observed with the F-CAMs
+    # this result includes stars that also belong to R2, R3, and R4 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR1FCAMflag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 1 == 1)
+    
+    #-----
+    # PIC2101::get_cPICR2FCAMflag() returns an array with True value for the stars belonging to the R2 sample (microscanning) in the cPIC observed with the F-CAMs
+    # this result includes stars that also belong to R1, R3, and R4 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR2FCAMflag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 2 == 2)
+
+    #-----
+    # PIC2101::get_cPICR3FCAMflag() returns an array with True value for the stars belonging to the R3 sample (best focus) in the cPIC observed with the F-CAMs
+    # this result includes stars that also belong to R1, R2, and R4 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR3FCAMflag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 4 == 4)
+
+    #-----
+    # PIC2101::get_cPICR4FCAMflag() returns an array with True value for the stars belonging to the R4 sample (throughput) in the cPIC observed with the F-CAMs
+    # this result includes stars that also belong to R1, R2, and R3 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR4FCAMflag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 8 == 8)
+
+    #-----
+    # PIC2101::get_cPICR5FCAMflag() returns an array with True value for the stars belonging to the R5 sample (outlier rejection) in the cPIC observed with the F-CAMs
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR5FCAMflag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 16 == 16)
+
+    #-----
+    # PIC2101::get_cPICR1flag() returns an array with True value for the stars belonging to the R1 sample (attitude and IGM) in the cPIC observed with the N-CAMs
+    # this result includes stars that also belong to R2, R3, and R4 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR1flag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 32 == 32)
+    
+    #-----
+    # PIC2101::get_cPICR2flag() returns an array with True value for the stars belonging to the R2 sample (microscanning) in the cPIC observed with the N-CAMs
+    # this result includes stars that also belong to R1, R3, and R4 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR2flag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 64 == 64)
+
+    #-----
+    # PIC2101::get_cPICR3flag() returns an array with True value for the stars belonging to the R3 sample (best focus) in the cPIC observed with the N-CAMs
+    # this result includes stars that also belong to R1, R2, and R4 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR3flag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 128 == 128)
+
+    #-----
+    # PIC2101::get_cPICR4flag() returns an array with True value for the stars belonging to the R4 sample (throughput) in the cPIC observed with the N-CAMs
+    # this result includes stars that also belong to R1, R2, and R3 samples
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR4flag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 256 == 256)
+
+    #-----
+    # PIC2101::get_cPICR5flag() returns an array with True value for the stars belonging to the R5 sample (outlier rejection) in the cPIC observed with the N-CAMs
+    # see chapter 3.1, page 17, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_cPICR5flag( self):
+        return ( self.data[ 'cPICsourceFlag'] & 512 == 512)
+
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101::get_scvPIC1aflag() returns an array with True value for the stars belonging to the SCV1a sample in the scvPIC (eclipsing binaries)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC1aflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 1 == 1)
+
+    #-----
+    # PIC2101::get_scvPIC1bflag() returns an array with True value for the stars belonging to the SCV1b sample in the scvPIC (astrometric binaries)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC1bflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 2 == 2)
+
+    #-----
+    # PIC2101::get_scvPIC1cflag() returns an array with True value for the stars belonging to the SCV1c sample in the scvPIC (wide binaries)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC1cflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 4 == 4)
+
+    #-----
+    # PIC2101::get_scvPIC1dflag() returns an array with True value for the stars belonging to the SCV1d sample in the scvPIC (HW Vir-type binaries)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC1dflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 8 == 8)
+
+    #-----
+    # PIC2101::get_scvPIC1eflag() returns an array with True value for the stars belonging to the SCV1e sample in the scvPIC (wide white dwarf binaries)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC1eflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 16 == 16)
+
+    #-----
+    # PIC2101::get_scvPIC2aflag() returns an array with True value for the stars belonging to the SCV2a sample in the scvPIC (legacy and benchmark stars)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC2aflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 32 == 32)
+
+    #-----
+    # PIC2101::get_scvPIC2bflag() returns an array with True value for the stars belonging to the SCV2b sample in the scvPIC (legacy and benchmark stars)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC2bflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 64 == 64)
+
+    #-----
+    # PIC2101::get_scvPIC3aflag() returns an array with True value for the stars belonging to the SCV3a sample in the scvPIC (photometrically stable stars)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC3aflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 128 == 128)
+
+    #-----
+    # PIC2101::get_scvPIC3bflag() returns an array with True value for the stars belonging to the SCV3b sample in the scvPIC (photometrically stable stars)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC3bflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 256 == 256)
+
+    #-----
+    # PIC2101::get_scvPIC4aflag() returns an array with True value for the stars belonging to the SCV4a sample in the scvPIC (solar-like pulsators)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC4aflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 512 == 512)
+
+    #-----
+    # PIC2101::get_scvPIC4bflag() returns an array with True value for the stars belonging to the SCV4b sample in the scvPIC (solar-like pulsators)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC4bflag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 1024 == 1024)
+
+    #-----
+    # PIC2101::get_scvPIC5flag() returns an array with True value for the stars belonging to the SCV5 sample in the scvPIC (gamma Dor stars)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC5flag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 2048 == 2048)
+
+    #-----
+    # PIC2101::get_scvPIC6flag() returns an array with True value for the stars belonging to the SCV6 sample in the scvPIC (transiting exoplanets)
+    # see chapter 3.1, page 18, in PLATO-SSDC-PDC-DD-0003 for the bitmask
+    # see chapter 5, page 7, in PLATO-SSDC-PDC-DN-0001 for the numbers
+    def get_scvPIC6flag( self):
+        return ( self.data[ 'scvPICsourceFlag'] & 4096 == 4096)
+
+    #--------------------------------------------------------------------
+    
+    #-----
+    # PIC2101:get_valid_id() returns the stellar id of the valid entries in the catalog.
+    def get_valid_id( self):
+        return self.get_id()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_ra() returns right ascension of the valid entries in the catalog.
+    def get_valid_ra( self):
+        return self.get_ra()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_de() returns the declination of the valid entries in the catalog.
+    def get_valid_de( self):
+        return self.get_de()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_vmag() returns the V mag of the valid entries in the catalog.
+    def get_valid_vmag( self):
+        return self.get_vmag()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_gmag() returns the G mag of the valid entries in the catalog.
+    def get_valid_gmag( self):
+        return self.get_gmag()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_pmag() returns the P mag (N-CAM) of the valid entries in the catalog.
+    def get_valid_pmag( self):
+        return self.get_pmag()[ self.valid]
+    
+    #-----
+    # PIC2101::get_valid_pmagblue() returns the P mag F-CAM blue of the valid entries in the catalog.
+    def get_valid_pmagblue( self):
+        return self.get_pmagblue()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_pmagred() returns the P mag F-CAM red of the valid entries in the catalog.
+    def get_valid_pmagred( self):
+        return self.get_pmagred()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_rs() returns the stellar radii of the valid entries in the catalog.
+    def get_valid_rs( self):
+        return self.get_rs()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_urs() returns the stellar radius uncertainties of the valid entries in the catalog.
+    def get_valid_urs( self):
+        return self.get_urs()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_ms() returns the stellar masses of the valid entries in the catalog.
+    def get_valid_ms( self):
+        return self.get_ms()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_ums() returns the stellar mass uncertainties of the valid entries in the catalog.
+    def get_valid_ums( self):
+        return self.get_ums()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_ts() returns the stellar effective temperature of the valid entries in the catalog.
+    def get_valid_ts( self):
+        return self.get_ts()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_uts() returns the stellar effective temperature uncertainties of the valid entries in the catalog.
+    def get_valid_uts( self):
+        return self.get_uts()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_logg() returns the stellar logg of the valid entries in the catalog.
+    def get_valid_logg( self):
+        return self.get_logg()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_plx() returns the stellar parallax of the valid entries in the catalog.
+    def get_valid_plx( self):
+        return self.get_plx()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_uplx() returns the stellar parallax uncertainties of the valid entries in the catalog.
+    def get_valid_uplx( self):
+        return self.get_uplx()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_random() returns the random noise value of the valid entries in the catalog.
+    def get_valid_random( self):
+        return self.get_random()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_total() returns the total noise value of the valid entries in the catalog.
+    def get_valid_total( self):
+        return self.get_total()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_randombol() returns the random noise value BOL of the valid entries in the catalog.
+    def get_valid_randombol( self):
+        return self.get_randombol()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_totalbol() returns the total noise value BOL of the valid entries in the catalog.
+    def get_valid_totalbol( self):
+        return self.get_totalbol()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_ncamsbol() returns the number of cameras observing the star BOL of the valid matches.
+    def get_valid_ncamsbol( self):
+        return self.get_ncamsbol()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_ncamseol() returns the number of cameras observing the star EOL of the valid matches.
+    def get_valid_ncamseol( self):
+        return self.get_ncamseol()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_simulated_rs() returns the simulated stellar radii for the valid entries in the catalog.
+    def get_valid_simulated_rs( self):
+        return self.get_simulated_rs()[ self.valid]
+
+    #-----
+    # PIC2101::get_valid_simulated_ms() returns the simulated stellar masses for the valid entries in the catalog.
+    def get_valid_simulated_ms( self):
+        return self.get_simulated_ms()[ self.valid]
+
+
+    
+def load_pic(version='2.2.0.1'):
+    """Load the PIC catalogue into a pandas data frame.
+
+    This only include the most important columns needed to run a
+    simulation with 'platonium'.
+    """
+
+    # Path to PIC catalogues
+    path = ut.getHomeDir('inputfiles/data_picsim')
+    
+    if version == '2.2.0.1':
+        filename_targets = path / 'LOPS2PICtarget2.2.0.1-t-fg-c-scv.fits'
+        # We use the PIC library to fetch a few columns
+        pic = PIC2201(filename_targets)
+        # The remaining columns are in the original data
+        table = Table.read(filename_targets, format='fits')
+        df = table.to_pandas()
+
+
+    # Add Galactic coordinates
+    gal = SkyCoord(df.RAdeg, df.DEdeg, frame='icrs', unit=u.deg).galactic
+
+    # Create data frame
+    dt = pd.DataFrame()
+    dt['PIC']     = df.PICid
+    dt['gaiaDR3'] = df.StarName #pic.get_GDR3idnumber()
+    dt['l']       = gal.l.deg
+    dt['b']       = gal.b.deg
+    dt['ra']      = df.RAdeg
+    dt['dec']     = df.DEdeg
+    dt['pmra']    = df.pmRA
+    dt['pmdec']   = df.pmDE
+    dt['Pmag']    = df.PlatoMagNCAM
+    dt['PBmag']   = df.PlatoMagFCAMb
+    dt['PRmag']   = df.PlatoMagFCAMr
+    dt['M']       = df.Mass
+    dt['R']       = df.Radius
+    dt['Teff']    = df.Teff
+    dt['logg']    = pic.get_logg()
+    dt['ncams']   = df.BOLnCameraObsNCAM_T
+    dt['case']    = df.caseFlag
+    dt['source']  = df.PICmainSourceFlagBOL
+    dt['tPIC']    = df.tPICsourceFlagNCAM_BOL
+    dt['fgPIC']   = df.fgPICsourceFlag
+    dt['cPIC']    = df.cPICsourceFlag
+    dt['scvPIC']  = df.scvPICsourceFlag
+    dt['NSR']     = df.BOLrandomSysNSRNCAM_T
+    # dt.ncams.unique()
+        
+    return dt
+
+
+def get_GaiaDR3_ID(df, column='StarName'):
+    
+    # here we propose a workaround for HIP 28393 B. As for now, we set it's 
+    # Gaia DR3 number to 0 and hope for the best. Actually, it is funny
+    # because the Hipparcos catalogue has only the A star of the system 
+    # (HIP 28393) with Gaia DR3 4794830231453653888 and a magnitude of ~8.7
+    # while the companion (HD 41004 B) has no Gaia DR3 id, magnitude ~12.3
+    # and is accompanied by a Jupiter-sized planet/brown dwarf (20 MJ)
+    # See Santos et al. 2002 and Zucker et al. 2004.
+    def split_gaia_dr3_id( x):
+        split = x.split(' ')
+        if split[0] == 'Gaia':
+            return split[-1]
+        else:
+            return 0
+        
+    return np.array([split_gaia_dr3_id(x) for x in df[column]], dtype='uint64')
+
+

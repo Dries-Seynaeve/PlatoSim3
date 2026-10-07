@@ -107,6 +107,17 @@ Names within the square brackets are the mode model ("--puls <Model>"):
 
 Usage examples:
   $ varsim --star gDor --puls Gang2020 --quarter 1-8 -o </path/to/file> -p
+
+-------------------------
+   Eclipsing binaries   :
+-------------------------
+
+Parsing the argument "--binary" will draw a random eclipsing binary
+system template from catalogue of IJsperrt+2021 catalogue. 
+
+Usage examples:
+  $ varsim --eb --quarter 1-8 -o </path/to/file> -p
+
 """
 
 # Built-in
@@ -138,7 +149,6 @@ from ldtk import LDPSetCreator, TabulatedFilter
 # PlatoSim functions
 import platosim.plot      as pt
 import platosim.utilities as ut
-#import platosim.smbhb     as smbhb
 from platosim.utilities import errorcode
 from platosim.spectrum  import Spectrum
 from platosim.varsource import (Pulsator,
@@ -187,11 +197,11 @@ class VarSim(object):
         #self.phase_curve = args.phase_curve TODO
         
         # Binary mode
-        self.binary = args.binary
+        self.eb = args.eb
 
         # SMBHBB
-        self.smbhb = args.smbhb
-        self.smbhb_params = args.smbhb_params
+        # self.smbhb = args.smbhb
+        # self.smbhb_params = args.smbhb_params
         
         # Limb darkening model
         self.ldms = ['linear', 'quadratic', 'squareroot', 'power2']
@@ -267,10 +277,6 @@ class VarSim(object):
             
         # Add latex font if catalogue is saved
         from platosim.matplotlibrc import setup; setup()
-        # if self.ofile is None:
-        #     from platosim.matplotlibrc import setup; setup()
-        # else:
-        #     from platosim.matplotlibrc import latex; latex()
 
         # Data (download) for usage of varsim
         if not Path(self.idir + '/passband_plato.txt').is_file():
@@ -700,7 +706,6 @@ class VarSim(object):
     def stellar_source(self):
         """Select the stellar paramters.
         """
-
         if self.verbose > 1:
             errorcode('module', '\nStellar parameters\n')
         
@@ -788,7 +793,6 @@ class VarSim(object):
         
         NOTE to compare theo L while using PhoenixAtmos, divide with np.pi
         """
-
         if self.verbose > 1:
             errorcode('module', '\nStellar spectrum\n')
         
@@ -872,7 +876,6 @@ class VarSim(object):
 
             
     def passband_correction(self, passband_a='plato', passband_b='kepler'):
-
         """Fetch passband data.
         """
 
@@ -925,7 +928,6 @@ class VarSim(object):
 
 
     def luminosity_correction(self):
-
         """Compute the luminosity gradient.
 
         This correction is used to scale the p-mode oscillation
@@ -987,13 +989,10 @@ class VarSim(object):
     #--------------------------------------------------------------#
     #                   MODELS OF SOLAR-LIKE STARS                 #
     #--------------------------------------------------------------#
-
     
     def solar_granosc(self):
-
         """Model convection driven oscillations.
         """
-
         if self.verbose > 1:
             errorcode('module', '\nSolar-like oscillations\n')
             print(f'Scaling relation gran : {args.gran}')
@@ -1042,10 +1041,8 @@ class VarSim(object):
             
 
     def solar_spots(self):
-
         """Model stellar spot modulations.
         """
-
         if self.verbose > 1:
             errorcode('module', '\nStellar spot cycle\n')
 
@@ -1100,11 +1097,8 @@ class VarSim(object):
 
             
     def solar_flares(self):
-
         """Model solar flares.
         """
-
-        # Start script
         if self.verbose > 1:
             errorcode('module', '\nStellar flares\n')
         
@@ -1157,13 +1151,9 @@ class VarSim(object):
     #                         OTHER PULSATORS                      #
     #--------------------------------------------------------------#
     
-
     def star_bcep(self):
-
         """Generate light curves for beta Cephei stars.
         """
-
-        # Start script
         if self.verbose > 1:
             errorcode('module', '\nbeta Cephei pulsator\n')
 
@@ -1196,7 +1186,6 @@ class VarSim(object):
 
 
     def star_spb(self):
-
         """Generate light curve for a SPB star.
 
         Notes 
@@ -1209,8 +1198,6 @@ class VarSim(object):
         3) Create mock object using the Kepler sample, based on
            an analytic model and KDE histograms.
         """
-
-        # Start script
         if self.verbose > 1:
             errorcode('module', '\nSPB pulsator\n')
 
@@ -1258,11 +1245,8 @@ class VarSim(object):
 
 
     def star_dsct(self):
-
         """Generate light curves for delta-Scuti stars.
         """
-
-        # Start script
         if self.verbose > 1:
             errorcode('module', '\ndelta Scuti pulsator\n')
             
@@ -1295,7 +1279,6 @@ class VarSim(object):
         
 
     def star_gdor(self):
-
         """Generate light curve for a gamma Doradus star.
 
         Notes 
@@ -1308,8 +1291,6 @@ class VarSim(object):
         3) Create mock object using the Kepler sample, based on
            an analytic model and KDE histograms.
         """
-
-        # Start script
         if self.verbose > 1:
             errorcode('module', '\ngamma Doradus pulsator\n')
 
@@ -1354,13 +1335,10 @@ class VarSim(object):
 
         
     def star_roap(self):
-
         """Generate light curve for roAp stars.
 
         This class is of BAF stars with so-called surface spots.
         """
-        
-        # Start script
         if self.verbose > 1:
             errorcode('module', '\nroAp variable pulsator\n')
 
@@ -1387,10 +1365,8 @@ class VarSim(object):
     #--------------------------------------------------------------#
     #                         EVOLVED STARS                        #
     #--------------------------------------------------------------#
-        
 
     def star_rrlyr(self):
-
         """Generate ligth curve for RR Lyrae stars.
 
         This function uses precomputed models of RR Lyrae stars 
@@ -1517,7 +1493,7 @@ class VarSim(object):
         # Fetch model parameters
         if self.verbose > 1:
             print('Selecting mock object from Kepler sample (IJspeert+2021)')
-        params = model.initIJspeert2023(self.idir, starID=None)
+        params = model.initIJspeert2024(self.idir, starID=None)
         self.df['starname'] = params[0]
         self.df['P_day']    = params[1]
         if self.verbose > 1 and params[1] is not None:
@@ -1525,7 +1501,7 @@ class VarSim(object):
 
         # Return model [mag -> flux]
         mag = model.evaluate(plot=self.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['eb'] = ut.fromMagToFlux(mag)
 
 
     #--------------------------------------------------------------#
@@ -1651,7 +1627,6 @@ class VarSim(object):
     #--------------------------------------------------------------#
                 
     def ldc(self):
-
         """Compute the Limb Darkening (LD) coefficients.
 
         This module uses the code: LDTk        
@@ -1721,7 +1696,6 @@ class VarSim(object):
 
             
     def planet_model(self):
-
         """Calculation of exoplanet model parameters.
 
         Resources
@@ -1937,7 +1911,6 @@ class VarSim(object):
         
             
     def planet_transit(self):
-
         """Model exoplanet transits.
 
         In the following the exoplanet transits are being modelled with Batman:
@@ -2260,9 +2233,7 @@ class VarSim(object):
         params.hill_sphere_threshold = 1.2
 
         time = pandora.time(params).grid()
-
         model = pandora.moon_model(params)
-
         flux_total, flux_planet, flux_moon = model.light_curve(time)
 
         noise_level = 100e-6  # Gaussian noise to be added to the generated data
@@ -2285,7 +2256,6 @@ class VarSim(object):
     #                      PROLOGUE AND SAVING                     #
     #--------------------------------------------------------------#
         
-
     def run_prolog(self):
         
         if self.verbose > 1:
@@ -2304,10 +2274,10 @@ class VarSim(object):
             args.planet_params is False):
             self.star = 'constant'
 
-        elif args.smbhb or args.smbhb_params:
-            fig, ax = smbhb.plot_model(self.lc)
-            if self.plot: plt.show()
-            self.lc.time *= 86400
+        # elif args.smbhb or args.smbhb_params:
+        #     fig, ax = smbhb.plot_model(self.lc)
+        #     if self.plot: plt.show()
+        #     self.lc.time *= 86400
 
         # Combine all signals any other variable source
         else:
@@ -2337,6 +2307,10 @@ class VarSim(object):
                 # Spots and transits are multiplicative
                 self.lc['flux'] *= flux_planet
 
+            # Binary variability
+            if 'eb' in self.lc:
+                self.lc['flux'] += (self.lc.eb - 1)
+                
             # Plot combined light curve
             fig, ax = pt.plotVarsimLC(self.lc)
             if self.plot and self.lc.shape[1] > 3: plt.show()
@@ -2393,12 +2367,9 @@ class VarSim(object):
     #                         SOFTWARE MODES                       #
     #--------------------------------------------------------------#
 
-
     def mode_single(self):
-
         """Given stellar properties asign variable signal.
-        """
-        
+        """        
         # Select star
         self.stellar_source()
 
@@ -2470,7 +2441,6 @@ class VarSim(object):
 
         
     def mode_binary(self):
-
         """Given stellar properties asign variable signal.
         """
         
@@ -2480,10 +2450,10 @@ class VarSim(object):
         # Bolometric correction
         #self.stellar_spectrum()
 
-        if args.binary == 'EB':
+        if args.eb == 'EB':
             v.binary_eb()
         
-        elif args.binary == 'SMBH':
+        elif args.eb == 'SMBH':
             v.binary_smbh()
 
         # Combine and save
@@ -2491,17 +2461,15 @@ class VarSim(object):
 
         
     def mode_kul20(self):
-
         """Mode designed for KUL20 -> Called by "--kul20 <int>".
-        """
-
-        # Meaning of integer parsed:
-        # x -> Constant star for any other than [0, 1, 2, 3]
-        # 0 -> Std star (roAp with 2 hamonics)
-        # 1 -> Gran, Puls
-        # 2 -> Gran, Puls, Spots
-        # 3 -> Gran, Puls, Spots, Transit
         
+        Meaning of integer parsed:
+        x -> Constant star for any other than [0, 1, 2, 3]
+        0 -> Std star (roAp with 2 hamonics)
+        1 -> Gran, Puls
+        2 -> Gran, Puls, Spots
+        3 -> Gran, Puls, Spots, Transit
+        """        
         if args.kul20 == 0:
             args.star = 'roAp'
 
@@ -2529,12 +2497,10 @@ class VarSim(object):
 
         
     def mode_mocka(self):
-
         """Given the stellar properties asign variable signal.
         """
-
-        # I/O EXTRA
-
+        
+        # I/O parameters
         project, starType, starID, starVar, odir = args.mocka[0]
         idir = Path(os.getenv('PLATO_WORKDIR')) / project / 'input'        
         odir = Path(odir).resolve()
@@ -2840,13 +2806,11 @@ class VarSim(object):
 
             # GENERATE LIGHT CURVE
 
-            if starType:
-                
+            if starType:                
                 # Save each varsource to file
                 sfile = 'varsource_' + f'{i+1}'.zfill(3) + '.txt'
                 self.ofile = self.odir.joinpath(sfile)
                 self.run_prolog()
-
                 # Use cluster name for PLATOnium
                 # NOTE Directory is defined in job script
                 varSourceFiles.append(vsc_scratch + '/' + sfile)
@@ -2855,11 +2819,9 @@ class VarSim(object):
         # GENERATE VARIABLE CATALOG FILE
 
         if not starVar == 'tar':
-            
             varSourceList = self.odir / 'varSourceList.txt'        
             if isinstance(varSourceFiles, str):
                 varSourceFiles = [varSourceFiles]
-
             with open(varSourceList, 'w') as f:
                 for j in range(len(starIDs)):
                     f.write(f'{starIDs[j]} {varSourceFiles[j]}\n')
@@ -2903,15 +2865,16 @@ planet_group.add_argument('--moon', metavar='NAME',  type=str, help='Benchmark m
 
 
 binary_group = parser.add_argument_group('BINARY PARAMETERS')
-binary_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')
+binary_group.add_argument('--eb', action='store_true', help='Flag to simulate random eclipsing binary from IJspeert+2020')
+#binary_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')
+
 #star_group.add_argument('--binary_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
 #                        help='Stellar model parameters with units [M/Msun, R/Rsun, Teff/K, logg/rel, Z/rel]')
-
-smbhb_group = parser.add_argument_group('PLANET PARAMETERS')
-smbhb_group.add_argument('--smbhb', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
-smbhb_group.add_argument('--smbhb_params', action='append', type=float, nargs=13,
-                         metavar=('z', 't0', 'P', 'e', 'i', 'w', 'logM', 'q', 'L', 'alpha', 'vz', 'tau', 'sigma'),
-                         help='SMBH binary model parameters (check --notes)')
+# smbhb_group = parser.add_argument_group('PLANET PARAMETERS')
+# smbhb_group.add_argument('--smbhb', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
+# smbhb_group.add_argument('--smbhb_params', action='append', type=float, nargs=13,
+#                          metavar=('z', 't0', 'P', 'e', 'i', 'w', 'logM', 'q', 'L', 'alpha', 'vz', 'tau', 'sigma'),
+#                          help='SMBH binary model parameters (check --notes)')
 
 mode_group = parser.add_argument_group('DISTRIBUTION MODES')
 mode_group.add_argument('--kul20', metavar='INT',   type=int, help='Option designed for KUL-TN-20 [0, 1, 2, 3]')
@@ -2939,12 +2902,12 @@ elif args.kul20:
     v.mode_kul20()
 
 # Default mode for binaries
-elif args.binary:
+elif args.eb:
     v.mode_binary()
 
 # Default mode for binaries
-elif args.smbhb or args.smbhb_params:
-    v.mode_smbhb()
+# elif args.smbhb or args.smbhb_params:
+#     v.mode_smbhb()
     
 # Default mode for single stars
 else:

@@ -425,6 +425,7 @@ class SimFile (object):
             nimg = len(imgNames)
             nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
             ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
+
             if len(imgNames) == 1:
                 cube = self.hdf5file[imageMap][imgNames[0]][:]
 
@@ -538,18 +539,7 @@ class SimFile (object):
         """Get the pixel image.
         """
 
-        # Temporary fix, because getMap is broken after the new HDF5 implementation
-
-        dataset = self.hdf5file["Images/subfield"]
-        n_images, _, _ = dataset.shape
-        if imageNr is False:
-            imageNr = 0
-        else:
-            if imageNr < 0 or imageNr >= n_images:
-                print(f"Error: SimfFile.getImage(): imageNr {imageNr} is out of range [0, {n_images-1}]")
-                return None
-            else:
-                return dataset[imageNr]
+        return self.getMap('Images', imageNr=imageNr)
 
 
 

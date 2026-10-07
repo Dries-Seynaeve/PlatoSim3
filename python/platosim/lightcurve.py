@@ -398,9 +398,12 @@ class LightCurve(object):
         else: N = f".{suffix}"
         
         # Fetch all zip files and sort them using natsort
-        string = f"{path}/{prefix}**_{G}.{C}_{Q}{N}"
-        files = natsort.natsorted(glob.glob(string)); #print(string)
-        
+        if group == 5:
+            string = f"{path}/{prefix}**Fcam{C}_{Q}{N}"
+        else:
+            string = f"{path}/{prefix}**_{G}.{C}_{Q}{N}"
+        files = natsort.natsorted(glob.glob(string))
+
         # Check if any file was found
         if error and len(files) == 0:
             errorcode('warning', f'No files found with suffix {suffix}! ' +
@@ -2798,12 +2801,12 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     #                     SIMULATION STATISTICS                    #
     #--------------------------------------------------------------#
-
     
     def stat_sim_table(self,
                        ofile=False,
                        clean=False,
                        verbose=True,
+                       group=None,
                        quarter=None):
         """Generate a overvies simulation-table per star.
 
@@ -2826,9 +2829,9 @@ class LightCurve(object):
         Example
         -------
         >> lcs = LightCurve(</path/to/simulations>, mode='multi')
-        >> df = lcs.stat_sim_table('/path/to/filename.ftr')
+        >> df = lcs.stat_sim_table(ofile='/path/to/filename.ftr')
         """
-        
+
         # Check if file already exists or create it
         try:
             df = pd.read_feather(ofile)
@@ -2836,7 +2839,7 @@ class LightCurve(object):
                 errorcode('warning', 'Remove your "ofile" to use "clean" ' +
                           '(if ".table" files still exists)')
         except:
-            
+
             # Check if a star-folder or a folder-of-star-folders are parsed
             strings = natsort.natsorted(glob.glob(f'{self.path}/*'))
             if Path(strings[0]).is_file():
@@ -2855,13 +2858,13 @@ class LightCurve(object):
                 bar = tqdm(folders, bar_format=ut.tqdmBar())
             else:
                 bar = folders
-                
+
             for folder in bar:
                 lcs = LightCurve(folder, 'multi')
 
                 # Check wheather files are compressed or not
-                files_zip = lcs.files(suffix='zip',   error=False)
-                files_ftr = lcs.files(suffix='table', error=False)
+                files_zip = lcs.files(suffix='zip',   error=False, group=group)
+                files_ftr = lcs.files(suffix='table', error=False, group=group)
 
                 # If compressed the unpack all files for that star
                 if (len(files_zip) > 0) and (len(files_zip) != len(files_ftr)):
@@ -2886,7 +2889,7 @@ class LightCurve(object):
             # Create output folder if not exisitng
             odir = ofile.parents[0]
             odir.mkdir(parents=True, exist_ok=True)
-            
+
             # If requested save file
             if ofile:
                 df.to_feather(ofile)
@@ -2899,8 +2902,9 @@ class LightCurve(object):
         return df
 
 
-    def stat_lcs_per_star(self, quarters=False, ofile=False):
-
+    def stat_lcs_per_star(self,
+                          quarters=False,
+                          ofile=False):
         """Number statistics of light curves per star.
 
         This function computes the number of simulated light curves
@@ -2954,7 +2958,6 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     #                      Performance analysis                    #
     #--------------------------------------------------------------#
-    
     
     def get_nsr_per_camera(self,
                            outputFile=None,
