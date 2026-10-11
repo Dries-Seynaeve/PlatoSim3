@@ -13,6 +13,7 @@ dependencies/Downloads/._*
 .idea
 .cache
 PlatoSim3.code-workspace
+TODO
 
 # Ignore some of the auto-generated files (during cmake)
 
