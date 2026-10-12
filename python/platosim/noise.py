@@ -17,7 +17,7 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 from scipy.signal import periodogram
 from pathlib import Path
-from numba import njit
+#from numba import njit
 
 # PlatoSim imports
 import platosim.plot            as pt
@@ -685,7 +685,7 @@ def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
 #--------------------------------------------------------------#
 
 
-@njit
+#@njit
 def getRedNoise(time, currenttime, kicktimestep, Ntime,
                 timescale, varscale, noise, mu, sigma,
                 rng):

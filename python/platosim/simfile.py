@@ -421,8 +421,16 @@ class SimFile (object):
             
             # Fetch images
 
-            image = self.hdf5file[imageMap][datasetName]
-            return image
+            imgNames = list(self.hdf5file[imageMap].keys())
+
+            # Create numpy data cube
+
+            nimg = len(imgNames)
+            nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
+            ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
+
+            if len(imgNames) == 1:
+                cube = self.hdf5file[imageMap][imgNames[0]][:]
 
         else:
             firstNr = self.getInputParameter("ObservingParameters", "BeginExposureNr")
@@ -1325,7 +1333,7 @@ class SimFile (object):
             Nexp      = len(exp) - 1 
             starIDs   = self.hdf5file[groupName][exp[0]]["starID"][:]
             starIndex = np.where(starIDs == starID)
-            star      = starIndex[0]
+            star      = starIndex[0][0]
 
             # Check if star exist
 
@@ -1879,7 +1887,7 @@ class SimFile (object):
         
         # Check if photometric data exists
         
-        starIDgroupName = "starID{0}".format(starID)
+        starIDgroupName = f"starID{starID}"
         if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
             print(f"Error: getPhotometricMask(): {starIDgroupName}" +
                   " not present in Photometry/Masks/ in the HDF5 file")
@@ -1895,7 +1903,6 @@ class SimFile (object):
         # NOTE: masks are not updated for every exposure hence find most recent mask
 
         if isinstance(imageNr, int):                                # imageNr is not None
-
             idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
             if idx < 0:
                 print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
