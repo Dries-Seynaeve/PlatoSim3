@@ -2082,12 +2082,17 @@ class PLATOnium(object):
             print(f"Move {psf_file} -> {psf_file_out}")
             # Move the phot files to sotrage
             try:
-                shutil.copy(lc_file, lc_file_out)
-                shutil.copy(cob_file, cob_file_out)
-                shutil.copy(skypos_file, skypos_file_out)
+                if self.pipeZarrOutput:
+                    shutil.copytree(lc_file, lc_file_out)
+                    shutil.copytree(cob_file, cob_file_out)
+                    shutil.copytree(skypos_file, skypos_file_out)
+                else:
+                    shutil.copy(lc_file, lc_file_out)
+                    shutil.copy(cob_file, cob_file_out)
+                    shutil.copy(skypos_file, skypos_file_out)
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
-                shutil.move(psf_file, psf_file_out)
+                shutil.copy(psf_file, psf_file_out)
             except:
                 self.failed('Moving PSF photometry files failed...')
 
@@ -2097,10 +2102,10 @@ class PLATOnium(object):
                 print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
                 print(f"Move {pflux_plot} -> {pflux_plot_out}")
                 try:
-                    shutil.move(pbkg_plot, pbkg_plot_out)
-                    shutil.move(pcobx_plot, pcobx_plot_out)
-                    shutil.move(pcoby_plot, pcoby_plot_out)
-                    shutil.move(pflux_plot, pflux_plot_out)
+                    shutil.copy(pbkg_plot, pbkg_plot_out)
+                    shutil.copy(pcobx_plot, pcobx_plot_out)
+                    shutil.copy(pcoby_plot, pcoby_plot_out)
+                    shutil.copy(pflux_plot, pflux_plot_out)
                 except:
                     self.failed('Moving PSF photometry plots failed...')
 
@@ -2168,11 +2173,18 @@ class PLATOnium(object):
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
             try:
-                shutil.copy(lc_file1, lc_file1_out)
-                shutil.copy(lc_file2, lc_file2_out)
-                shutil.copy(cob_file1, cob_file1_out)
-                shutil.copy(cob_file2, cob_file2_out)
-                shutil.copy(skypos_file, skypos_file_out)
+                if self.pipeZarrOutput:
+                    shutil.copytree(lc_file1, lc_file1_out)
+                    shutil.copytree(lc_file2, lc_file2_out)
+                    shutil.copytree(cob_file1, cob_file1_out)
+                    shutil.copytree(cob_file2, cob_file2_out)
+                    shutil.copytree(skypos_file, skypos_file_out)
+                else:
+                    shutil.copy(lc_file1, lc_file1_out)
+                    shutil.copy(lc_file2, lc_file2_out)
+                    shutil.copy(cob_file1, cob_file1_out)
+                    shutil.copy(cob_file2, cob_file2_out)
+                    shutil.copy(skypos_file, skypos_file_out)
                 shutil.copy(psf_file, psf_file_out)
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
