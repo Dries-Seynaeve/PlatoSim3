@@ -103,6 +103,11 @@ if sys.platform == "darwin":
     subprocess.call(correctionProcedure, shell=True)
 
 
+if os.path.isdir(installDir+"/lib/x86_64-linux-gnu"):
+    for name in os.scandir(installDir+"/lib/x86_64-linux-gnu"):
+        target = installDir+"/lib/"+name.name
+        shutil.move(name.path, target)
+    shutil.rmtree(installDir+"/lib/x86_64-linux-gnu", ignore_errors=True)
 
 # After installation in the install folder, remove the decompressed package folder in 
 # the Downloads dir so that only the .tgz file remains in the Downloads dir.
