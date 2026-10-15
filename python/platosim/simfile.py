@@ -421,16 +421,8 @@ class SimFile (object):
             
             # Fetch images
 
-            imgNames = list(self.hdf5file[imageMap].keys())
-
-            # Create numpy data cube
-
-            nimg = len(imgNames)
-            nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
-            ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
-
-            if len(imgNames) == 1:
-                cube = self.hdf5file[imageMap][imgNames[0]][:]
+            image = self.hdf5file[imageMap][datasetName]
+            return image[:,:]
 
         else:
             firstNr = self.getInputParameter("ObservingParameters", "BeginExposureNr")
