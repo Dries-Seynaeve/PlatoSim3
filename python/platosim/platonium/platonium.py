@@ -1863,10 +1863,10 @@ class PLATOnium(object):
         # build the gen_aflux command
         if self.pipePsfMethod == "microscan":
             psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
-            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+            comm = f"gen_aflux_ts --onboard-lc --post-corr-bg --n-average {n_average} --psf {psf_path}"
         else:
             psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
-            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf-library {psf_lib_path}"
+            comm = f"gen_aflux_ts --onboard-lc --post-corr-bg --n-average {n_average} --psf-library {psf_lib_path}"
 
         if self.pipeExtendedMask:
             comm += " --emask"
