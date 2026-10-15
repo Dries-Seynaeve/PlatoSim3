@@ -29,6 +29,8 @@ dependencies = [
     "traitlets==5.9.0",
     "tornado==6.1.0",
     "jupyter>=1.1.1,<2.0.0",
+    "setuptools>=84.0.0",
+    "ipympl>=0.10.0",
 ]
 
 [dependency-groups]
