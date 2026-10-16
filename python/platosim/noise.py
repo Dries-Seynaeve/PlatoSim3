@@ -902,11 +902,13 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     fig, ax = plt.subplots(1, 2, figsize=(9,4))
 
     # Plot PDF
-    ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
+    
+    plt.rcParams['text.usetex'] = True
+    ax[0].set_title(rf'PRE distributions at {sigma}$\sigma$')        
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
     ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
-    ax[0].set_ylabel('Probability (PDF) [\%]')
+    ax[0].set_ylabel(r'Probability (PDF) [\%]')
     ax[0].set_xlim(xx[0], xx[-1])
     ax[0].legend()
 
@@ -914,7 +916,7 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     ax[1].grid(zorder=0)
     ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
     for i in range(len(alpha0)):
-        ax[1].scatter(alpha0[i], delta0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
+        ax[1].scatter(alpha0[i], delta0[i], marker=f".", s=50, alpha=0.8, zorder=2)
     ax[1].set_title('Distribution on Sky')
     ax[1].set_xlabel('RA [pixel]')
     ax[1].set_ylabel('Dec [pixel]')
@@ -1013,9 +1015,9 @@ def getAPE(alpha, delta, kappa, sigma=3,
     # Plot PDF
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Trans.')
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rot.')
-    ax[0].set_title(f'APE distributions at {sigma}$\sigma$')
+    ax[0].set_title(rf'APE distributions at {sigma}$\sigma$')
     ax[0].set_xlabel('Camera misalignment in FPA [pixel]')
-    ax[0].set_ylabel('Probability (PDF) [\%]')
+    ax[0].set_ylabel(r'Probability (PDF) [\%]')
     ax[0].set_xlim(xx[0], xx[-1])
     ax[0].legend()
 
@@ -1718,11 +1720,11 @@ def getGain(sigma=3, gain0CCD=False, seed=None, ofile=False, plot=False):
 
     fig, ax = plt.subplots(1, 2, figsize=(9,4))
 
-    ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
+    ax[0].set_title(rf'PRE distributions at {sigma}$\sigma$')        
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
     ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
-    ax[0].set_ylabel('Probability (PDF) [\%]')
+    ax[0].set_ylabel(r'Probability (PDF) [\%]')
     ax[0].set_xlim(xx[0], xx[-1])
     ax[0].legend()
 
