@@ -439,7 +439,8 @@ class SimFile (object):
 
     def getFirstExposureNr(self):
 
-        """Return the exposure number of the first exposure in the HDF5 file.
+        """
+        Return the exposure number of the first exposure in the HDF5 file.
         """
 
         return int(self.getInputParameter("ObservingParameters", "BeginExposureNr"))
@@ -648,7 +649,8 @@ class SimFile (object):
 
     def saveMapsToFITS(self, imageMap, hduPrefix, fileName, overwrite=False):
 
-        """Save every exposure of a per-exposure map to one FITS file.
+        """
+        Save every exposure of a per-exposure map to one FITS file.
 
         The first exposure goes into the primary HDU, every following exposure
         into an image extension named <hduPrefix><exposureNr>. This will go
@@ -688,7 +690,8 @@ class SimFile (object):
 
     def saveImagesToFITS(self, fileName):
 
-        """Save all subfield images in the HDF5 file to a FITS file.
+        """
+        Save all subfield images in the HDF5 file to a FITS file.
         """
 
         self.saveMapsToFITS("Images", "image", fileName, overwrite=True)
@@ -699,7 +702,8 @@ class SimFile (object):
 
     def saveSmearingMapsToFITS(self, fileName):
 
-        """Save all smearing maps in the HDF5 file to a FITS file.
+        """
+        Save all smearing maps in the HDF5 file to a FITS file.
         """
 
         self.saveMapsToFITS("SmearingMaps", "smearingMap", fileName)
@@ -710,7 +714,8 @@ class SimFile (object):
 
     def saveBiasMapsLeftToFITS(self, fileName):
 
-        """Save all left bias maps in the HDF5 file to a FITS file.
+        """
+        Save all left bias maps in the HDF5 file to a FITS file.
         """
 
         self.saveMapsToFITS("BiasMapsLeft", "biasMap", fileName)
@@ -721,7 +726,8 @@ class SimFile (object):
 
     def saveBiasMapRightToFITS(self, fileName):
 
-        """Save all right bias maps in the HDF5 file to a FITS file.
+        """
+        Save all right bias maps in the HDF5 file to a FITS file.
         """
 
         self.saveMapsToFITS("BiasMapsRight", "biasMap", fileName)
@@ -1354,31 +1360,84 @@ class SimFile (object):
 
 
 
-    
+
     #--------------------------------------------------------------#
-    #                        COSMIC PARTICLES                      # 
+    #                        COSMIC PARTICLES                      #
     #--------------------------------------------------------------#
+
+
+    def getCosmicsGroup(self, field, caller):
+
+        """Return the HDF5 group Cosmics/<field>, or None (with an error message).
+        """
+
+        allowed = ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]
+        if field not in allowed:
+            print(f"Error: SimFile.{caller}(): field should be one of {allowed}")
+            return None
+
+        if "Cosmics" not in self.hdf5file or field not in self.hdf5file["Cosmics"]:
+            print(f"Error: SimFile.{caller}(): no cosmics for {field} in the HDF5 file")
+            return None
+
+        return self.hdf5file["Cosmics"][field]
+
+
+
+
+
+    def getCosmicsOfExposure(self, imageNr, field, names, caller):
+
+        """
+        Read the cosmics of one exposure from Cosmics/<field>.
+
+        Every dataset in Cosmics/<field> (entryRows, flux, ...) holds the values
+        of all exposures one after the other. For the exposure with index i
+        (counted from the first exposure), its values are
+        dataset[offsets[i]:offsets[i+1]]. An exposure without hits has
+        offsets[i] == offsets[i+1].
+
+        Returns a list with one array per name in `names`, or None on error.
+        """
+
+        group = self.getCosmicsGroup(field, caller)
+        if group is None:
+            return None
+
+        offsets = group["offsets"]
+        index = imageNr - self.getFirstExposureNr()
+        if not 0 <= index < len(offsets) - 1:
+            print(f"Error: SimFile.{caller}(): exposure {imageNr} not in the HDF5 file")
+            return None
+
+        begin, end = (int(x) for x in offsets[index:index+2])
+        return [group[name][begin:end] for name in names]
+
+
+
 
 
     def getCosmicsInfo(self, imageNr, field="SubField", df=False):
 
         """Get information about cosmic rays in the pixel maps.
-        
-        This function returns for all cosmics that hit the CCD in a given field, 
-        the entry rows, the entry columns, the entry angles, the intensities, 
+
+        This function returns for all cosmics that hit the CCD in a given field,
+        the entry rows, the entry columns, the entry angles, the intensities,
         and the trail lengths.
 
         Parameters
         ----------
         imageNr : int
-            Integer sequential number of the image in the HDF5 file.
+            Exposure number (as used by the simulation, starting at BeginExposureNr).
         field : str
-            String that determines from what field the Cosmics should be returned. 
+            String that determines from what field the Cosmics should be returned.
             Option: ['SubField', 'BiasMapLeft', 'BiasMapRight', 'SmearingMap'].
+        df : bool
+            Return a pandas DataFrame instead of separate arrays.
 
         Returns
         -------
-        entryRows[0..N-1] : ndarray    
+        entryRows[0..N-1] : ndarray
             The row where the cosmic hit the CCD [integer pixel]
         entryColumns[0..N-1] : ndarray
             The column where the cosmic hit the CCD [integer pixel]
@@ -1388,89 +1447,28 @@ class SimFile (object):
             The total number of e- of the cosmic before they were spread out in a trail [e-]
         trailLengths[0..N-1] : ndarray
             The length of the trail caused by the cosmic [pixels]
-        
+
         Notes
         -----
-        - If input do not exist or do not match any of these values in the HDF5 file
-          the function returns: (None, None, None, None, None).
+        - If the input is invalid or the data is not in the HDF5 file, the
+          function returns: (None, None, None, None, None).
         - Here N is the total number of cosmics that hit the CCD. If there were no
           hits in the field, the arrays will be empty. The latter is especially likely
           for the bias.
         """
 
-        # Check if the field variables matches the allowed values
-
-        if field not in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
-            print("Error: SimFile.getCosmicsInfo(): " +
-                  "field variable doesn't match one of the allowed values: " +
-                  "[SubField, BiasMapLeft, BiasMapRight, SmearingMap] ")
+        names = ["entryRows", "entryColumns", "entryAngles", "intensities", "trailLengths"]
+        data = self.getCosmicsOfExposure(imageNr, field, names, "getCosmicsInfo")
+        if data is None:
             return None, None, None, None, None
 
-        # Check if the Cosmics info was saved to the HDF5 file
-
-        if "Cosmics" not in self.hdf5file["/"].keys():
-            print("Error: SimFile.getCosmicsInfo(): " +
-                  "no cosmics information was saved in the HDF5 file.")
-            return None, None, None, None, None
-
-        # Check if the arrays are in the file:
-        # If not: complain
-        # If yes: copy the contents into a numpy array
-
-        if field not in self.hdf5file["Cosmics"].keys():
-            print(f"Error: SimFile.getCosmicsInfo(): {field} not in hdf5 file")
-            return None, None, None, None, None
-
-        # Construct the exposure name that was used to store the image
-
-        exposureGroupName = "Exposure{0:07d}".format(imageNr)
-        
-        # Extract information depending of HDF5 structure
-        
-        groupByExposure = self.getInputParameter("ControlHDF5Content", "GroupByExposure") 
-
-        if not groupByExposure:
-
-            # Here cosmics are further grouped per 1000th exposures
-            # and we overwrite the "exposureGroupName"
-
-            n = 1000
-            imageNrRound = imageNr // n
-            exposureGroupName = f"Exposure{imageNrRound:03d}/{exposureGroupName}"
-
-        # Check if this column exists in the HDF5 file
-
-        if exposureGroupName not in self.hdf5file["Cosmics/" + field].keys():
-            print(self.hdf5file["Cosmics/" + field].keys())
-            print(f"Error: SimFile.getCosmicsInfo(): {exposureGroupName} not in hdf5 file")
-            return None, None, None, None, None
-
-        # Extract the arrays from the HDF5 file
-
-        entryRows    = self.hdf5file["Cosmics"][field][exposureGroupName]["entryRows"][:]
-        entryColumns = self.hdf5file["Cosmics"][field][exposureGroupName]["entryColumns"][:]
-        entryAngles  = self.hdf5file["Cosmics"][field][exposureGroupName]["entryAngles"][:]
-        intensities  = self.hdf5file["Cosmics"][field][exposureGroupName]["intensities"][:]
-        trailLengths = self.hdf5file["Cosmics"][field][exposureGroupName]["trailLengths"][:]
-            
-        # That's it!
-
-        if len(intensities) == 1 and intensities[0] == -1.0:
-            if df:
-                return pd.DataFrame()
-            else:
-                empty = np.array([])
-                return empty, empty, empty, empty, empty
+        if df:
+            return pd.DataFrame(dict(zip(names, data)))
         else:
-            if df:
-                return pd.DataFrame({'entryRows':entryRows, 'entryColumns':entryColumns,
-                                     'entryAngles':entryAngles, 'intensities':intensities,
-                                     'trailLengths':trailLengths})
-            else:
-                return entryRows, entryColumns, entryAngles, intensities, trailLengths
+            return tuple(data)
 
 
-        
+
 
 
     def getCosmicsAffectedPixels(self, imageNr, field="SubField", df=False):
@@ -1483,75 +1481,31 @@ class SimFile (object):
         Parameters
         ----------
         imageNr : int
-            Integer sequential number of the image in the HDF5 file.
+            Exposure number (as used by the simulation, starting at BeginExposureNr).
         field : str
-            String that determines from what field the Cosmics should be returned. 
+            String that determines from what field the Cosmics should be returned.
             Option: ['SubField', 'BiasMapLeft', 'BiasMapRight', 'SmearingMap'].
+        df : bool
+            Return a pandas DataFrame instead of separate arrays.
 
         Returns
         -------
         row : ndarray
-            Pixel row coordinates of each star in the image (integer).
+            Pixel row coordinates of the affected pixels (integer).
         col : ndarray
-            Pixel column coordinates of each star in the image (integer).
+            Pixel column coordinates of the affected pixels (integer).
         flux : ndarray
             Flux of cosmics [electrons].
+
+        The arrays are empty if no cosmics hit the field in this exposure.
         """
 
-        # Check if the field variables matches the allowed values
-
-        if field not in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
-            print("Error: SimFile:getCosmicsAffectedPixels(): " +
-                  "field variable doesn't match one of the allowed values: " +
-                  "[SubField, BiasMapLeft, BiasMapRight, SmearingMap]")
+        data = self.getCosmicsOfExposure(imageNr, field, ["rows", "columns", "flux"],
+                                          "getCosmicsAffectedPixels")
+        if data is None:
             return None, None, None
 
-        # Check if the Cosmics info was saved to the HDF5 file
-
-        if "Cosmics" not in self.hdf5file["/"].keys():
-            print("Error: SimFile.getCosmicsAffectedPixels(): " +
-                  "no cosmics data was saved in the HDF5 file.")
-            return None, None, None
-
-        # Check if the arrays are in the HDF5 file
-        
-        if field not in self.hdf5file["Cosmics"].keys():
-            print("Error: SimFile.getCosmicsAffectedPixels(): {field} not in hdf5 file")
-            return None, None, None
-        
-        # Construct the exposure name that was used to store the image
-
-        exposureGroupName = "Exposure{0:07d}".format(imageNr)
-
-        # Extract information depending of HDF5 structure
-        
-        groupByExposure = self.getInputParameter("ControlHDF5Content", "GroupByExposure") 
-
-        if not groupByExposure:
-
-            # Here cosmics are further grouped per 1000th exposures
-            # and we overwrite the "exposureGroupName"
-            
-            n = 1000
-            imageNrRound = imageNr // n
-            exposureGroupName = f"Exposure{imageNrRound:03d}/{exposureGroupName}"
-            
-        # Check if this column exists in the HDF5 file
-                
-        if exposureGroupName not in self.hdf5file["Cosmics/" + field].keys():
-            print(self.hdf5file["Cosmics/" + field].keys())
-            print(f"Error: SimFile.getCosmicsAffectedPixels(): {exposureGroupName} " +
-                  "not in hdf5 file")
-            return None, None, None
-
-        # Extract the arrays from the HDF5 file
-
-        col  = self.hdf5file["Cosmics"][field][exposureGroupName]["columns"][:]
-        row  = self.hdf5file["Cosmics"][field][exposureGroupName]["rows"][:]
-        flux = self.hdf5file["Cosmics"][field][exposureGroupName]["flux"][:]
-
-        # That's it!
-
+        row, col, flux = data
         if df:
             return pd.DataFrame({'row':row, 'col':col, 'flux':flux})
         else:
@@ -1560,127 +1514,92 @@ class SimFile (object):
 
 
 
-    
+
     def getCosmicsAffectedExposures(self, field="SubField"):
 
-        """Get the pixel affected by cosmic rays.
-
-        Get the pixel coordinates and flux for those pixels that are affected
-        by a cosmics, for a particular field (e.g. SubField, SmearingMap, etc).
+        """
+        Get the exposures in which cosmic rays hit the given field.
 
         Parameters
         ----------
         field : str
-            String that determines from what field the Cosmics should be returned. 
+            String that determines from what field the Cosmics should be returned.
             Option: ['SubField', 'BiasMapLeft', 'BiasMapRight', 'SmearingMap'].
 
         Returns
         -------
-        Exposure Nr : ndarray
-            Indices for exosure affected by cosmic rays.
+        indices : ndarray
+            Indices (counted from the first exposure, so 0 is BeginExposureNr)
+            of the exposures with at least one cosmic hit. None on error.
         """
 
-        # Fetch the image numbers
+        group = self.getCosmicsGroup(field, "getCosmicsAffectedExposures")
+        if group is None:
+            return None
 
-        # Fetch StarPosition keys (i.e. "Exposure000000", etc)
-        # TODO remove time column: -1 because Time is last column
-        # Fetch the image names
-        imgNames = list(self.hdf5file['Images'].keys())
-        N        = len(imgNames)
-        
-        indices = np.zeros(N)
-        
-        for i in range(N-1):
+        hitsPerExposure = np.diff(group["offsets"][:].astype(np.int64))
+        return np.flatnonzero(hitsPerExposure)
 
-            _, _, flux = self.getCosmicsAffectedPixels(i+1, field=field)
 
-            if flux[0] == -1:
-                indices[i] = i
+
+
+
+    def getCosmicsWithinApertureMask(self, starID):
+
+        """
+        Get the exposures in which a cosmic ray hit the aperture mask of a star.
+
+        Parameters
+        ----------
+        starID : int
+            ID of the star whose photometric aperture mask is used.
+
+        Returns
+        -------
+        indices : list
+            Indices (counted from the first exposure, so 0 is BeginExposureNr)
+            of the exposures where at least one subfield pixel hit by a cosmic
+            is part of the star's aperture mask. These can be used directly
+            to index the light curve, e.g. df.iloc[indices]. None on error.
+        """
+
+        starIDgroupName = f"starID{starID}"
+        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
+            print(f"ERROR: simfile.getCosmicsWithinApertureMask(): {starIDgroupName} " +
+                  "not present in HDF5 group: Photometry/Lightcurves")
+            return None
+
+        firstNr = self.getFirstExposureNr()
+        affected = self.getCosmicsAffectedExposures(field="SubField")
+        if affected is None:
+            return None
+
+        indices = []
+        for index in affected:
+
+            exposureNr = firstNr + int(index)
+            rowCosmics, colCosmics, _ = self.getCosmicsAffectedPixels(exposureNr, field="SubField")
+            rowMask, colMask, _, _, _, _ = self.getApertureMask(starID=starID, imageNr=exposureNr)
+            if rowMask is None:
+                continue
+
+            # Check if any pixel hit by a cosmic is one of the mask pixels
+
+            maskPixels = set(zip(np.asarray(rowMask).tolist(), np.asarray(colMask).tolist()))
+            if any(pixel in maskPixels for pixel in zip(rowCosmics.tolist(), colCosmics.tolist())):
+                indices.append(int(index))
 
         return indices
 
 
 
 
-    
-    def getCosmicsWithinApertureMask(self, starID):
 
-        """Get the pixel affected by cosmic rays.
-
-        Get the pixel coordinates and flux for those pixels that are affected
-        by a cosmics, for a particular field (e.g. SubField, SmearingMap, etc).
-
-        Parameters
-        ----------
-        field : str
-            String that determines from what field the Cosmics should be returned. 
-            Option: ['SubField', 'BiasMapLeft', 'BiasMapRight', 'SmearingMap'].
-
-        Returns
-        -------
-        Exposure Nr : ndarray
-            Indices for exosure affected by cosmic rays.
-        """
-
-        # Fetch StarPosition keys (i.e. "Exposure000000", etc)
-
-        imgNames = list(self.hdf5file['Images'].keys())
-        N        = len(imgNames)
-    
-        # Check photometry is present for each star
-        
-        starIDgroupName = f"starID{starID}"
-        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-            print(f"ERROR: simfile.getCosmicsWithinApertureMask(): {starIDgroupName} " +
-                  "not present in HDF5 group: Photometry/Lightcurves")
-        else:
-            updates = self.getMaskUpdateEvents()
-
-        # For the exposures with cosmics fetch the aperture mask(s)
-
-        dex  = []
-        for i in range(N-1):
-
-            # Get info about cosmics for entire image
-            
-            row_cos, col_cos, flux_cos = self.getCosmicsAffectedPixels(i+1, field='SubField')
-            
-            if flux_cos[0] != -1:
-
-                # Get the aperture mask pixels
-                
-                row_mask, col_mask, _, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
-
-                # Compare mask pixels to cosmics affected pixels element wise
-
-                try: 
-                    (row_cos == row_mask).all()
-                except: 
-                    rows = True
-                else: 
-                    rows = False
-
-                try: 
-                    (col_cos == col_mask).all()
-                except: 
-                    cols = True
-                else: 
-                    cols = False
-                
-                if rows and cols:
-                    dex.append(i)
-
-        return dex
-                
-
-
-
-    
     #--------------------------------------------------------------#
     #                    PHOTOMETRIC FUNCTIONS                     #
     #--------------------------------------------------------------#
 
-           
+
     def getFlux(self, starID, fluxType="estimated", df=False):
 
         """Returns flux points in units [e-/s].
