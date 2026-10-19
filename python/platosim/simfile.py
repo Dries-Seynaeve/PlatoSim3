@@ -646,30 +646,52 @@ class SimFile (object):
 
 
 
-    def saveImagesToFITS(self, fileName):
+    def saveMapsToFITS(self, imageMap, hduPrefix, fileName, overwrite=False):
 
-        """Save the image maps to a FITS file.
+        """Save every exposure of a per-exposure map to one FITS file.
 
-        Save all subfield images in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of images is too large or when the images
-        themselves are too large.
+        The first exposure goes into the primary HDU, every following exposure
+        into an image extension named <hduPrefix><exposureNr>. This will go
+        horribly wrong when the number of exposures or the maps are too large.
+
+        Parameters
+        ----------
+        imageMap : str
+            Group of the map in the HDF5 file.
+            Options: ['Images', 'SmearingMaps', 'BiasMapsLeft', 'BiasMapsRight',
+                      'ThroughputMaps', 'SubPixelImages']
+        hduPrefix : str
+            Prefix of the FITS extension names, e.g. "image" gives "image0000011".
+        fileName : str
+            Path of the output FITS file.
+        overwrite : bool
+            Overwrite the output file if it already exists.
         """
 
+        firstNr = self.getFirstExposureNr()
+        Nimages = int(self.getInputParameter("ObservingParameters", "NumExposures"))
+
         hduList = []
-        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-        for imageNr in range(0, Nimages):
-            
-            imageName = "image{0:07d}".format(imageNr)
-            image = self.getImage(imageNr)
-            
-            if imageNr == 0:
+        for exposureNr in range(firstNr, firstNr + Nimages):
+            image = self.getMap(imageMap, imageNr=exposureNr)
+            if exposureNr == firstNr:
                 hdu = fits.PrimaryHDU(image)
             else:
-                hdu = fits.ImageHDU(image, name=imageName)
+                hdu = fits.ImageHDU(image, name=f"{hduPrefix}{exposureNr:07d}")
             hduList.append(hdu)
 
-        myFits = fits.HDUList(hduList)
-        myFits.writeto(fileName, overwrite=True)
+        fits.HDUList(hduList).writeto(fileName, overwrite=overwrite)
+
+
+
+
+
+    def saveImagesToFITS(self, fileName):
+
+        """Save all subfield images in the HDF5 file to a FITS file.
+        """
+
+        self.saveMapsToFITS("Images", "image", fileName, overwrite=True)
 
 
 
@@ -677,26 +699,10 @@ class SimFile (object):
 
     def saveSmearingMapsToFITS(self, fileName):
 
-        """Save the smearing maps to a fits file.
-
-        Save all smearing maps in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of exposures is too large or when the maps
-        themselves are too large.
+        """Save all smearing maps in the HDF5 file to a FITS file.
         """
 
-        hduList = []
-        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-        for imageNr in range(Nimages):
-            image = self.getSmearingMap(imageNr)
-            imageName = "smearingMap{0:07d}".format(imageNr)
-            if imageNr == 0:
-                hdu = fits.PrimaryHDU(image)
-            else:
-                hdu = fits.ImageHDU(image, name=imageName)
-            hduList.append(hdu)
-
-        myFits = fits.HDUList(hduList)
-        myFits.writeto(fileName)
+        self.saveMapsToFITS("SmearingMaps", "smearingMap", fileName)
 
 
 
@@ -704,26 +710,10 @@ class SimFile (object):
 
     def saveBiasMapsLeftToFITS(self, fileName):
 
-        """Save the left bias maps to a FITS file.
-
-        Save all bias maps in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of exposures is too large or when the maps
-        themselves are too large.
+        """Save all left bias maps in the HDF5 file to a FITS file.
         """
 
-        hduList = []
-        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-        for imageNr in range(Nimages):
-            image = self.getBiasMapLeft(imageNr)
-            imageName = "biasMap{0:07d}".format(imageNr)
-            if imageNr == 0:
-                hdu = fits.PrimaryHDU(image)
-            else:
-                hdu = fits.ImageHDU(image, name=imageName)
-            hduList.append(hdu)
-
-        myFits = fits.HDUList(hduList)
-        myFits.writeto(fileName)
+        self.saveMapsToFITS("BiasMapsLeft", "biasMap", fileName)
 
 
 
@@ -731,31 +721,15 @@ class SimFile (object):
 
     def saveBiasMapRightToFITS(self, fileName):
 
-        """Save the right bias maps to a FITS file.
-
-        Save all bias maps in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of exposures is too large or when the maps
-        themselves are too large.
+        """Save all right bias maps in the HDF5 file to a FITS file.
         """
 
-        hduList = []
-        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-        for imageNr in range(Nimages):
-            image = self.getBiasMapRight(imageNr)
-            imageName = "biasMap{0:07d}".format(imageNr)
-            if imageNr == 0:
-                hdu = fits.PrimaryHDU(image)
-            else:
-                hdu = fits.ImageHDU(image, name=imageName)
-            hduList.append(hdu)
-
-        myFits = fits.HDUList(hduList)
-        myFits.writeto(fileName)
+        self.saveMapsToFITS("BiasMapsRight", "biasMap", fileName)
 
 
 
 
-        
+
     #--------------------------------------------------------------#
     #                     PLATFORM & TELESCOPE                     #
     #--------------------------------------------------------------#
@@ -764,8 +738,8 @@ class SimFile (object):
     def getPayloadInfo(self, groupName, subGroup, getTime, df):
 
         """Get all columns saved to the telescope entry.
-        
-        The telescope information contains information about the telescope 
+
+        The telescope information contains information about the telescope
         jitter and pointing. This implies: time, (yaw, pitch, roll) angles,
         and (RA, Dec) of the telescope pointing. The cadence is equal to the
         time scale set in the YAML configuration file.
