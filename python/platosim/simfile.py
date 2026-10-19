@@ -411,27 +411,43 @@ class SimFile (object):
 
         # Check if the image is in the file
 
-        if self.hdf5file[imageMap].keys() is None:
-            print(f"ERROR: {datasetName} not in HDF5 file")
-            return
+        if imageMap not in self.hdf5file or datasetName not in self.hdf5file[imageMap]:
+            print(f"ERROR: {imageMap}/{datasetName} not in HDF5 file")
+            return None
 
-        # Cases when on or more images are requested
+        dataset = self.hdf5file[imageMap][datasetName]
 
-        if imageNr is False:
-            
-            # Fetch images
+        # Maps that are written once (PSF, PRNU, background) are 2D.
+        # Maps that are written every exposure are 3D: (exposure, row, column).
 
-            image = self.hdf5file[imageMap][datasetName]
-            return image[:,:]
+        if imageNr is False or dataset.ndim == 2:
+            return dataset[...]
 
-        else:
-            firstNr = self.getInputParameter("ObservingParameters", "BeginExposureNr")
-            return self.hdf5file[imageMap][datasetName][imageNr-firstNr,:,:]
+        # The first axis starts at BeginExposureNr, so convert the exposure
+        # number to an index. Check the range explicitly, because a negative
+        # index would silently return a frame from the end.
+
+        index = imageNr - self.getFirstExposureNr()
+        if not 0 <= index < dataset.shape[0]:
+            print(f"ERROR: exposure {imageNr} not in {imageMap}/{datasetName}")
+            return None
+
+        return dataset[index]
 
 
 
 
-        
+    def getFirstExposureNr(self):
+
+        """Return the exposure number of the first exposure in the HDF5 file.
+        """
+
+        return int(self.getInputParameter("ObservingParameters", "BeginExposureNr"))
+
+
+
+
+
     def getPSF(self, psfName):
 
         """Get the PSF from the HDF5 file.
