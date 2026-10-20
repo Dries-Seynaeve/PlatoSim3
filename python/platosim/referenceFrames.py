@@ -1585,20 +1585,28 @@ def getCCDandPixelCoordinates(raStar, decStar,
                               mappedDistortion=False, distortionCoefficients=None,
                               pathToPsfFile=None, ccd=None, returnFPA=False):
 
-    """Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
+    """
+    Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
 
     Given the equatorial coordinates of a star, find out on which CCD
     it falls ('1', '2', '3', '4') and compute the pixel coordinates of
     the star on this CCD. If the star doesn't fall on any of the CCDs
     then (None, None, None) is given as output. These calculations use
     the custom CCD positions and orientation angle (so not from file!).
+    Works for a single star (floats) as well as for many stars at once (arrays).
+
+    Notes
+    -----
+    Stars behind the camera (more than 90 deg from the optical axis) are
+    flagged as not on a CCD, since the pinhole projection would otherwise
+    map them onto the focal plane as well.
 
     Parameters
     ----------
-    raStar : float
-        Right ascension of the star [rad]
-    decStar : float
-        Declination of the star [rad]
+    raStar : float, ndarray
+        Right ascension of the star(s) [rad]
+    decStar : float, ndarray
+        Declination of the star(s) [rad]
     raPlatform : float
         Right ascension of the platform roll axis [rad]
     decPlatform : float
@@ -1626,18 +1634,32 @@ def getCCDandPixelCoordinates(raStar, decStar,
         Coefficients of the polynomial describing the distortion for anlytic psf
     pathToPsfFile : str
         Path to the PSF file (HDF5) for mapped PSFs to calculate mapped distortion
+    ccd : dict
+        CCD layout (see CCD()). Default: CCD()
+    returnFPA : bool
+        If True, also return the (distorted) focal plane coordinates [mm]
 
     Return
     ------
-    ccdCode : str
-        For N-CAMs use: '1', '2', '3', '4'
-        For F-CAMs use: '1F','2F','3F','4F'
-    xCCD : int
-        X-coordinate (column) of star on the CCD [pix]
-        If not on CCD: None
-    yCCD : int
-        Y-coordinate (row) of star on the CCD (row) [pix]
-        If not on CCD: None
+    For a single star (float input):
+        ccdCode : str
+            For N-CAMs use: '1', '2', '3', '4'
+            For F-CAMs use: '1F','2F','3F','4F'
+            If not on CCD: None
+        xCCD : float
+            X-coordinate (column) of star on the CCD [pix]. If not on CCD: None
+        yCCD : float
+            Y-coordinate (row) of star on the CCD [pix]. If not on CCD: None
+        xFPmm, yFPmm : float (only if returnFPA)
+            Focal plane coordinates [mm]. If not on CCD: None
+
+    For many stars (array input):
+        ccdCode : ndarray of str
+            CCD code of each star. Empty string '' if not on a CCD.
+        xCCD, yCCD : ndarray
+            Pixel coordinates of each star on its CCD [pix]. NaN if not on a CCD.
+        xFPmm, yFPmm : ndarray (only if returnFPA)
+            Focal plane coordinates [mm]. NaN if not on a CCD.
     """
 
     # Make sure that for the respective field distortion the proper information is given.
@@ -1651,6 +1673,12 @@ def getCCDandPixelCoordinates(raStar, decStar,
             print("ERROR: If analytic field distortion should be taken into account, " +
                   "the distortionCoefficients should be given")
             return
+
+    # Remember whether a single star was given, then work with arrays
+
+    isScalar = np.ndim(raStar) == 0 and np.ndim(decStar) == 0
+    raStar   = np.atleast_1d(np.asarray(raStar,  dtype=float))
+    decStar  = np.atleast_1d(np.asarray(decStar, dtype=float))
 
     # Select the proper CCD codes depending on N-CAMs or F-CAMs
 
@@ -1666,6 +1694,16 @@ def getCCDandPixelCoordinates(raStar, decStar,
                                               tiltAngle, azimuthAngle,
                                               focalPlaneAngle, focalLength)
 
+    # Reject stars behind the camera: angle to the optical axis must be < 90 deg
+
+    raAxis, decAxis = focalPlaneToSkyCoordinates(0.0, 0.0,
+                                                 raPlatform, decPlatform, solarPanelOrientation,
+                                                 tiltAngle, azimuthAngle,
+                                                 focalPlaneAngle, focalLength)
+    cosAngleToAxis = (np.sin(decStar) * np.sin(decAxis) +
+                      np.cos(decStar) * np.cos(decAxis) * np.cos(raStar - raAxis))
+    inFront = cosAngleToAxis > 0
+
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
             xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
@@ -1679,43 +1717,48 @@ def getCCDandPixelCoordinates(raStar, decStar,
     # Fetch CCD dictorionary
 
     if ccd is None: ccd = CCD()
-    
-    # Find out if this falls on a CCD, and if yes which one.
-    # Our approach: try each of the CCDs. Not elegant, but robust!
-            
-    for ccdCode in ccdCodes:
 
-        # Compute the position of the star in pixel coordinates, for the current CCD,
+    # Find out if the stars fall on a CCD, and if yes which one.
+    # Try each of the CCDs and keep the first one a star falls on (CCDs do not overlap).
+
+    ccdCode = np.full(raStar.shape, '', dtype='<U2')
+    xCCDpix = np.full(raStar.shape, np.nan)
+    yCCDpix = np.full(raStar.shape, np.nan)
+
+    for code in ccdCodes:
+
+        # Compute the position of the stars in pixel coordinates, for the current CCD,
         # disregarding the physical extend of the CCD
 
-        zeroPointXmm = ccd[ccdCode]["zeroPointXmm"]
-        zeroPointYmm = ccd[ccdCode]["zeroPointYmm"]
-        ccdAngle     = ccd[ccdCode]["angle"]
-        Nrows        = ccd[ccdCode]["Nrows"]
-        Ncols        = ccd[ccdCode]["Ncols"]
-        firstRow     = ccd[ccdCode]["firstRow"]
+        x, y = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize,
+                                            ccd[code]["zeroPointXmm"],
+                                            ccd[code]["zeroPointYmm"],
+                                            ccd[code]["angle"])
 
-        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize,
-                                                        zeroPointXmm, zeroPointYmm,
-                                                        ccdAngle)
+        # Keep the stars on the exposed area of this CCD that were not yet assigned
 
-        # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
+        onCCD = (inFront & (ccdCode == '') &
+                 (x >= 0) & (x < ccd[code]["Ncols"]) &
+                 (y >= ccd[code]["firstRow"]) & (y < ccd[code]["Nrows"]))
+        ccdCode[onCCD] = code
+        xCCDpix[onCCD] = x[onCCD]
+        yCCDpix[onCCD] = y[onCCD]
 
-        if (xCCDpix < 0)      or (yCCDpix < firstRow): continue
-        if (xCCDpix >= Ncols) or (yCCDpix >= Nrows):   continue
+    # For a single star, return the same types as before: (str, float, float) or None's
 
-        # If we arrive here, we found a CCD on which the star is located
+    if isScalar:
+        if ccdCode[0] == '':
+            return (None,) * (5 if returnFPA else 3)
         if returnFPA:
-            return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
-        else:
-            return ccdCode, xCCDpix, yCCDpix
-
-    # If we arrive here, the star does not fall on any CCD
+            return str(ccdCode[0]), xCCDpix[0], yCCDpix[0], xFPmm[0], yFPmm[0]
+        return str(ccdCode[0]), xCCDpix[0], yCCDpix[0]
 
     if returnFPA:
-        return None, None, None, None, None
-    else:
-        return None, None, None
+        offCCD = ccdCode == ''
+        xFPmm = np.where(offCCD, np.nan, xFPmm)
+        yFPmm = np.where(offCCD, np.nan, yFPmm)
+        return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
+    return ccdCode, xCCDpix, yCCDpix
 
 
 
