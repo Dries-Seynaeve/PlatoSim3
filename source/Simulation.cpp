@@ -195,6 +195,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         detector = detectorFactory->createDetectorWithAnalyticNonGaussianPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
+    else if (psfModel == "Cpsf")
+    {
+        detector = detectorFactory->createDetectorWithCpsfPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+    }
     else
     {
         string errorMessage = "Simulation: PSF Model '" + psfModel + "' is not supported.";

@@ -50,6 +50,7 @@ fi
 # dependency package. Each script Unzip/Untar packages in dependencies/Downloads/ 
 # and installs dependencies packages in dependencies/Installs/
 
+INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_zlib.py
 INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_hdf5.py
 INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_yaml.py
 INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_armadillo.py

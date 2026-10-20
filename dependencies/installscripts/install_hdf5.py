@@ -20,6 +20,14 @@ buildDir         = currentWorkingDir + "/dependencies/Downloads/"
 parentInstallDir = currentWorkingDir + "/dependencies/Installs/"
 installDir       = parentInstallDir + packageName
 
+# HDF5 is built with zlib support (deflate compression filter), using the zlib
+# that install_zlib.py installed in the Installs folder.
+
+zlibDir = parentInstallDir + "zlib-1.3.2"
+if not os.path.isdir(zlibDir + "/lib"):
+    print("Error: zlib was not found in {0}. Run install_zlib.py first.".format(zlibDir))
+    sys.exit(1)
+
 
 # Check if /dependencies/Installs directory exists
 
@@ -47,11 +55,17 @@ installProcedure = "cd {build} &&                                   \
                     rm -rf build &&                                 \
                     mkdir build &&                                  \
                     cd build &&                                     \
-                    cmake .. -DCMAKE_INSTALL_PREFIX={install} -DHDF5_BUILD_CPP_LIB=ON &&    \
+                    cmake .. -DCMAKE_INSTALL_PREFIX={install}       \
+                             -DHDF5_BUILD_CPP_LIB=ON                \
+                             -DHDF5_ENABLE_ZLIB_SUPPORT=ON          \
+                             -DHDF5_USE_ZLIB_STATIC=OFF             \
+                             -DZLIB_ROOT={zlib}                     \
+                             -DCMAKE_INSTALL_RPATH={zlib}/lib &&    \
                     cmake --build . &&                              \
                     cmake --install .".format(build=buildDir,
                                               package=packageName,
-                                              install=installDir)
+                                              install=installDir,
+                                              zlib=zlibDir)
 
 process = subprocess.run(installProcedure, shell=True, text=True)
 if process.returncode != 0:
