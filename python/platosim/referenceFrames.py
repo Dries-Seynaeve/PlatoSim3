@@ -2055,12 +2055,14 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
 
 
-def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
+def skyToPixelCoordinates(sim, raStar, decStar, ccd=None):
 
-    """From equatorial to pixel coordinates.
+    """
+    From equatorial to pixel coordinates.
 
     Convert sky coordinates to pixel coordinates. These calculations are based
     on the custom CCD position and orientation angle (so not from file!).
+    Works for a single star (floats) as well as for many stars at once (arrays).
 
     Notes
     -----
@@ -2069,57 +2071,58 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
     a valid value for the focal length, the plate scale, the pixel size, and that
     the switch to include distortion or not is set correctly.
 
+    This function reads these parameters from sim and passes them on to
+    getCCDandPixelCoordinates, which does the actual calculation.
+
     Parameters
     ----------
     sim : class instance
         Instance of Simulation class (simulation.py)
-    raStar : float
-        Right ascension of the star [rad]
-    decStar : float   
-        Declination of the star [rad]
-    subfieldSizeX : int
-       Full width (# of columns) of the subfield [pix]
-    subfieldSizeY : int
-       Full height (# of rows) of the subfield [pix]
+    raStar : float, ndarray
+        Right ascension of the star(s) [rad]
+    decStar : float, ndarray
+        Declination of the star(s) [rad]
+    ccd : dict
+        CCD layout (see CCD()). Default: CCD()
 
     Return
     ------
-    ccdCode : str
-        For N-CAMs use: '1', '2', '3', '4'
-        For F-CAMs use: '1F','2F','3F','4F'
-    xCCDpix : int
-        X-coordinate (column) of star on the CCD [pix]
-        If not on CCD: None
-    yCCDpix : int 
-        Y-coordinate (row) of star on the CCD [pix]
-        If not on CCD: None
-    normal:
-        Is deprecated and should no longer be used.
+    For a single star (float input):
+        ccdCode : str
+            For N-CAMs use: '1', '2', '3', '4'
+            For F-CAMs use: '1F','2F','3F','4F'
+            If not on CCD: None
+        xCCDpix : float
+            X-coordinate (column) of star on the CCD [pix]. If not on CCD: None
+        yCCDpix : float
+            Y-coordinate (row) of star on the CCD [pix]. If not on CCD: None
+
+    For many stars (array input):
+        ccdCode : ndarray of str
+            CCD code of each star. Empty string '' if not on a CCD.
+        xCCDpix : ndarray
+            X-coordinate (column) of each star on its CCD [pix]. NaN if not on a CCD.
+        yCCDpix : ndarray
+            Y-coordinate (row) of each star on its CCD [pix]. NaN if not on a CCD.
     """
 
     # Resolve which distortion model is used (if any)
 
-    if (sim["PSF/Model"] == "MappedFromFile"):
+    if sim["PSF/Model"] == "MappedFromFile":
         includeFieldDistortion = True
+        mappedDistortion       = True
         distortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
-        mappedDistortion       = True
-    elif (sim["Camera/IncludeFieldDistortion"] == "yes"  or
-          sim["Camera/IncludeFieldDistortion"] is True):
+    else:
+        includeFieldDistortion = sim["Camera/IncludeFieldDistortion"] in true
+        mappedDistortion       = False
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         pathToPsfFile          = None
-        mappedDistortion       = False
-        includeFieldDistortion = True
-    else:
-        includeFieldDistortion = False
-        distortionCoefficients = None
-        pathToPsfFile          = None
-        mappedDistortion       = False
 
     # Fetch parameters and convert
-    
-    pixelSize             = float(sim["CCD/PixelSize"])
-    focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+
+    pixelSize   = float(sim["CCD/PixelSize"])
+    focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
 
     if sim["Platform/Orientation/Source"] == "Angles":
         raPlatform  = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
@@ -2129,32 +2132,20 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
         q_EQ2PLM = sim["Platform/Orientation/Quaternion/Components"]
         raPlatform, decPlatform, solarPanelOrientation = platformAnglesFromQuaternion(q_EQ2PLM)                     # [rad]
 
-    focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-    azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
-    normalCamera          = sim["Telescope/GroupID"] != "Fast"
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+    azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+    tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    normalCamera     = sim["Telescope/GroupID"] != "Fast"
 
-    # TODO: This should be removed in the next major release, together with the normal argument in this function.
-    if normal is not None:
-        warnings.warn("\nThe optional argument: normal is depricated is no longer used.\nThis value will from now on be derived from the Simulation argument in the function.", category=DeprecationWarning, stacklevel=2)
-        if not normal == normalCamera:
-            warnings.warn("\nThe value for normal is not consistent with the one specified in the Simulation argument.\nThis function will use the specified normal value, but keep in mind that this is different from the one defined in sim.", category=DeprecationWarning, stacklevel=2)
-            normalCamera = normal
+    # Get the pixel coordinates on the CCD (works for floats and arrays)
 
-    # Get the pixel coordinates on the CCD
-
-    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar,
-                                                              raPlatform, decPlatform,
-                                                              solarPanelOrientation,
-                                                              tiltTelescope, azimuthTelescope,
-                                                              focalPlaneAngle, focalLength,
-                                                              pixelSize, includeFieldDistortion,
-                                                              normalCamera, mappedDistortion,
-                                                              distortionCoefficients, pathToPsfFile)
-
-    # That's it!
-
-    return ccdCode, xCCDpixel, yCCDpixel
+    return getCCDandPixelCoordinates(raStar, decStar,
+                                     raPlatform, decPlatform, solarPanelOrientation,
+                                     tiltTelescope, azimuthTelescope,
+                                     focalPlaneAngle, focalLength,
+                                     pixelSize, includeFieldDistortion,
+                                     normalCamera, mappedDistortion,
+                                     distortionCoefficients, pathToPsfFile, ccd)
 
 
 
