@@ -2083,9 +2083,9 @@ class PLATOnium(object):
             # Move the phot files to sotrage
             try:
                 if self.pipeZarrOutput:
-                    shutil.copytree(lc_file, lc_file_out)
-                    shutil.copytree(cob_file, cob_file_out)
-                    shutil.copytree(skypos_file, skypos_file_out)
+                    shutil.copytree(lc_file, lc_file_out, dirs_exist_ok=True)
+                    shutil.copytree(cob_file, cob_file_out, dirs_exist_ok=True)
+                    shutil.copytree(skypos_file, skypos_file_out, dirs_exist_ok=True)
                 else:
                     shutil.copy(lc_file, lc_file_out)
                     shutil.copy(cob_file, cob_file_out)
@@ -2174,11 +2174,11 @@ class PLATOnium(object):
             print(f"Move {yaml_file} -> {yaml_file_out}")
             try:
                 if self.pipeZarrOutput:
-                    shutil.copytree(lc_file1, lc_file1_out)
-                    shutil.copytree(lc_file2, lc_file2_out)
-                    shutil.copytree(cob_file1, cob_file1_out)
-                    shutil.copytree(cob_file2, cob_file2_out)
-                    shutil.copytree(skypos_file, skypos_file_out)
+                    shutil.copytree(lc_file1, lc_file1_out, dirs_exist_ok=True)
+                    shutil.copytree(lc_file2, lc_file2_out, dirs_exist_ok=True)
+                    shutil.copytree(cob_file1, cob_file1_out, dirs_exist_ok=True)
+                    shutil.copytree(cob_file2, cob_file2_out, dirs_exist_ok=True)
+                    shutil.copytree(skypos_file, skypos_file_out, dirs_exist_ok=True)
                 else:
                     shutil.copy(lc_file1, lc_file1_out)
                     shutil.copy(lc_file2, lc_file2_out)
