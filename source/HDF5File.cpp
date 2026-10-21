@@ -258,15 +258,25 @@ RaggedArray HDF5File::createGroupForCosmics(string subGroupName, hsize_t numberO
     data.offsets.resize(numberOfExposures + 1);
     data.offsets[0] = 0;
 
+    // The per-pixel fields (rows, columns, flux) have one value per pixel hit by a
+    // cosmic, so they need their own offsets table. It has the same size and is
+    // filled in by writeCosmics() after each exposure (unwritten entries stay 0).
+
+    group.createDataSet("/Cosmics/" + subGroupName + "/pixelOffsets", H5::PredType::NATIVE_UINT64, offSpace);
+
     // Documentation for the hdf5 file, so it is available from the hdf5 file
     // viewer.
     H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
     H5::DataSpace attrSpace(H5S_SCALAR);
 
     const char* text = "Ragged array since not every exposure has the same amount of cosmics.\n "
-                       "For exposure i, each field's values for that exposures are:\n\n "
-                       "field[offsets[i]:offsets[i+1]].\n\nRemark that: "
-                       "offsets[0] == 0 and an exposure with no entries has offsets[i] == offsets[i+1].";
+                       "Per cosmic (entryRows, entryColumns, trailLengths, entryAngles, intensities), "
+                       "the values of exposure i are:\n\n "
+                       "field[offsets[i]:offsets[i+1]].\n\n"
+                       "Per pixel hit by a cosmic (rows, columns, flux), the values of exposure i are:\n\n "
+                       "field[pixelOffsets[i]:pixelOffsets[i+1]].\n\nRemark that: "
+                       "offsets[0] == pixelOffsets[0] == 0 and an exposure with no entries has "
+                       "offsets[i] == offsets[i+1].";
 
     H5::Attribute attr = group.createAttribute("description", strType, attrSpace);
     attr.write(strType, &text);
@@ -2828,6 +2838,19 @@ void HDF5File::addDataToRaggedArray(map<string, vector<T>>& data, map<string, H5
 {
     const H5::PredType &dataType = Hdf5PredType<T>::get();
 
+    // Every vector must hold exactly n values: n elements are read from each of them.
+
+    for (const auto& item : data)
+    {
+        if (item.second.size() != n)
+        {
+            throw H5DatasetException("HDF5File::addDataToRaggedArray(): field " + item.first + " has "
+                                     + to_string(item.second.size()) + " values, expected " + to_string(n));
+        }
+    }
+
+    if (n == 0) return;
+
     hsize_t newSize[1] = { offsetVal + n };
     hsize_t offset[1]  = {offsetVal};
     hsize_t count[1]   = { n };
@@ -2861,31 +2884,56 @@ void HDF5File::writeCosmics(
     vector<double> &entryAngles, vector<double> &intensities,
     vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
-    hsize_t newSize[1] = { array.runningTotal + entryRows.size() };
-    hsize_t offset[1] = {array.runningTotal};
-    hsize_t count[1] = {entryRows.size()};
+    if (exposureIdx < 0 || (size_t)exposureIdx + 1 >= array.offsets.size())
+    {
+        throw H5DatasetException("HDF5File::writeCosmics(): exposure index " + to_string(exposureIdx)
+                                 + " outside the cosmics offsets table");
+    }
 
-    map<string, vector<unsigned int>> uintData = { {"entryRows",  entryRows}, //
-						   {"entryColumns", entryColumns},
-						   {"rows", rows},
-						   {"columns", cols} };
-    map<string, vector<double>> doubleData = { {"trailLengths", trailLengths},
-					      {"entryAngles", entryAngles},
-					      {"intensities", intensities},
-					      {"flux", flux} };
+    // There are two kinds of fields, with a different number of values per exposure:
+    //  - per cosmic: one value for every cosmic that hit the map;
+    //  - per pixel:  one value for every pixel along the trails of these cosmics.
+    // Each kind is appended at its own position and gets its own offsets table.
 
-    size_t n = uintData.empty() ? doubleData.begin()->second.size()
-                                   : uintData.begin()->second.size();
+    const hsize_t numCosmics = entryRows.size();
+    const hsize_t numPixels  = rows.size();
 
-    map<string, H5::DataSet> uintDataset = array.uintDatasets;
-    map<string, H5::DataSet> doubleDataset = array.doubleDatasets;
+    map<string, vector<unsigned int>> uintPerCosmic   = { {"entryRows",    entryRows},
+                                                          {"entryColumns", entryColumns} };
+    map<string, vector<double>>       doublePerCosmic = { {"trailLengths", trailLengths},
+                                                          {"entryAngles",  entryAngles},
+                                                          {"intensities",  intensities} };
+    map<string, vector<unsigned int>> uintPerPixel    = { {"rows",    rows},
+                                                          {"columns", cols} };
+    map<string, vector<double>>       doublePerPixel  = { {"flux", flux} };
 
-    addDataToRaggedArray(uintData, uintDataset, array.runningTotal, n);
-    addDataToRaggedArray(doubleData, doubleDataset, array.runningTotal, n);
+    // The per-pixel values are appended after the ones already in the file
 
-    array.runningTotal += entryRows.size();
+    H5::DataSet &rowsDataset = array.uintDatasets.at("rows");
+    hsize_t pixelTotal;
+    rowsDataset.getSpace().getSimpleExtentDims(&pixelTotal);
+
+    addDataToRaggedArray(uintPerCosmic,   array.uintDatasets,   array.runningTotal, numCosmics);
+    addDataToRaggedArray(doublePerCosmic, array.doubleDatasets, array.runningTotal, numCosmics);
+    addDataToRaggedArray(uintPerPixel,    array.uintDatasets,   pixelTotal, numPixels);
+    addDataToRaggedArray(doublePerPixel,  array.doubleDatasets, pixelTotal, numPixels);
+
+    array.runningTotal += numCosmics;
     array.offsets[exposureIdx + 1] = array.runningTotal;
 
+    // Store the end of this exposure's per-pixel values in pixelOffsets[exposureIdx + 1]
+
+    string groupPath = rowsDataset.getObjName();
+    groupPath = groupPath.substr(0, groupPath.find_last_of('/'));
+    H5::DataSet pixelOffsets = file->openDataSet(groupPath + "/pixelOffsets");
+
+    uint64_t pixelEnd   = pixelTotal + numPixels;
+    hsize_t  count[1]   = { 1 };
+    hsize_t  offset[1]  = { (hsize_t)exposureIdx + 1 };
+    H5::DataSpace fileSpace = pixelOffsets.getSpace();
+    fileSpace.selectHyperslab(H5S_SELECT_SET, count, offset);
+    H5::DataSpace memSpace(1, count);
+    pixelOffsets.write(&pixelEnd, H5::PredType::NATIVE_UINT64, memSpace, fileSpace);
 }
 
 

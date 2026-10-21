@@ -1387,7 +1387,7 @@ class SimFile (object):
 
 
 
-    def getCosmicsOfExposure(self, imageNr, field, names, caller):
+    def getCosmicsOfExposure(self, imageNr, field, names, caller, offsetsName="offsets"):
 
         """
         Read the cosmics of one exposure from Cosmics/<field>.
@@ -1398,6 +1398,11 @@ class SimFile (object):
         dataset[offsets[i]:offsets[i+1]]. An exposure without hits has
         offsets[i] == offsets[i+1].
 
+        There are two offsets tables: "offsets" for the fields with one value per
+        cosmic (entryRows, entryColumns, entryAngles, intensities, trailLengths),
+        and "pixelOffsets" for the fields with one value per pixel hit by a cosmic
+        (rows, columns, flux). All `names` must use the table `offsetsName`.
+
         Returns a list with one array per name in `names`, or None on error.
         """
 
@@ -1405,7 +1410,12 @@ class SimFile (object):
         if group is None:
             return None
 
-        offsets = group["offsets"]
+        if offsetsName not in group:
+            print(f"Error: SimFile.{caller}(): no Cosmics/{field}/{offsetsName} in the HDF5 file. "
+                  "Files written before pixelOffsets was introduced store corrupted per-pixel cosmics.")
+            return None
+
+        offsets = group[offsetsName]
         index = imageNr - self.getFirstExposureNr()
         if not 0 <= index < len(offsets) - 1:
             print(f"Error: SimFile.{caller}(): exposure {imageNr} not in the HDF5 file")
@@ -1502,7 +1512,7 @@ class SimFile (object):
         """
 
         data = self.getCosmicsOfExposure(imageNr, field, ["rows", "columns", "flux"],
-                                          "getCosmicsAffectedPixels")
+                                          "getCosmicsAffectedPixels", offsetsName="pixelOffsets")
         if data is None:
             return None, None, None
 
