@@ -3814,6 +3814,45 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 			     columnsOfCosmicsInSubField,
 			     fluxOfCosmicsInSubField);
    }
+
+   if (includeCosmicsInSmearingMap && writeCosmics)
+   {
+       hdf5File.writeCosmics(smearingCosmics,
+			     exposureNr - beginExposureNr,
+			     cosmicEntryRowSmearingMap,
+			     cosmicEntryColSmearingMap,
+			     cosmicsTrailsSmearingMap,
+			     cosmicsAnglesSmearingMap,
+			     cosmicsIntensitiesSmearingMap,
+			     rowsOfCosmicsInSmearingMap,
+			     columnsOfCosmicsInSmearingMap,
+			     fluxOfCosmicsInSmearingMap);
+   }
+
+   if (includeCosmicsInBiasMap && writeCosmics)
+   {
+       hdf5File.writeCosmics(leftBiasCosmics,
+			     exposureNr - beginExposureNr,
+			     cosmicEntryRowBiasMapLeft,
+			     cosmicEntryColBiasMapLeft,
+			     cosmicsTrailsBiasMapLeft,
+			     cosmicsAnglesBiasMapLeft,
+			     cosmicsIntensitiesBiasMapLeft,
+			     rowsOfCosmicsInBiasMapLeft,
+			     columnsOfCosmicsInBiasMapLeft,
+			     fluxOfCosmicsInBiasMapLeft);
+
+       hdf5File.writeCosmics(rightBiasCosmics,
+			     exposureNr - beginExposureNr,
+			     cosmicEntryRowBiasMapRight,
+			     cosmicEntryColBiasMapRight,
+			     cosmicsTrailsBiasMapRight,
+			     cosmicsAnglesBiasMapRight,
+			     cosmicsIntensitiesBiasMapRight,
+			     rowsOfCosmicsInBiasMapRight,
+			     columnsOfCosmicsInBiasMapRight,
+			     fluxOfCosmicsInBiasMapRight);
+   }
 }
 
 
