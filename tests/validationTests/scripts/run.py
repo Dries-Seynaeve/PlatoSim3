@@ -27,7 +27,8 @@ from DarkSignal.shotNoise                          import ShotNoise
 from DarkSignal.darkSignalNonUniformity            import DarkSignalNonUniformity
 from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD
 from brighterFatterEffect                          import BrighterFatterEffect
-#from cosmics                                       import Cosmics
+from Cosmics.cosmics                               import Cosmics
+from Cosmics.cosmicsOutput                         import CosmicsOutputSubField, CosmicsOutputSmearingMap, CosmicsOutputBiasMaps
 from openShutterSmearing                           import OpenShutterSmearing
 from ChargeTransferInefficiency.simpleCTI          import SimpleCTI
 from ChargeTransferInefficiency.Short2013          import Short2013CTI
@@ -118,7 +119,10 @@ myTests = [
     (DigitalSaturation(),          "Digital Saturation"),
     (TransmissionEfficiency(),     "Transmission Efficiency"),
     (MappedGaussianPSF(),          "Mapped Gaussian PSF and Charge Diffusion"),
-    #(Cosmics(),                    "Cosmics"),
+    (Cosmics(),                    "Cosmics"),
+    (CosmicsOutputSubField(),      "Cosmics output (subfield)"),
+    (CosmicsOutputSmearingMap(),   "Cosmics output (smearing map)"),
+    (CosmicsOutputBiasMaps(),      "Cosmics output (bias maps)"),
     (BrighterFatterEffect(),       "Brighter-Fatter Effect"),
     (AbsoluteAberration(),         "Absolute Aberration"),
     (MetallicShield(),             "Metallic Shield"),
@@ -158,4 +162,3 @@ print("[Completed in {:.1f} s]".format(endTime - startTime))
 with open(os.environ["PLATO_PROJECT_HOME"] + '/tests/validationTests/ioFiles/result.txt', 'w') as outputFile:
     for line in testMessages:
         outputFile.write(line+'\n')
-
