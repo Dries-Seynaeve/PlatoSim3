@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 #include "Simulation.h"
+#include "Exceptions.h"
 #include "Logger.h"
 #include "StringUtilities.h"
 #include "version.h"
@@ -80,8 +81,25 @@ int main(int Narguments, char* arguments[])
 
     // Initialise the simulation, and loop over all exposures using run()
 
-    Simulation simulation(inputFilename, outputFilename);
-    simulation.run();
+    // Exit with an error code instead of aborting (and dumping core) when the
+    // simulation fails. ConfigurationException already logs its own message.
+
+    try
+    {
+        Simulation simulation(inputFilename, outputFilename);
+        simulation.run();
+    }
+    catch (const ConfigurationException &)
+    {
+        logFile.close();
+        return EXIT_FAILURE;
+    }
+    catch (const exception &e)
+    {
+        Log.error(string("Main: simulation failed: ") + e.what());
+        logFile.close();
+        return EXIT_FAILURE;
+    }
 
 
     // That's it!
