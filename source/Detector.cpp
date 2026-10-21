@@ -1737,6 +1737,7 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInBiasMap)
     {
         Log.debug("Detector: adding cosmic hits to bias map");
+        cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsBiasMap - 1);                                  // [pixels]
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
         const double biasMapRowLifeTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime + parallelTransferTime;
         addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft,
