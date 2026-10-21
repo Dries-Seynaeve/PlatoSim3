@@ -1958,16 +1958,21 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
                     columnsOfCosmicsMap.push_back(trailColumn);
                     fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
                 }
-
-                if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back())
-                {
-                    rowsOfCosmicsMap.push_back(trailRow);
-                    columnsOfCosmicsMap.push_back(trailColumn);
-                    fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
-                }
                 else
                 {
-                    fluxOfCosmicsMap.back() += (trailWeights(index) * intensity);
+                    // Only compare with the last record when there is one, otherwise the
+                    // first trail point would be added to the record it just created.
+
+                    if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back())
+                    {
+                        rowsOfCosmicsMap.push_back(trailRow);
+                        columnsOfCosmicsMap.push_back(trailColumn);
+                        fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
+                    }
+                    else
+                    {
+                        fluxOfCosmicsMap.back() += (trailWeights(index) * intensity);
+                    }
                 }
 
             }
