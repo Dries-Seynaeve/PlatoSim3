@@ -847,7 +847,7 @@ void Detector::reset()
 
     rowsOfCosmicsInSmearingMap.clear();
     columnsOfCosmicsInSmearingMap.clear();
-    columnsOfCosmicsInSmearingMap.clear();
+    fluxOfCosmicsInSmearingMap.clear();
 
     rowsOfCosmicsInBiasMapLeft.clear();
     columnsOfCosmicsInBiasMapLeft.clear();
