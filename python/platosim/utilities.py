@@ -1637,6 +1637,8 @@ def copyInputYAML(field, odir):
                                         'WriteGhostPositions:             no ')
             filedata = filedata.replace('WriteCosmics:                    yes',
                                         'WriteCosmics:                    no ')
+            filedata = filedata.replace('WriteBadPixelMap:                yes',
+                                        'WriteBadPixelMap:                no ')            
             # Write the file out again
             with open(yaml_new, 'w') as file:
                 file.write(filedata)

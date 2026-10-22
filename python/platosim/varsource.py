@@ -3648,7 +3648,6 @@ class DopplerBeaming(funcFit.OneDFit):
 
 
 class EllipsoidalDistortion(funcFit.OneDFit):
-
     """Class for the calculation of the ellipsoidal effect.
 
     The model presented here is a fusion between the simple analytical description
