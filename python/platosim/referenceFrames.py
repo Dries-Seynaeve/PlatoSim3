@@ -30,7 +30,7 @@ def CCD():
       - Ncols        : Number of exposed pixel columns (column number varies along X-coord)
       - Nrows        : Number of exposed pixel rows (row number varies along Y-coord)
       - firstRow     : First row that is exposed [pixel]. For the N-CAMs this is simply row 0.
-                       For the F-CAMs the exposed rows are rows 2255 until 4510, 
+                       For the F-CAMs the exposed rows are rows 2255 until 4510,
                        After the exposure are then frame-transfered to rows 0 until 2254.
       - zeroPointXmm : X-coord of the (0,0) pixel of the CCD, in the FP reference frame [mm]
       - zeroPointYmm : Y-coord of the (0,0) pixel of the CCD, in the FP reference frame [mm]
@@ -53,9 +53,9 @@ def CCD():
 
 def eprint(*args, **kwargs):
 
-    """Print to stderr rather than to stdout. 
-    
-    Useful to debug since all tests are ran with stdout suppressed. 
+    """Print to stderr rather than to stdout.
+
+    Useful to debug since all tests are ran with stdout suppressed.
     """
     print(*args, file=sys.stderr, **kwargs)
 
@@ -69,14 +69,14 @@ def sunSkyCoordinates(julianDate):
 
     Source
     ------
-    "Computing the solar vector", 
+    "Computing the solar vector",
     Blanco-Muriel et al. (2001), Solar Energy, Vol 70, pp 431-441
 
     Parameters
     ----------
     julianDate : float
         Julian date (e.g. 2455000.5). The distinction between JD and BJD is neglected.
-                      
+
     Return
     ------
     raSun : float
@@ -122,7 +122,7 @@ def ecliptic2equatorial(lam, beta):
     ----------
     lam : float
         Ecliptic longitude [rad]
-    beta : float  
+    beta : float
         Eecliptic latitude [rad]
 
     Return
@@ -134,7 +134,7 @@ def ecliptic2equatorial(lam, beta):
     """
 
     # Obliquity of the ecliptic = 23.439 deg in [rad]
-    
+
     obliquity = 0.409087723
 
     sindelta = np.sin(beta) * np.cos(obliquity) + np.cos(beta) * np.sin(obliquity) * np.sin(lam)
@@ -173,12 +173,12 @@ def equatorial2ecliptic(alpha, delta):
     ------
     lam : float
         Ecliptic longitude [rad]
-    beta : float  
+    beta : float
         Eecliptic latitude [rad]
     """
 
     # Obliquity of the ecliptic = 23.439 deg  [rad]
-    
+
     obliquity = 0.409087723
 
     sinbeta = np.sin(delta) * np.cos(obliquity) - np.cos(delta) * np.sin(obliquity) * np.sin(alpha)
@@ -213,7 +213,7 @@ def sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPane
     ----------
     raPlatform : float
         Right ascension of the pointing of the Platform [rad]
-    decPlatform : float 
+    decPlatform : float
         Declination of the pointing of the Platform [rad]
     solarPanelOrientation : float
         Orientation of the solar panel [rad]
@@ -245,17 +245,17 @@ def sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPane
 
 def qmul(qa, qb):
 	"""Multiplication of two quaternions qa and qb.
-   
+
 	Parameters
 	----------
     qa: quaternion of the form (q0, qx, qy, qz): list or ndarray
  	qb: quaternion of the form (q0, qx, qy, qz): list of ndarray
-  
+
 	Return
 	------
     result: A list containing the resulting quaternion components.
 
-	"""	
+	"""
 	result = [0.0, 0.0, 0.0, 0.0]
 	result[0] = qa[0]*qb[0] - qa[1]*qb[1] - qa[2]*qb[2] - qa[3]*qb[3]
 	result[1] = qa[0]*qb[1] + qa[1]*qb[0] + qa[2]*qb[3] - qa[3]*qb[2]
@@ -267,9 +267,9 @@ def qmul(qa, qb):
 
 
 def qconj(q):
-    """ Compute the conjugate of a given quaterion 
+    """ Compute the conjugate of a given quaterion
 
-    Parameters 
+    Parameters
     ----------
     q: quaternion of the form (q0, qx, qy, qz)
 
@@ -284,15 +284,15 @@ def qconj(q):
 
 
 def platformAnglesFromQuaternion(q_EQ2PLM):
-    """ 
+    """
     Derive the (RA, dec) of the platform (Payload Module) pointing axis, as well as the
     platform roll angle, given the q_EQ2PLM unit quaternion.
 
     See PLATO-KUL-PL-TN-001 for more details on the equations.
-    
-    Parameters 
+
+    Parameters
     ----------
-    q_EQ2PLM: the unit quaterion used to transform coordinates in the equatorial reference frame 
+    q_EQ2PLM: the unit quaterion used to transform coordinates in the equatorial reference frame
               to the corresponding coordinates in the Payload Module (i.e. Platform) reference frame.
               Has the form [q0, qx, qy, qz].
 
@@ -308,12 +308,12 @@ def platformAnglesFromQuaternion(q_EQ2PLM):
     r = np.sqrt(v_EQ[1]*v_EQ[1] + v_EQ[2]*v_EQ[2] + v_EQ[3]*v_EQ[3])
     decPlatform = np.pi / 2.0 - np.arccos(v_EQ[3]/r)                      # Declination     [rad]
     raPlatform = np.arctan2(v_EQ[2], v_EQ[1])                             # Right Ascension [rad]
-    if raPlatform < 0.0: raPlatform += 2*np.pi 
-    
+    if raPlatform < 0.0: raPlatform += 2*np.pi
+
     q_EQ2A = [np.cos(raPlatform/2.0), 0.0, 0.0, np.sin(raPlatform/2.0)]
     q_A2B = [np.cos(np.pi/4 - decPlatform/2.0), 0.0, np.sin(np.pi/4 - decPlatform/2.0), 0.0]
     q_B2PLM = qmul(qconj(q_A2B), qmul(qconj(q_EQ2A), q_EQ2PLM))
-    solarPanelOrientation = 2.0 * np.arctan2(q_B2PLM[3], q_B2PLM[0])              
+    solarPanelOrientation = 2.0 * np.arctan2(q_B2PLM[3], q_B2PLM[0])
 
     return raPlatform, decPlatform, solarPanelOrientation
 
@@ -324,14 +324,14 @@ def platformAnglesFromQuaternion(q_EQ2PLM):
 
 
 def platformQuaternionFromAngles(raPlatform, decPlatform, solarPanelOrientation):
-    """ 
+    """
     Compute the quaternion q_EQ2PLM that is used to transform coordinates in the
     equatorial reference frame to the corresponding coordinates in the Payload
     Module (i.e. Platform) reference frame.
 
     See PLATO-KUL-PL-TN-001 for more details on the equations.
-    
-    Parameters 
+
+    Parameters
     ----------
     raPlatform: Right ascencion sky coordinate of the platform pointing axis [rad]
     decPlatform: Declination sky coordinate of the platform pointing axis    [rad]
@@ -339,7 +339,7 @@ def platformQuaternionFromAngles(raPlatform, decPlatform, solarPanelOrientation)
 
     Return
     ------
-    q_EQ2PLM: quaternion of the form [q0, qx, qy, qz] 
+    q_EQ2PLM: quaternion of the form [q0, qx, qy, qz]
 
     """
 
@@ -365,7 +365,7 @@ def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPane
     ----------
     raStar : float
         Right ascension of the star [rad]
-    decStar : float   
+    decStar : float
         Declination of the star [rad]
     raPlatform : float
         Right ascension of the platform roll axis [rad]
@@ -377,7 +377,7 @@ def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPane
 
     Return
     ------
-    xPLM, yPLM, zPLM : float  
+    xPLM, yPLM, zPLM : float
         Normalized cartesian coordinates of the direction of the star
         in the spacecraft reference frame.
     """
@@ -389,7 +389,7 @@ def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPane
     rotA2B = np.array([[np.sin(decPlatform), 0.0, -np.cos(decPlatform)],
                        [         0.0      ,  1.0,          0.0        ],
                        [np.cos(decPlatform), 0.0,  np.sin(decPlatform)]])
-    
+
     rotB2PLM = np.array([[np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
                         [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
                         [          0.0                 ,              0.0             , 1.0]])
@@ -428,11 +428,11 @@ def platformToSkyCoordinates(xPLM, yPLM, zPLM, raPlatform, decPlatform, solarPan
         X-coordinate in the platoform reference frame [arbitrary]
     yPLM : float
         Y-coordinate in the platoform reference frame [same unit as xPLM]
-    zPLM : float                     
+    zPLM : float
         Z-coordinate in the platoform reference frame [same unit as xPLM]
     raPlatform : float
         Right ascension of the platform roll axis [rad]
-    decPlatform : float            
+    decPlatform : float
         Declination of the platform roll axis [rad]
     solarPanelOrientation : float
         Solar panel orientation [rad]
@@ -603,7 +603,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     """From focal plane to equatorial reference system.
 
     Convert the undistorted normalized focal plane coordinates (xFP, yFP)
-    of a star to equatorial sky coordinates (alpha, delta), assuming a 
+    of a star to equatorial sky coordinates (alpha, delta), assuming a
     spherical pinhole camera.
 
     Notes
@@ -618,7 +618,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
         Undistorted normalized y-coordinate in the FP reference frame [unit as focalLength]
     raPlatform : float
         Right ascension of the platform roll axis [rad]
-    decPlatform : float            
+    decPlatform : float
         Declination of the platform roll axis [rad]
     solarPanelOrientation : float
         Solar panel orientation [rad]
@@ -627,7 +627,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
         Tilt (altitude) angle of the camera w.r.t. the platform z-axis [rad]
     azimuthAngle : float
         Azimuth angle of the camera on the platform [rad]
-    focalPlaneAngle : float        
+    focalPlaneAngle : float
         Angle between the Y_CAM axis and the Y_FP axis: gamma_FP [rad]
     focalLength : float
         Focal length of the camera. Unit: see remarks.
@@ -678,7 +678,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     rotA2B = np.array([[ np.sin(decPlatform), 0.0, -np.cos(decPlatform)],
                        [        0.0         , 1.0,         0.0         ],
                        [ np.cos(decPlatform), 0.0,  np.sin(decPlatform)]])
-    
+
     rotB2PLM = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
                          [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
                          [          0.0                 ,              0.0             , 1.0]])
@@ -729,7 +729,7 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
     ----------
     xCCD : int
         Real-valued x-coordinate on the CCD (column) [pix]
-    yCCD : int 
+    yCCD : int
         Real-valued y-coordinates on the CCD (row) [pix]
     ccdCode : str
         For N-CAMs use: '1', '2', '3', '4'
@@ -743,14 +743,14 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
     ------
     angleFromOpticalAxis : float
         Angular distance from the optical axis [rad]
-    azimuthFromXAxis : float 
+    azimuthFromXAxis : float
         Azimuth angle from the X-axis of the reference CCD [rad]
     """
 
     # Fetch CCD dictorionary
 
     if ccd is None: ccd = CCD()
-    
+
     ccdZeroPointX = ccd[ccdCode]["zeroPointXmm"]
     ccdZeroPointY = ccd[ccdCode]["zeroPointYmm"]
     ccdAngle      = ccd[ccdCode]["angle"]
@@ -778,7 +778,7 @@ def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, cc
     ----------
     angleFromOpticalAxis : float
         Angular distance from the optical axis [rad]
-    azimuthFromXAxis : float 
+    azimuthFromXAxis : float
         Azimuth angle from the X-axis of the reference CCD [rad]
     ccdCode : str
         For N-CAMs use: '1', '2', '3', '4'
@@ -792,7 +792,7 @@ def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, cc
     ------
     xCCD : int
         Real-valued x-coordinate on the CCD (column) [pix]
-    yCCD : int 
+    yCCD : int
         Real-valued y-coordinates on the CCD (row) [pix]
     """
 
@@ -811,7 +811,7 @@ def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, cc
                                               ccdZeroPointX, ccdZeroPointY, ccdAngle)
 
     # That's it!
-    
+
     return xCCD, yCCD
 
 
@@ -835,7 +835,7 @@ def telescopeToUndistortedFocalPlaneCoordinates(xCAM, yCAM, zCAM, focalLength, f
         Z-coordinate in the camera reference frame [same unit as xPLM]
     focalLength : float
         Focal length of the camera. Unit: see remarks.
-    focalPlaneAngle : float        
+    focalPlaneAngle : float
         Angle between the Y_CAM axis and the Y_FP axis: gamma_FP [rad]
 
     Return
@@ -868,8 +868,8 @@ def telescopeToUndistortedFocalPlaneCoordinates(xCAM, yCAM, zCAM, focalLength, f
 def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlaneAngle):
 
     """From undistorted focal plane to camera coordinates.
-    
-    Given cartesian coordinates in the focal plane reference frame, compute 
+
+    Given cartesian coordinates in the focal plane reference frame, compute
     the coordinates in the telescope reference frame.
 
     Notes
@@ -966,14 +966,14 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     Notes
     -----
     - This is not the prefered method for detectors with mapped PSF, since these
-      use a mapped distortion model. For such models use the function: 
+      use a mapped distortion model. For such models use the function:
       mappedUndistortedToDistortedFocalPlaneCoordinates
-    - Example of distortion coefficients: 
+    - Example of distortion coefficients:
       [0.32419, 0.0232909, 0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]
 
     Parameters
     ----------
-    xFPmm : float 
+    xFPmm : float
         Undistorted focal plane x-coordinate [mm]
     yFPmm : float
         Undistorted focal plane y-coordinate [mm]
@@ -997,11 +997,11 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     distortionPolynomial = np.polynomial.Polynomial(radialCoefficients)
 
     # Position angle on the focal plane [radians]
-    
+
     angle = np.arctan2(yFPmm, xFPmm)
 
     # Undistorted radial distance [normalised pixels]
-    
+
     rFP = np.sqrt(xFPmm**2 + yFPmm**2) / focalLength
     radialDistortion = distortionPolynomial(rFP) * focalLength
     tangentialDistortion = rFP**2 * (distortionCoefficients[5] * np.cos(angle) +
@@ -1025,10 +1025,12 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
 def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength=None):
 
-    """From mapped undistorted to distorted focal plane coordinates.
+    """
+    From mapped undistorted to distorted focal plane coordinates.
 
     Convert from undistorted to distorted normalized focal plane
     coordinates using a mapped distortion model.
+    Works for a single point (floats) as well as for many points at once (arrays).
 
     Notes
     -----
@@ -1036,24 +1038,37 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     For detectors that use analytic PSF use the function:
     undistortedToDistortedFocalPlaneCoordinates
 
+    For each point, the closest grid point of the coordinates map is taken in
+    each of the four quadrants around it (left-bottom, left-top, right-bottom,
+    right-top). The distorted position is the weighted average of the distorted
+    positions of these four grid points, where each weight is the area of the
+    rectangle between the point and the opposite grid point.
+    Points further than 80 mm from the centre of the focal plane, or that do not
+    have a grid point in all four quadrants, are returned undistorted.
+
     Parameters
     ----------
-    xFPmm : float
-        Undistorted x-coordinate in the FP reference frame [mm]
-    yFPmm : float
-        Undistorted y-coordinate in the FP reference frame [mm]
+    xFPmm : float, ndarray
+        Undistorted x-coordinate(s) in the FP reference frame [mm]
+    yFPmm : float, ndarray
+        Undistorted y-coordinate(s) in the FP reference frame [mm]
     pathToFoPsfFile : str
         Absolute path to the PSF file (HDF5) that the Coordinates map
+    focalLength : float
+        Focal length [mm]. Only needed if the PSF file has no "Coordinates map".
 
     Return
     ------
-    xFPdist : float
-        Distorted focal plane x-coordinate [mm]
-    yFPdist : float
-        Distorted focal plane y-coordinate [mm]
+    xFPdist : float, ndarray
+        Distorted focal plane x-coordinate(s) [mm]
+    yFPdist : float, ndarray
+        Distorted focal plane y-coordinate(s) [mm]
     """
-    # If radial distance is above 80 mm
-    if (xFPmm**2 + yFPmm**2 > 80**2):
+
+    # For a single point outside 80 mm, return it unchanged (as before, without reading the file)
+
+    isScalar = np.ndim(xFPmm) == 0 and np.ndim(yFPmm) == 0
+    if isScalar and (xFPmm**2 + yFPmm**2 > 80**2):
         return xFPmm, yFPmm
 
     # Check the path to the PSF file excists
@@ -1064,121 +1079,87 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         else:
             print(f"Error: {pathToPsfFile} is not a valid path name for mapped PSF")
 
-    # We open the psf file where the coordinate transformation matrix should be in.
-    # If the matrix isn't in the file, we raise an error.
+    # Read the undistorted and distorted grid points from the PSF file.
+    # If the file has no "Coordinates map", build it from the PSF attributes.
 
-    psfFile = h5py.File(pathToPsfFile, "r")
-    if not "Coordinates map" in psfFile.keys():
-        if False:
-            print("Error: No transformation map given in psf file, mapped distortion is not possible.")
-            return
+    with h5py.File(pathToPsfFile, "r") as psfFile:
+        if "Coordinates map" in psfFile.keys():
+            coordMap = psfFile["Coordinates map"]
         else:
             coordMap = generateDistortionTable(psfFile, focalLength)
-    else:
-        coordMap = psfFile["Coordinates map"]
+        xUndis = np.asarray(coordMap["Undistorted"]["x"][...], dtype=float)
+        yUndis = np.asarray(coordMap["Undistorted"]["y"][...], dtype=float)
+        xDist  = np.asarray(coordMap["Distorted"]["x"][...],   dtype=float)
+        yDist  = np.asarray(coordMap["Distorted"]["y"][...],   dtype=float)
 
-    # Calculate the distance of the undist coordinates wrt input coordinates
+    # Work with arrays from here on
 
-    undistorted = coordMap["Undistorted"]
-    x = undistorted["x"]
-    y = undistorted["y"]
+    x = np.atleast_1d(np.asarray(xFPmm, dtype=float))
+    y = np.atleast_1d(np.asarray(yFPmm, dtype=float))
+    xFPdist = x.copy()
+    yFPdist = y.copy()
 
-    if not "Coordinates map" in psfFile.keys():
-        xUndis = x
-        yUndis = y
-    else:
-        xUndis = np.zeros(x.shape, x.dtype)
-        yUndis = np.zeros(y.shape, y.dtype)
-        x.read_direct(xUndis)
-        y.read_direct(yUndis)
+    # Only points within 80 mm are distorted
 
-    distorted = coordMap["Distorted"]
+    todo = np.flatnonzero(x**2 + y**2 <= 80**2)
 
-    x = distorted["x"]
-    y = distorted["y"]
+    # Process the points in blocks, to limit the size of the (points x grid points) matrices
 
+    blockSize = max(1, 2_000_000 // max(1, len(xUndis)))
 
-    if not "Coordinates map" in psfFile.keys():
-        xDist = x
-        yDist = y
-    else:
-        xDist = np.zeros(x.shape, x.dtype)
-        yDist = np.zeros(y.shape, y.dtype)
-        x.read_direct(xDist)
-        y.read_direct(yDist)
+    for start in range(0, len(todo), blockSize):
 
-    distanceFromPointx = np.array([x - xFPmm for x in xUndis])
-    distanceFromPointy = np.array([y - yFPmm for y in yUndis])
-    aDistanceFromPoint  = np.array([ x**2 + y**2
-        for x, y in zip(distanceFromPointx, distanceFromPointy)])
+        index = todo[start:start + blockSize]
+        px = x[index][:, np.newaxis]
+        py = y[index][:, np.newaxis]
 
-    # We should select the closest four undistorted points to the input point
+        # Distance of every grid point to every point (rows: points, columns: grid points)
 
-    idx = np.arange(len(distanceFromPointx))
-    idx_selected = np.empty(4, dtype=np.int16)
+        dx = xUndis[np.newaxis, :] - px
+        dy = yUndis[np.newaxis, :] - py
+        d2 = dx**2 + dy**2
 
-    idx_left = idx[distanceFromPointx < 0]
-    idx_right = idx[distanceFromPointx >= 0]
+        # Closest grid point in each quadrant: left-bottom, left-top, right-bottom, right-top
 
-    leftDistanceFromPointy  = distanceFromPointy[distanceFromPointx < 0]
-    rightDistanceFromPointy = distanceFromPointy[distanceFromPointx >= 0]
+        left   = dx < 0
+        bottom = dy < 0
+        quadrants = [left & bottom, left & ~bottom, ~left & bottom, ~left & ~bottom]
 
-    left_bottom_idx = idx_left[leftDistanceFromPointy < 0]
-    if (len(left_bottom_idx) == 0):
-        return xFPmm, yFPmm
-    else:
-        idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
-        idx_selected[0] = left_bottom_idx[idx_closest_idx]
+        selected = np.empty((len(index), 4), dtype=int)
+        complete = np.ones(len(index), dtype=bool)
+        for q, inQuadrant in enumerate(quadrants):
+            d2q = np.where(inQuadrant, d2, np.inf)
+            selected[:, q] = np.argmin(d2q, axis=1)
+            complete &= inQuadrant.any(axis=1)
 
-    left_top_idx    = idx_left[leftDistanceFromPointy >=0]
-    if (len(left_top_idx) == 0):
-        return xFPmm, yFPmm
-    else:
-        idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
-        idx_selected[1] = left_top_idx[idx_closest_idx]
+        # Within each (left, right) pair, put the lowest grid point first
 
-    right_bottom_idx = idx_right[rightDistanceFromPointy < 0]
-    if (len(right_bottom_idx) == 0):
-        return xFPmm, yFPmm
-    else:
-        idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
-        idx_selected[2]  = right_bottom_idx[idx_closest_idx]
+        for i in range(2):
+            swap = yUndis[selected[:, 2*i]] > yUndis[selected[:, 2*i+1]]
+            selected[swap, 2*i], selected[swap, 2*i+1] = selected[swap, 2*i+1], selected[swap, 2*i]
 
-    right_top_idx = idx_right[rightDistanceFromPointy >= 0]
-    if (len(right_top_idx) == 0):
-        return xFPmm, yFPmm
-    else:
-        idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
-        idx_selected[3] = right_top_idx[idx_closest_idx]
+        # Weights: area of the rectangle between the point and the opposite grid point
 
-    for i in np.arange(2):
-        if (yUndis[idx_selected[2*i]] > yUndis[idx_selected[2*i+1]]):
-            dummy = idx_selected[2*i]
-            idx_selected[2*i] = idx_selected[2*i+1]
-            idx_selected[2*i+1] = dummy
+        closestX = xUndis[selected]
+        closestY = yUndis[selected]
+        opposite = [3, 2, 1, 0]
+        constants = np.abs((closestX[:, opposite] - px) * (closestY[:, opposite] - py))
+        constants = constants / constants.sum(axis=1, keepdims=True)
 
-    closestX = np.array([ xUndis[i] for i in idx_selected])
-    closestY = np.array([ yUndis[i] for i in idx_selected])
+        # Weighted average of the distorted grid points
 
-    # We can write the points (xFPmm, yFPmm) as a linear combination of the
-    # four closests points around this point.
+        newX = np.sum(constants * xDist[selected], axis=1)
+        newY = np.sum(constants * yDist[selected], axis=1)
 
-    oPointIdx = [3, 2, 1, 0]
+        # Points without a grid point in all four quadrants stay undistorted
 
-    constants = [abs( (closestX[oPointIdx[i]] - xFPmm) *
-                      (closestY[oPointIdx[i]] - yFPmm))
-                 for i in np.arange(4)]
-
-    constants = [ constant / sum(constants) for constant in constants]
-
-    closestXdist = np.array([ xDist[i] for i in idx_selected])
-    closestYdist = np.array([ yDist[i] for i in idx_selected])
-
-    xFPdist = sum([constants[i]*closestXdist[i] for i in np.arange(4)])
-    yFPdist = sum([constants[i]*closestYdist[i] for i in np.arange(4)])
+        xFPdist[index[complete]] = newX[complete]
+        yFPdist[index[complete]] = newY[complete]
 
     # That's it!
 
+    if isScalar:
+        return xFPdist[0], yFPdist[0]
     return xFPdist, yFPdist
 
 
@@ -1197,9 +1178,9 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
     Notes
     -----
     - This is not the prefered method for detectors with mapped PSF, since
-      these use a mapped distortion model. For such models use the function: 
+      these use a mapped distortion model. For such models use the function:
       mappedDistortedToUndistortedFocalPlaneCoordinates.
-    - Example of inverse distortion coefficients: 
+    - Example of inverse distortion coefficients:
       [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
 
     Parameters
@@ -1228,15 +1209,15 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
     inverseDistortionPolynomialRadial = np.polynomial.Polynomial(inverseCoefficientsRadial)
 
     # Position angle on the focal plane [radians]
-    
+
     angle = np.arctan2(yFPdist, xFPdist)
 
     # Distorted radial distance [normalised pixels]
-    
+
     rFP = np.sqrt(xFPdist**2 + yFPdist**2) / focalLength
 
     # Distortion [mm] -> negative!
-    
+
     radialDistortion     = inverseDistortionPolynomialRadial(rFP) * focalLength
     tangentialDistortion = (rFP**2 * (inverseDistortionCoefficients[5] * np.cos(angle) +
                                       inverseDistortionCoefficients[6] * np.sin(angle)) * focalLength)
@@ -1247,20 +1228,22 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
              inverseDistortionCoefficients[4] * rFP**2 * focalLength)
 
     # That's it!
-    
+
     return xFPmm, yFPmm
 
 
 
 
 
-def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength=None):
+def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength=None,
+                                                      tolerance=1e-5):
 
     """
     From mapped distorted to undistorted focal plane coordinates.
 
     Convert from distorted to undistorted normalized focal plane coordinates
     using the mapped distortion model.
+    Works for a single point (floats) as well as for many points at once (arrays).
 
     Notes
     -----
@@ -1268,60 +1251,80 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
     mapped distortion model. For detectors that use analytic PSF use the function:
     distortedToUndistortedFocalPlaneCoordinates.
 
+    The undistorted position is found by an iterative search: starting from (0, 0),
+    each coordinate is moved towards the target by a step that shrinks by a factor
+    0.6 every iteration, until the distorted position is within `tolerance` of the
+    target (sum of x and y differences) or after 160 iterations. All points take
+    the same steps, but each point stops on its own, at the position that passed
+    the check.
+
+    Near the edge of the coordinates map the forward distortion jumps to zero
+    (see mappedUndistortedToDistortedFocalPlaneCoordinates), so there distorted
+    positions may have no exact inverse and the search may not converge.
+
     Parameters
     ----------
-    xFPdist : float
-        Distorted focal plane x-coordinate [mm]
-    yFPdist : float
-        Distorted focal plane y-coordinate [mm]
+    xFPdist : float, ndarray
+        Distorted focal plane x-coordinate(s) [mm]
+    yFPdist : float, ndarray
+        Distorted focal plane y-coordinate(s) [mm]
     pathToFoPsfFile : hdf5 file
         Absolute path to the PSF file that the Coordinates map
+    focalLength : float
+        Focal length [mm]. Only needed if the PSF file has no "Coordinates map".
+    tolerance : float
+        Stop when |dx| + |dy| between the distorted guess and the target is
+        below this value [mm]. Default: 1e-5 mm (5.6e-4 pixel of 18 micron).
 
     Return
     ------
-    xFPmm : float
-        Distorted x-coordinate in the FP reference frame [mm]
-    yFPmm : float
-        Distorted y-coordinate in the FP reference frame [mm]
+    xFPmm : float, ndarray
+        Undistorted x-coordinate(s) in the FP reference frame [mm]
+    yFPmm : float, ndarray
+        Undistorted y-coordinate(s) in the FP reference frame [mm]
     """
 
-    delta  = 100.
-    length = 80.
-    x0 = 0
-    y0 = 0
-    i  = 0
+    isScalar = np.ndim(xFPdist) == 0 and np.ndim(yFPdist) == 0
+    xTarget  = np.atleast_1d(np.asarray(xFPdist, dtype=float))
+    yTarget  = np.atleast_1d(np.asarray(yFPdist, dtype=float))
 
-    while((delta > .001) and (i<160)):
-        xDist, yDist = mappedUndistortedToDistortedFocalPlaneCoordinates(x0, y0, pathToPsfFile, focalLength)
+    x0 = np.zeros(xTarget.shape)
+    y0 = np.zeros(yTarget.shape)
+    length = 80.
+
+    # Points that are still being searched for
+
+    active = np.arange(len(xTarget))
+
+    for i in range(160):
+
+        if len(active) == 0:
+            break
+
+        # Distorted position of the current guesses
+
+        xDist, yDist = mappedUndistortedToDistortedFocalPlaneCoordinates(x0[active], y0[active],
+                                                                         pathToPsfFile, focalLength)
         length = 3*length / 5
 
-        if (xFPdist > xDist):
-            if ((x0 + length) > 85):
-                x0 = 85
-            else:
-                x0 = x0 + length
-        elif (xFPdist < xDist):
-            if ((x0 - length) < -85):
-                x0 = -85
-            else:
-                x0 = x0 - length
+        # Stop the points whose distorted position is close enough to the target,
+        # keeping the guess that passed the check
 
-        if (yFPdist > yDist):
-            if ((y0 + length) > 85):
-                y0 = 85
-            else:
-                y0 = y0 + length
-        elif (yFPdist < yDist):
-            if ((y0 - length) < -85):
-                y0 = -85
-            else:
-                y0 = y0 - length
+        xT, yT = xTarget[active], yTarget[active]
+        delta  = np.abs(xT - xDist) + np.abs(yT - yDist)
+        keepGoing = delta > tolerance
+        active, xT, yT = active[keepGoing], xT[keepGoing], yT[keepGoing]
+        xDist, yDist   = xDist[keepGoing], yDist[keepGoing]
 
+        # Move the other guesses towards the target, staying within [-85, 85] mm
 
-        delta = abs(xFPdist - xDist) + abs(yFPdist - yDist)
+        x0[active] = np.where(xT > xDist, np.minimum(x0[active] + length,  85),
+                     np.where(xT < xDist, np.maximum(x0[active] - length, -85), x0[active]))
+        y0[active] = np.where(yT > yDist, np.minimum(y0[active] + length,  85),
+                     np.where(yT < yDist, np.maximum(y0[active] - length, -85), y0[active]))
 
-        i += 1
-
+    if isScalar:
+        return x0[0], y0[0]
     return x0, y0
 
 
@@ -1333,14 +1336,14 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize,
 
     """From pixel to focal plane coordinates.
 
-    Given the (real-valued) pixel coordinates of the star on the CCD, 
+    Given the (real-valued) pixel coordinates of the star on the CCD,
     compute the (x,y) coordinates in the FP reference system.
 
     Parameters
     ----------
     xCCD : int
         X-coordinate of star on the CCD (column) [pix]
-    yCCD : int 
+    yCCD : int
         Y-coordinate of star on the CCD (row) [pix]
     pixelSize : float
         Size of one square pixel [microns]
@@ -1450,13 +1453,13 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
     """
 
     # Secure handling of float, list, and arrays
-    
+
     if isinstance(xFP, float):
         xFP = np.array([xFP])
         yFP = np.array([yFP])
 
     # Compute angular distance
-        
+
     tanx = xFP / focalLength
     tany = yFP / focalLength
     angularDistance = np.arccos(1.0/np.sqrt(1.0 + tanx*tanx + tany*tany));
@@ -1470,7 +1473,7 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
             angularDistance[i] -= 2.0 * np.pi
 
     # That's it!
-        
+
     if len(angularDistance) == 1:
         return angularDistance[0]
     else:
@@ -1511,7 +1514,7 @@ def focalPlaneCoordinatesFromGnomonicRadialDistance(angularDistance, focalLength
     yFP = D * np.sin(inPlaneRotation)
 
     # That's it!
-    
+
     return xFP, yFP
 
 
@@ -1582,20 +1585,28 @@ def getCCDandPixelCoordinates(raStar, decStar,
                               mappedDistortion=False, distortionCoefficients=None,
                               pathToPsfFile=None, ccd=None, returnFPA=False):
 
-    """Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
+    """
+    Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
 
     Given the equatorial coordinates of a star, find out on which CCD
     it falls ('1', '2', '3', '4') and compute the pixel coordinates of
     the star on this CCD. If the star doesn't fall on any of the CCDs
     then (None, None, None) is given as output. These calculations use
     the custom CCD positions and orientation angle (so not from file!).
+    Works for a single star (floats) as well as for many stars at once (arrays).
+
+    Notes
+    -----
+    Stars behind the camera (more than 90 deg from the optical axis) are
+    flagged as not on a CCD, since the pinhole projection would otherwise
+    map them onto the focal plane as well.
 
     Parameters
     ----------
-    raStar : float
-        Right ascension of the star [rad]
-    decStar : float
-        Declination of the star [rad]
+    raStar : float, ndarray
+        Right ascension of the star(s) [rad]
+    decStar : float, ndarray
+        Declination of the star(s) [rad]
     raPlatform : float
         Right ascension of the platform roll axis [rad]
     decPlatform : float
@@ -1623,18 +1634,32 @@ def getCCDandPixelCoordinates(raStar, decStar,
         Coefficients of the polynomial describing the distortion for anlytic psf
     pathToPsfFile : str
         Path to the PSF file (HDF5) for mapped PSFs to calculate mapped distortion
+    ccd : dict
+        CCD layout (see CCD()). Default: CCD()
+    returnFPA : bool
+        If True, also return the (distorted) focal plane coordinates [mm]
 
     Return
     ------
-    ccdCode : str
-        For N-CAMs use: '1', '2', '3', '4'
-        For F-CAMs use: '1F','2F','3F','4F'
-    xCCD : int
-        X-coordinate (column) of star on the CCD [pix]
-        If not on CCD: None
-    yCCD : int
-        Y-coordinate (row) of star on the CCD (row) [pix]
-        If not on CCD: None
+    For a single star (float input):
+        ccdCode : str
+            For N-CAMs use: '1', '2', '3', '4'
+            For F-CAMs use: '1F','2F','3F','4F'
+            If not on CCD: None
+        xCCD : float
+            X-coordinate (column) of star on the CCD [pix]. If not on CCD: None
+        yCCD : float
+            Y-coordinate (row) of star on the CCD [pix]. If not on CCD: None
+        xFPmm, yFPmm : float (only if returnFPA)
+            Focal plane coordinates [mm]. If not on CCD: None
+
+    For many stars (array input):
+        ccdCode : ndarray of str
+            CCD code of each star. Empty string '' if not on a CCD.
+        xCCD, yCCD : ndarray
+            Pixel coordinates of each star on its CCD [pix]. NaN if not on a CCD.
+        xFPmm, yFPmm : ndarray (only if returnFPA)
+            Focal plane coordinates [mm]. NaN if not on a CCD.
     """
 
     # Make sure that for the respective field distortion the proper information is given.
@@ -1648,6 +1673,12 @@ def getCCDandPixelCoordinates(raStar, decStar,
             print("ERROR: If analytic field distortion should be taken into account, " +
                   "the distortionCoefficients should be given")
             return
+
+    # Remember whether a single star was given, then work with arrays
+
+    isScalar = np.ndim(raStar) == 0 and np.ndim(decStar) == 0
+    raStar   = np.atleast_1d(np.asarray(raStar,  dtype=float))
+    decStar  = np.atleast_1d(np.asarray(decStar, dtype=float))
 
     # Select the proper CCD codes depending on N-CAMs or F-CAMs
 
@@ -1663,6 +1694,16 @@ def getCCDandPixelCoordinates(raStar, decStar,
                                               tiltAngle, azimuthAngle,
                                               focalPlaneAngle, focalLength)
 
+    # Reject stars behind the camera: angle to the optical axis must be < 90 deg
+
+    raAxis, decAxis = focalPlaneToSkyCoordinates(0.0, 0.0,
+                                                 raPlatform, decPlatform, solarPanelOrientation,
+                                                 tiltAngle, azimuthAngle,
+                                                 focalPlaneAngle, focalLength)
+    cosAngleToAxis = (np.sin(decStar) * np.sin(decAxis) +
+                      np.cos(decStar) * np.cos(decAxis) * np.cos(raStar - raAxis))
+    inFront = cosAngleToAxis > 0
+
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
             xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
@@ -1676,43 +1717,48 @@ def getCCDandPixelCoordinates(raStar, decStar,
     # Fetch CCD dictorionary
 
     if ccd is None: ccd = CCD()
-    
-    # Find out if this falls on a CCD, and if yes which one.
-    # Our approach: try each of the CCDs. Not elegant, but robust!
-            
-    for ccdCode in ccdCodes:
 
-        # Compute the position of the star in pixel coordinates, for the current CCD,
+    # Find out if the stars fall on a CCD, and if yes which one.
+    # Try each of the CCDs and keep the first one a star falls on (CCDs do not overlap).
+
+    ccdCode = np.full(raStar.shape, '', dtype='<U2')
+    xCCDpix = np.full(raStar.shape, np.nan)
+    yCCDpix = np.full(raStar.shape, np.nan)
+
+    for code in ccdCodes:
+
+        # Compute the position of the stars in pixel coordinates, for the current CCD,
         # disregarding the physical extend of the CCD
 
-        zeroPointXmm = ccd[ccdCode]["zeroPointXmm"]
-        zeroPointYmm = ccd[ccdCode]["zeroPointYmm"]
-        ccdAngle     = ccd[ccdCode]["angle"]
-        Nrows        = ccd[ccdCode]["Nrows"]
-        Ncols        = ccd[ccdCode]["Ncols"]
-        firstRow     = ccd[ccdCode]["firstRow"]
+        x, y = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize,
+                                            ccd[code]["zeroPointXmm"],
+                                            ccd[code]["zeroPointYmm"],
+                                            ccd[code]["angle"])
 
-        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize,
-                                                        zeroPointXmm, zeroPointYmm,
-                                                        ccdAngle)
+        # Keep the stars on the exposed area of this CCD that were not yet assigned
 
-        # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
+        onCCD = (inFront & (ccdCode == '') &
+                 (x >= 0) & (x < ccd[code]["Ncols"]) &
+                 (y >= ccd[code]["firstRow"]) & (y < ccd[code]["Nrows"]))
+        ccdCode[onCCD] = code
+        xCCDpix[onCCD] = x[onCCD]
+        yCCDpix[onCCD] = y[onCCD]
 
-        if (xCCDpix < 0)      or (yCCDpix < firstRow): continue
-        if (xCCDpix >= Ncols) or (yCCDpix >= Nrows):   continue
+    # For a single star, return the same types as before: (str, float, float) or None's
 
-        # If we arrive here, we found a CCD on which the star is located
+    if isScalar:
+        if ccdCode[0] == '':
+            return (None,) * (5 if returnFPA else 3)
         if returnFPA:
-            return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
-        else:
-            return ccdCode, xCCDpix, yCCDpix
-
-    # If we arrive here, the star does not fall on any CCD
+            return str(ccdCode[0]), xCCDpix[0], yCCDpix[0], xFPmm[0], yFPmm[0]
+        return str(ccdCode[0]), xCCDpix[0], yCCDpix[0]
 
     if returnFPA:
-        return None, None, None, None, None
-    else:
-        return None, None, None
+        offCCD = ccdCode == ''
+        xFPmm = np.where(offCCD, np.nan, xFPmm)
+        yFPmm = np.where(offCCD, np.nan, yFPmm)
+        return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
+    return ccdCode, xCCDpix, yCCDpix
 
 
 
@@ -1730,9 +1776,9 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOr
     ----------
     raPlatform : float
         Right ascension of the pointing of the Platform [rad]
-    decPlatform : float 
+    decPlatform : float
         Declination of the pointing of the Platform [rad]
-    solarPanelOrientation: float 
+    solarPanelOrientation: float
         Roll angle of the platform (payload module, kappa) [rad]
     azimuthAngle : float
         Azimuth angle of the camera on the platform [rad]
@@ -1773,7 +1819,7 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOr
     rotA2B = np.array([[ np.sin(decPlatform), 0.0, -np.cos(decPlatform)],
                        [          0.0       , 1.0,            0.0      ],
                        [ np.cos(decPlatform), 0.0,  np.sin(decPlatform)]])
-    
+
     rotB2PLM = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
                          [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
                          [          0.0                 ,              0.0             , 1.0]])
@@ -1823,7 +1869,7 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
     ----------
     raPlatform : float
         Right ascension of the pointing of the Platform [rad]
-    decPlatform : float 
+    decPlatform : float
         Declination of the pointing of the Platform [rad]
     solarPanelOrientation : float
         Orientation of the solar panel [rad]
@@ -1892,7 +1938,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
        Full height (#of rows) of the subfield [pix]
     raStar : float
         Right ascension of the star [rad]
-    decStar : float   
+    decStar : float
         Declination of the star [rad]
     raPlatform : float
         Right ascension of the platform roll axis [rad]
@@ -1905,7 +1951,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
         Tilt (altitude) angle of the camera w.r.t. the platform z-axis [rad]
     azimuthAngle : float
         Azimuth angle of the camera on the platform [rad]
-    focalPlaneAngle : float        
+    focalPlaneAngle : float
         Angle between the Y_CAM axis and the Y_FP axis: gamma_FP [rad]
     focalLength : float
         Focal length of the camera. Unit: see remarks.
@@ -1930,7 +1976,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     xCCDpix : int
         X-coordinate (column) of star on the CCD [pix]
         If not on CCD: None
-    yCCDpix : int 
+    yCCDpix : int
         Y-coordinate (row) of star on the CCD [pix]
         If not on CCD: None
     """
@@ -1951,7 +1997,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     # Fetch CCD dictorionary
 
     if ccd is None: ccd = CCD()
-    
+
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
     data = getCCDandPixelCoordinates(raStar, decStar,
@@ -2009,12 +2055,14 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
 
 
-def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
+def skyToPixelCoordinates(sim, raStar, decStar, ccd=None):
 
-    """From equatorial to pixel coordinates.
+    """
+    From equatorial to pixel coordinates.
 
     Convert sky coordinates to pixel coordinates. These calculations are based
     on the custom CCD position and orientation angle (so not from file!).
+    Works for a single star (floats) as well as for many stars at once (arrays).
 
     Notes
     -----
@@ -2023,57 +2071,58 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
     a valid value for the focal length, the plate scale, the pixel size, and that
     the switch to include distortion or not is set correctly.
 
+    This function reads these parameters from sim and passes them on to
+    getCCDandPixelCoordinates, which does the actual calculation.
+
     Parameters
     ----------
     sim : class instance
         Instance of Simulation class (simulation.py)
-    raStar : float
-        Right ascension of the star [rad]
-    decStar : float   
-        Declination of the star [rad]
-    subfieldSizeX : int
-       Full width (# of columns) of the subfield [pix]
-    subfieldSizeY : int
-       Full height (# of rows) of the subfield [pix]
+    raStar : float, ndarray
+        Right ascension of the star(s) [rad]
+    decStar : float, ndarray
+        Declination of the star(s) [rad]
+    ccd : dict
+        CCD layout (see CCD()). Default: CCD()
 
     Return
     ------
-    ccdCode : str
-        For N-CAMs use: '1', '2', '3', '4'
-        For F-CAMs use: '1F','2F','3F','4F'
-    xCCDpix : int
-        X-coordinate (column) of star on the CCD [pix]
-        If not on CCD: None
-    yCCDpix : int 
-        Y-coordinate (row) of star on the CCD [pix]
-        If not on CCD: None
-    normal:
-        Is deprecated and should no longer be used.
+    For a single star (float input):
+        ccdCode : str
+            For N-CAMs use: '1', '2', '3', '4'
+            For F-CAMs use: '1F','2F','3F','4F'
+            If not on CCD: None
+        xCCDpix : float
+            X-coordinate (column) of star on the CCD [pix]. If not on CCD: None
+        yCCDpix : float
+            Y-coordinate (row) of star on the CCD [pix]. If not on CCD: None
+
+    For many stars (array input):
+        ccdCode : ndarray of str
+            CCD code of each star. Empty string '' if not on a CCD.
+        xCCDpix : ndarray
+            X-coordinate (column) of each star on its CCD [pix]. NaN if not on a CCD.
+        yCCDpix : ndarray
+            Y-coordinate (row) of each star on its CCD [pix]. NaN if not on a CCD.
     """
 
     # Resolve which distortion model is used (if any)
 
-    if (sim["PSF/Model"] == "MappedFromFile"):
+    if sim["PSF/Model"] == "MappedFromFile":
         includeFieldDistortion = True
+        mappedDistortion       = True
         distortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
-        mappedDistortion       = True
-    elif (sim["Camera/IncludeFieldDistortion"] == "yes"  or
-          sim["Camera/IncludeFieldDistortion"] is True):
+    else:
+        includeFieldDistortion = sim["Camera/IncludeFieldDistortion"] in true
+        mappedDistortion       = False
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         pathToPsfFile          = None
-        mappedDistortion       = False
-        includeFieldDistortion = True
-    else:
-        includeFieldDistortion = False
-        distortionCoefficients = None
-        pathToPsfFile          = None
-        mappedDistortion       = False
 
     # Fetch parameters and convert
-    
-    pixelSize             = float(sim["CCD/PixelSize"])
-    focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+
+    pixelSize   = float(sim["CCD/PixelSize"])
+    focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
 
     if sim["Platform/Orientation/Source"] == "Angles":
         raPlatform  = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
@@ -2083,32 +2132,20 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
         q_EQ2PLM = sim["Platform/Orientation/Quaternion/Components"]
         raPlatform, decPlatform, solarPanelOrientation = platformAnglesFromQuaternion(q_EQ2PLM)                     # [rad]
 
-    focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-    azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
-    normalCamera          = sim["Telescope/GroupID"] != "Fast"
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+    azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+    tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    normalCamera     = sim["Telescope/GroupID"] != "Fast"
 
-    # TODO: This should be removed in the next major release, together with the normal argument in this function.
-    if normal is not None:
-        warnings.warn("\nThe optional argument: normal is depricated is no longer used.\nThis value will from now on be derived from the Simulation argument in the function.", category=DeprecationWarning, stacklevel=2)
-        if not normal == normalCamera:
-            warnings.warn("\nThe value for normal is not consistent with the one specified in the Simulation argument.\nThis function will use the specified normal value, but keep in mind that this is different from the one defined in sim.", category=DeprecationWarning, stacklevel=2)
-            normalCamera = normal
+    # Get the pixel coordinates on the CCD (works for floats and arrays)
 
-    # Get the pixel coordinates on the CCD
-
-    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar,
-                                                              raPlatform, decPlatform,
-                                                              solarPanelOrientation,
-                                                              tiltTelescope, azimuthTelescope,
-                                                              focalPlaneAngle, focalLength,
-                                                              pixelSize, includeFieldDistortion,
-                                                              normalCamera, mappedDistortion,
-                                                              distortionCoefficients, pathToPsfFile)
-
-    # That's it!
-
-    return ccdCode, xCCDpixel, yCCDpixel
+    return getCCDandPixelCoordinates(raStar, decStar,
+                                     raPlatform, decPlatform, solarPanelOrientation,
+                                     tiltTelescope, azimuthTelescope,
+                                     focalPlaneAngle, focalLength,
+                                     pixelSize, includeFieldDistortion,
+                                     normalCamera, mappedDistortion,
+                                     distortionCoefficients, pathToPsfFile, ccd)
 
 
 
@@ -2120,12 +2157,12 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix, ccd=None):
     """From pixel to equatorial coordinates.
 
     Convert pixel coordinates to equatorial sky coordinates (ra,dec).
-    These calculations are based on the custom CCD position and 
+    These calculations are based on the custom CCD position and
     orientation angle (so not from file!).
 
     Notes
     -----
-    It is assumed that the configuration parameters in the sim object 
+    It is assumed that the configuration parameters in the sim object
     contains a correct (ra, dec) of the platform, a correct (azimuth, tilt)
     of the telescope, a valid value for the focal length, the pixel size,
     and that the switch to include distortion or not is set correctly.
@@ -2140,7 +2177,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix, ccd=None):
     xCCDpix : int
         X-coordinate (column) of star on the CCD [pix]
         If not on CCD: None
-    yCCDpix : int 
+    yCCDpix : int
         Y-coordinate (row) of star on the CCD [pix]
         If not on CCD: None
 
@@ -2148,12 +2185,12 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix, ccd=None):
     ------
     raStar : float
         Right ascension of the star [rad]
-    decStar : float   
+    decStar : float
         Declination of the star [rad]
     """
 
     # Resolve which distortion model is used (if any)
-    
+
     if (sim["PSF/Model"] == "MappedFromFile"):
         includeFieldDistortion = True
         inverseDistortionCoefficients = None
@@ -2174,7 +2211,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix, ccd=None):
         mappedDistortion              = False
 
     # Fetch parameters and convert
-    
+
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
 
@@ -2203,7 +2240,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix, ccd=None):
     # Fetch CCD dictorionary
 
     if ccd is None: ccd = CCD()
-        
+
     ccdZeroPointX = ccd[ccdCode]['zeroPointXmm']
     ccdZeroPointY = ccd[ccdCode]['zeroPointYmm']
     ccdAngle      = ccd[ccdCode]['angle']
@@ -2263,17 +2300,17 @@ def perturbPlatformPointing(x, y, z, ra, dec):
     """
 
     # Rotation matrix for euler angles
-    
+
     R = np.array([[ 0, -z,  y],
                   [ z,  0, -x],
                   [-y,  x,  0]])
 
     # Equatorial rotation matrix
-    
+
     A = np.array([[np.cos(ra)*np.sin(dec)],
                   [np.sin(ra)*np.sin(dec)],
                   [1]])
 
     # That's it!
-    
+
     return np.dot(R,A).T

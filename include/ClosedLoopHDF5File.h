@@ -26,8 +26,8 @@ class ClosedLoopHDF5File : public HDF5File
         void writeArray(string groupName, string arrayName, float*        array, int size) override {};
         void writeArray(string groupName, string arrayName, double*       array, int size) override {};
 
-        void writeArray(string groupName, string arrayName, arma::Mat<float>& A) override {};
-        void writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A) override {};
+        void writeArray(string groupName, string arrayName, const arma::Mat<float>& A) override {};
+        void writeArray(string groupName, string arrayName, const arma::Mat<uint16_t>& A) override {};
 
     protected:
 
