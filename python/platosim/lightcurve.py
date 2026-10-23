@@ -1443,8 +1443,8 @@ class LightCurve(object):
         # modify x tick points
         ticks = [1e-6, min_freq, 1e-5, freq_break,
                  1e-4, 1e-3, 1e-2, max_freq, 1e-1]
-        labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
-                  str(int(freq_break*1e6)) + '$\mu$Hz',
+        labels = ['$10^{-6}$', str(int(min_freq*1e6)) + r'$\mu$Hz', '$10^{-5}$',
+                  str(int(freq_break*1e6)) + r'$\mu$Hz',
                   '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
                   str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
         plt.xticks(ticks=ticks, labels=labels)

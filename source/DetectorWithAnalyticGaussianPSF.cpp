@@ -326,8 +326,7 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     if (writeCosmics)
     {
-            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
-            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+        writeCosmicHitsToHDF5(exposureNr);
     }
 
     // Advance the internal clock

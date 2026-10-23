@@ -222,6 +222,99 @@ bool HDF5File::hasDataset(string groupName, string datasetName)
 
 
 
+/**
+ *
+ * TODO: We should set up the groups for the cosmics
+ *
+ */
+RaggedArray HDF5File::createGroupForCosmics(string subGroupName, hsize_t numberOfExposures)
+{
+    // Make sure the path of the group starts with a "/" (i.e. the root folder)
+
+    if (!subGroupName.compare(0, 1, "/"))
+    {
+        subGroupName.erase(0, 1);
+    }
+
+    // Open the parent group
+
+    H5::Group parentGroup = file->openGroup("/Cosmics");
+
+    // Create the new subgroup inside the parent group.
+
+    H5::Group group = parentGroup.createGroup(subGroupName.c_str());
+
+    // We need to create data that will persiset over multiple exposures
+
+    RaggedArray data;
+
+    // The first persistend data is the offsets table
+    // for which the size is known (number of exposures + 1)
+
+    hsize_t offDims[1] = { numberOfExposures+1 };
+    H5::DataSpace offSpace(1, offDims);
+    data.offsetsDataset = group.createDataSet("/Cosmics/" + subGroupName + "/offsets", H5::PredType::NATIVE_UINT64, offSpace);
+
+    data.offsets.resize(numberOfExposures + 1);
+    data.offsets[0] = 0;
+
+    // The per-pixel fields (rows, columns, flux) have one value per pixel hit by a
+    // cosmic, so they need their own offsets table. It has the same size and is
+    // filled in by writeCosmics() after each exposure (unwritten entries stay 0).
+
+    group.createDataSet("/Cosmics/" + subGroupName + "/pixelOffsets", H5::PredType::NATIVE_UINT64, offSpace);
+
+    // Documentation for the hdf5 file, so it is available from the hdf5 file
+    // viewer.
+    H5::StrType strType(H5::PredType::C_S1, H5T_VARIABLE);
+    H5::DataSpace attrSpace(H5S_SCALAR);
+
+    const char* text = "Ragged array since not every exposure has the same amount of cosmics.\n "
+                       "Per cosmic (entryRows, entryColumns, trailLengths, entryAngles, intensities), "
+                       "the values of exposure i are:\n\n "
+                       "field[offsets[i]:offsets[i+1]].\n\n"
+                       "Per pixel hit by a cosmic (rows, columns, flux), the values of exposure i are:\n\n "
+                       "field[pixelOffsets[i]:pixelOffsets[i+1]].\n\nRemark that: "
+                       "offsets[0] == pixelOffsets[0] == 0 and an exposure with no entries has "
+                       "offsets[i] == offsets[i+1].";
+
+    H5::Attribute attr = group.createAttribute("description", strType, attrSpace);
+    attr.write(strType, &text);
+
+
+    // Secondly we initialize the data the will form the rows of our ragged
+    // array. We don't know the initial size of these array, but we will add to
+    // the these array during the simulation. The type of data that is saved is
+    // specified by the key values
+
+
+    hsize_t initDims[1] = {0};
+    hsize_t maxDims[1] = {H5S_UNLIMITED};
+    H5::DataSpace space(1, initDims, maxDims);
+
+    hsize_t chunkDims[1] = {4096};
+    H5::DSetCreatPropList plist;
+    plist.setChunk(1, chunkDims);
+    plist.setDeflate(4);
+
+    vector<string> uintFieldNames = {"entryRows", "entryColumns", "rows", "columns"};
+    vector<string> doubleFieldNames = {"trailLengths", "entryAngles", "intensities", "flux"};
+
+    for (const auto& name : uintFieldNames)
+    {
+      data.uintDatasets[name] = group.createDataSet("/Cosmics/" + subGroupName + "/" + name,
+						      H5::PredType::NATIVE_UINT, space, plist);
+    }
+
+    for (const auto& name : doubleFieldNames)
+    {
+      data.doubleDatasets[name] = group.createDataSet("/Cosmics/" + subGroupName + "/" + name,
+                            H5::PredType::NATIVE_DOUBLE, space, plist);
+    }
+
+    return data;
+}
+
 
 
 /**
@@ -243,7 +336,7 @@ void HDF5File::createGroup(string groupName)
 {
     // Make sure the path of the group starts with a "/" (i.e. the root folder)
 
-    if (!groupName.compare(0, 1, "/"))
+    if (groupName.compare(0, 1, "/"))
     {
         groupName.insert(0, "/");
     }
@@ -1219,7 +1312,7 @@ string HDF5File::readStringDatasetAttribute(string groupName, string datasetName
     {
         dataset = group.openDataSet(datasetName);
     }
-    else 
+    else
     {
         throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
@@ -1229,8 +1322,8 @@ string HDF5File::readStringDatasetAttribute(string groupName, string datasetName
 
     H5::Attribute attr;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1277,12 +1370,10 @@ string HDF5File::readStringDatasetAttribute(string groupName, string datasetName
 
 void HDF5File::writeArray(string groupName, string arrayName, int* array, int size)
 {
-    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {static_cast<hsize_t>(size)};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1291,8 +1382,8 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
     bool arrayIsAlreadyInFile = true;
     string arrayPath = groupName + "/" + arrayName;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1339,21 +1430,19 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
 
 /**
  * \brief Write a 1D unsigned integer array to a specified group in the HDF5 file
- * 
- * \param groupName  Full path of an existing HDF5 Group in the file. Starts with "/". 
- * \param arrayName  Unique name of the array in the group 
+ *
+ * \param groupName  Full path of an existing HDF5 Group in the file. Starts with "/".
+ * \param arrayName  Unique name of the array in the group
  * \param array      1d unsigned integer native array
  * \param size       Number of elements in the array
  */
 
 void HDF5File::writeArray(string groupName, string arrayName, unsigned int* array, int size)
 {
-    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {static_cast<hsize_t>(size)};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1362,8 +1451,8 @@ void HDF5File::writeArray(string groupName, string arrayName, unsigned int* arra
     bool arrayIsAlreadyInFile = true;
     string arrayPath = groupName + "/" + arrayName;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1423,12 +1512,10 @@ void HDF5File::writeArray(string groupName, string arrayName, unsigned int* arra
 
 void HDF5File::writeArray(string groupName, string arrayName, float* array, int size)
 {
-     // Create a DataSpace defining the shape and type of the data 
+     // Create a DataSpace defining the shape and type of the data
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {static_cast<hsize_t>(size)};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1437,8 +1524,8 @@ void HDF5File::writeArray(string groupName, string arrayName, float* array, int 
     bool arrayIsAlreadyInFile = true;
     string arrayPath = groupName + "/" + arrayName;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1493,12 +1580,10 @@ void HDF5File::writeArray(string groupName, string arrayName, float* array, int 
 
 void HDF5File::writeArray(string groupName, string arrayName, double* array, int size)
 {
-    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data
 
-    unsigned int Ndimensions = 1;
-    unsigned long long shape[Ndimensions];
-    shape[0] = size;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[1] = {static_cast<hsize_t>(size)};
+    H5::DataSpace arraySpace(1, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1507,8 +1592,8 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
     bool arrayIsAlreadyInFile = true;
     string arrayPath = groupName + "/" + arrayName;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1561,7 +1646,7 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 //
 // OUTPUT: None
 template<typename T>
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
+void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<T>& A)
 {
     // Sanity check on the shape of the array
 
@@ -1572,9 +1657,9 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
 
     H5::PredType predType = getPredType(A);
 
-    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data
 
-    unsigned int Ndimensions = 2;
+    const unsigned int Ndimensions = 2;
     unsigned long long shape[Ndimensions];
     shape[0] = A.n_rows;
     shape[1] = A.n_cols;
@@ -1587,8 +1672,8 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
     bool arrayIsAlreadyInFile = true;
     string arrayPath = groupName + "/" + arrayName;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1610,7 +1695,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
     // Inside the Images group, make room for the image array
 
     H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), predType, arraySpace);
-    
+
     // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
     // while HDF5 assumes data to be stored row-major
 
@@ -1638,13 +1723,13 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
 
 /**
  * \brief Check which PredType to use two write the given matrix to an HDF5 file.
- * 
+ *
  * \param A: 2D armadillo array
- * 
+ *
  * \return PredType to use to write the given matrix to an HDF5file
  */
 template <class T>
-H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
+H5::PredType HDF5File::getPredType(const arma::Mat<T>& A)
 {
     if(typeid(T) == typeid(float))
         return H5::PredType::NATIVE_FLOAT;
@@ -1657,7 +1742,7 @@ H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
 
 
 
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A)
+void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<uint16_t>& A)
 {
     // Sanity check on the shape of the array
 
@@ -1666,13 +1751,10 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t
         throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
     }
 
-    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data
 
-    unsigned int Ndimensions = 2;
-    unsigned long long shape[Ndimensions];
-    shape[0] = A.n_rows;
-    shape[1] = A.n_cols;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[2] = {A.n_rows, A.n_cols};
+    H5::DataSpace arraySpace(2, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1681,8 +1763,8 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t
     bool arrayIsAlreadyInFile = true;
     string arrayPath = groupName + "/" + arrayName;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1704,7 +1786,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t
     // Inside the Images group, make room for the image array
 
     H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_UINT16, arraySpace);
-    
+
     // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
     // while HDF5 assumes data to be stored row-major
 
@@ -1729,7 +1811,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t
 
 
 
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
+void HDF5File::writeArray(string groupName, string arrayName, const arma::Mat<float>& A)
 {
     // Sanity check on the shape of the array
 
@@ -1738,13 +1820,10 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
         throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
     }
 
-    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data
 
-    unsigned int Ndimensions = 2;
-    unsigned long long shape[Ndimensions];
-    shape[0] = A.n_rows;
-    shape[1] = A.n_cols;
-    H5::DataSpace arraySpace(Ndimensions, shape);
+    const hsize_t shape[2] = {A.n_rows, A.n_cols};
+    H5::DataSpace arraySpace(2, shape);
 
     // Check if the array is not already in the file.
     // There seems to be only a dirty way of determining this:
@@ -1753,8 +1832,8 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
     bool arrayIsAlreadyInFile = true;
     string arrayPath = groupName + "/" + arrayName;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1776,7 +1855,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
     // Inside the Images group, make room for the image array
 
     H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
-    
+
     // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
     // while HDF5 assumes data to be stored row-major
 
@@ -1886,7 +1965,7 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
 
 /**
  * \brief  Read a 1D double array from a specified group in the HDF5 file into a vector<double>.
- * 
+ *
  * \param groupName  Name of an existing HDF5 Group in the file. Starts with "/".
  * \param arrayName  Unique name of the array in the group, e.g. "skyBackground"
  * \param vec        C++ vector<double>. Previous contents will be lost.
@@ -2091,41 +2170,6 @@ void HDF5File::writeTransmissionEfficiencyValues(double* array, int size)
 
 
 
-
-
-
-
-
-
-
-/**
- * \brief: include the throughput map to the HDF5 file.
- *
- */
-void HDF5File::writeThroughput(int exposureNr, arma::Mat<float>& throughputMap)
-{
-    // Clear the string stream and compose the throughput map name
-    stringstream myStream;
-    myStream.str(string());      // insert empty string
-    myStream.clear();            // clear eof bit
-
-    myStream << "throughputMap" << setfill('0') << setw(7) << exposureNr;
-    string throughputMapName = myStream.str();
-
-    // Add the throughput map to the "ThroughputMaps" group
-    writeArray("/ThroughputMaps", throughputMapName, throughputMap);
-}
-
-
-
-
-
-
-
-
-
-
-
 /**
  * /brief: Write smearing map into the HDF5 file.
  *
@@ -2155,7 +2199,7 @@ void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuant
         }
 
         // Convert the float matrix to an unsigned uint16_t matrix
-	
+
         arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
         writeArray("/SmearingMaps", smearingMapName, uintMap);
     }
@@ -2173,7 +2217,7 @@ void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuant
 /**
  * \brief: include the Straylight to the HDF5 file.
  *
- */  
+ */
 void HDF5File::writeStraylight(vector<double>& straylight)
 {
   writeArray("/Straylight/", "Moon", straylight.data(), straylight.size());
@@ -2313,7 +2357,7 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
     // {
     //   Log.warning("HDF5File: No star positions to write to HDF5 file.");
     // }
-    
+
     if (time.empty())
     {
       Log.warning("HDF5File: No star positions to write to HDF5 file.");
@@ -2367,7 +2411,7 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
         myStream << "starID" << setfill('0') << setw(7) << 0 + starIDs[n];
         const string exposureGroupName = "/StarPositions/" + myStream.str();
         createGroup(exposureGroupName);
-        //writeArray(exposureGroupName, "time",   times.data(),   times.size());	
+        //writeArray(exposureGroupName, "time",   times.data(),   times.size());
         writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
         writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
         writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
@@ -2412,7 +2456,7 @@ void HDF5File::writePointlikeGhostByExposure(map<double, map<unsigned int, array
     // {
     //     Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
     // }
-    
+
     if (time.empty())
     {
         Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
@@ -2508,7 +2552,7 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
     // {
     //     Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
     // }
-    
+
     if (time.empty())
     {
         Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
@@ -2566,7 +2610,7 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
           myStream << "StarID" << setfill('0') << setw(7) << 0 + starIDs[n];
           const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
           createGroup(pointLikeGhostGroupName);
-          //writeArray(pointLikeGhostGroupName, "time",   times.data(),   times.size());  
+          //writeArray(pointLikeGhostGroupName, "time",   times.data(),   times.size());
           writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
           writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
           writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
@@ -2614,7 +2658,7 @@ void HDF5File::writeExtendedGhostByExposure(map<double, map<unsigned int, array<
   // {
   //   Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
   // }
-  
+
   if (time.empty())
   {
     Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
@@ -2710,7 +2754,7 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
   // {
   //   Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
   // }
-  
+
   if (time.empty())
   {
     Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
@@ -2767,7 +2811,7 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
       myStream << "Exposure" << setfill('0') << setw(7) << 0 + starIDs[n];
       const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
       createGroup(extendedGhostGroupName);
-      //writeArray(extendedGhostGroupName, "times",  times.data(),       times.size());      
+      //writeArray(extendedGhostGroupName, "times",  times.data(),       times.size());
       writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),       xFPmm.size());
       writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),       yFPmm.size());
       writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),      rowPix.size());
@@ -2789,145 +2833,108 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
 }
 
 
+template<typename T>
+void HDF5File::addDataToRaggedArray(map<string, vector<T>>& data, map<string, H5::DataSet>& datasets, const hsize_t offsetVal, const hsize_t n)
+{
+    const H5::PredType &dataType = Hdf5PredType<T>::get();
 
+    // Every vector must hold exactly n values: n elements are read from each of them.
 
+    for (const auto& item : data)
+    {
+        if (item.second.size() != n)
+        {
+            throw H5DatasetException("HDF5File::addDataToRaggedArray(): field " + item.first + " has "
+                                     + to_string(item.second.size()) + " values, expected " + to_string(n));
+        }
+    }
 
+    if (n == 0) return;
 
+    hsize_t newSize[1] = { offsetVal + n };
+    hsize_t offset[1]  = {offsetVal};
+    hsize_t count[1]   = { n };
 
+    for (const auto& item : data)
+    {
+        const auto& name = item.first;
+        const auto& values = item.second;
 
+        H5::DataSet& dataset = datasets.at(name);
+        dataset.extend(newSize);
 
+        H5::DataSpace fileSlab = dataset.getSpace();
+        fileSlab.selectHyperslab(H5S_SELECT_SET, count, offset);
+        H5::DataSpace memSpace(1, count);
 
-
-
-
-
+        dataset.write(values.data(), dataType, memSpace, fileSlab);
+    }
+}
 
 
 
 
 /**
  * /brief: save the cosmics to the HDF5 file.
- * /note: This functin gets called when groupByExposure is true.
  *
  */
-void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
-                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
-                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+void HDF5File::writeCosmics(
+    RaggedArray &array, int exposureIdx, vector<unsigned int> &entryRows,
+    vector<unsigned int> &entryColumns, vector<double> &trailLengths,
+    vector<double> &entryAngles, vector<double> &intensities,
+    vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
-    string imageName;
-
-    // Define the name of sub group for every exposure.
-
-    stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
-    imageName = "/Cosmics/" + field + myStream.str();
-
-    // add the columns vector
-
-    createGroup(imageName);
-    if (rows.empty() && cols.empty())
+    if (exposureIdx < 0 || (size_t)exposureIdx + 1 >= array.offsets.size())
     {
-        vector<unsigned int> noHitsUnsignedInt{0};
-        vector<double> noHitsDouble{-1.0};
-        writeArray(imageName, "entryRows",    noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryColumns", noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryAngles",  noHitsDouble.data(), 1);
-        writeArray(imageName, "intensities",  noHitsDouble.data(), 1);
-        writeArray(imageName, "trailLengths", noHitsDouble.data(), 1);
-        writeArray(imageName, "rows",         noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "columns",      noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "flux",         noHitsDouble.data(), 1);
-    }
-    else
-    {
-        writeArray(imageName, "entryRows",    entryRows.data(), entryRows.size());
-        writeArray(imageName, "entryColumns", entryColumns.data(), entryColumns.size());
-        writeArray(imageName, "entryAngles",  entryAngles.data(), entryAngles.size());
-        writeArray(imageName, "intensities",  intensities.data(), intensities.size());
-        writeArray(imageName, "trailLengths", trailLengths.data(), trailLengths.size());
-        writeArray(imageName, "rows",         rows.data(), rows.size());
-        writeArray(imageName, "columns",      cols.data(), cols.size());
-        writeArray(imageName, "flux",         flux.data(), flux.size());
+        throw H5DatasetException("HDF5File::writeCosmics(): exposure index " + to_string(exposureIdx)
+                                 + " outside the cosmics offsets table");
     }
 
+    // There are two kinds of fields, with a different number of values per exposure:
+    //  - per cosmic: one value for every cosmic that hit the map;
+    //  - per pixel:  one value for every pixel along the trails of these cosmics.
+    // Each kind is appended at its own position and gets its own offsets table.
+
+    const hsize_t numCosmics = entryRows.size();
+    const hsize_t numPixels  = rows.size();
+
+    map<string, vector<unsigned int>> uintPerCosmic   = { {"entryRows",    entryRows},
+                                                          {"entryColumns", entryColumns} };
+    map<string, vector<double>>       doublePerCosmic = { {"trailLengths", trailLengths},
+                                                          {"entryAngles",  entryAngles},
+                                                          {"intensities",  intensities} };
+    map<string, vector<unsigned int>> uintPerPixel    = { {"rows",    rows},
+                                                          {"columns", cols} };
+    map<string, vector<double>>       doublePerPixel  = { {"flux", flux} };
+
+    // The per-pixel values are appended after the ones already in the file
+
+    H5::DataSet &rowsDataset = array.uintDatasets.at("rows");
+    hsize_t pixelTotal;
+    rowsDataset.getSpace().getSimpleExtentDims(&pixelTotal);
+
+    addDataToRaggedArray(uintPerCosmic,   array.uintDatasets,   array.runningTotal, numCosmics);
+    addDataToRaggedArray(doublePerCosmic, array.doubleDatasets, array.runningTotal, numCosmics);
+    addDataToRaggedArray(uintPerPixel,    array.uintDatasets,   pixelTotal, numPixels);
+    addDataToRaggedArray(doublePerPixel,  array.doubleDatasets, pixelTotal, numPixels);
+
+    array.runningTotal += numCosmics;
+    array.offsets[exposureIdx + 1] = array.runningTotal;
+
+    // Store the end of this exposure's per-pixel values in pixelOffsets[exposureIdx + 1]
+
+    string groupPath = rowsDataset.getObjName();
+    groupPath = groupPath.substr(0, groupPath.find_last_of('/'));
+    H5::DataSet pixelOffsets = file->openDataSet(groupPath + "/pixelOffsets");
+
+    uint64_t pixelEnd   = pixelTotal + numPixels;
+    hsize_t  count[1]   = { 1 };
+    hsize_t  offset[1]  = { (hsize_t)exposureIdx + 1 };
+    H5::DataSpace fileSpace = pixelOffsets.getSpace();
+    fileSpace.selectHyperslab(H5S_SELECT_SET, count, offset);
+    H5::DataSpace memSpace(1, count);
+    pixelOffsets.write(&pixelEnd, H5::PredType::NATIVE_UINT64, memSpace, fileSpace);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * /brief: save the cosmics to the HDF5 file.
- * /note: This functin gets called when groupByExposure is false.
- *
- */
-void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
-                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
-                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
-{
-    string imageGroup;
-    string imageName;
-
-    // Create sub group so that there are no more then 1000 exposures in one sub group
-    
-    stringstream subgroupStream;
-    subgroupStream << "/Exposure" << setfill('0') << setw(3) << exposureNr / 1000;
-
-    // Define the name of sub group for every exposure.
-
-    stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
-    imageGroup = "/Cosmics/" + field + subgroupStream.str();
-    imageName  = imageGroup + myStream.str();
-    
-    // add the columns vector
-
-    createGroup(imageGroup);
-    createGroup(imageName);
-    
-    if (rows.empty() && cols.empty())
-    {
-        vector<unsigned int> noHitsUnsignedInt{0};
-        vector<double> noHitsDouble{-1.0};
-        writeArray(imageName, "entryRows",    noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryColumns", noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "entryAngles",  noHitsDouble.data(), 1);
-        writeArray(imageName, "intensities",  noHitsDouble.data(), 1);
-        writeArray(imageName, "trailLengths", noHitsDouble.data(), 1);
-        writeArray(imageName, "rows",         noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "columns",      noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "flux",         noHitsDouble.data(), 1);
-    }
-    else
-    {
-        writeArray(imageName, "entryRows",    entryRows.data(), entryRows.size());
-        writeArray(imageName, "entryColumns", entryColumns.data(), entryColumns.size());
-        writeArray(imageName, "entryAngles",  entryAngles.data(), entryAngles.size());
-        writeArray(imageName, "intensities",  intensities.data(), intensities.size());
-        writeArray(imageName, "trailLengths", trailLengths.data(), trailLengths.size());
-        writeArray(imageName, "rows",         rows.data(), rows.size());
-        writeArray(imageName, "columns",      cols.data(), cols.size());
-        writeArray(imageName, "flux",         flux.data(), flux.size());
-    }
-
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -2957,3 +2964,125 @@ bool fileExists(string filename)
         return false;
     }
 }
+
+
+
+void HDF5File::createGroup(string groupName, string arrayName, hsize_t dims[3], const H5::PredType &type)
+{
+    // Make sure the path of the group starts with "/" (i.e. the root of the
+    // folder)
+    if (!groupName.compare(0, 1, "/"))
+        groupName.insert(0, "/");
+
+    // Find the parent group
+    // E.g. if the groupName is "/my/path/to/group1" then the parent group is
+    //      "/my/path/to" and the subgroup is "group1".
+    auto position = groupName.find_last_of("/");
+    string parentGroupName = groupName.substr(0, position);
+    string subGroupName = groupName.substr(position + 1);
+
+    // If the parent group name is empty, it means that the group should be
+    // placed in the root group. In that case, make sure that the parentGroupName
+    // is "/".
+    if (parentGroupName.empty())
+    {
+        parentGroupName = "/";
+    }
+
+    // Open the parent group
+    H5::Group parentGroup = file->openGroup(parentGroupName.c_str());
+    parentGroup.createGroup(groupName.c_str());
+
+    // Fill the group with an array of the correct dimension
+    string arrayPath = groupName + "/" + arrayName;
+    H5::DataSpace fileSpace(3, dims); // defines the shape of the data
+
+    // to fill the dataset efficiently we can define the chunks that will
+    // fill the array.
+    hsize_t chunkDims[3] = {1, dims[1], dims[2]};
+
+    H5::DSetCreatPropList propList;
+    propList.setChunk(3, chunkDims);
+    propList.setDeflate(4); // compression of chunks
+
+    // we start by making room for the image array
+    file->createDataSet(arrayPath.c_str(), type,
+                        fileSpace, propList);
+}
+
+
+// HDF5File::writeArray() for a 2D float armadillo array
+//
+// PURPOSE: write a 2D armadillo array to a specifigied group in the HDF5 file
+//          for a certain time step.
+// NOTE: the function assumes that the specified group contains a 3D array. This
+//       array is filled as {timestep, data}. (where data is the 2D armadillo
+//       array).
+//
+// OUTPUT: None
+template <typename T>
+void HDF5File::writeArray(string groupName, string arrayName, int timeStep,
+                          const arma::Mat<T> &data)
+{
+
+    H5::PredType predType = getPredType(data);
+
+    // Sanity check if the group exists
+    if (!hasGroup(groupName))
+    {
+      throw H5FileException("HDF5File:writeArray(): Unknown group (" +
+			    groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    if (!hasDataset(groupName, arrayName))
+    {
+      throw H5FileException("HDF5File:writeArray(): Unknown dataset (" + arrayName +
+			    ") in group " + groupName + " of HDF5 file " + file->getFileName());
+    }
+
+    H5::Group group = file->openGroup(groupName.c_str());
+    H5::DataSet dataset = group.openDataSet(arrayName.c_str());
+
+    // Read back the dataset's shape
+    H5::DataSpace fileSpace = dataset.getSpace();
+    hsize_t dims[3];
+    fileSpace.getSimpleExtentDims(dims);
+
+    // Sanity check of the shape of the array
+    if (!((data.n_rows == static_cast<int>(dims[1])) && (data.n_cols == static_cast<int>(dims[2]))))
+    {
+      throw H5FileException("HDF5File::writeArray(): encountered array with wrong shape,\nreceived shape (" +
+			    to_string(data.n_rows) + ", " + to_string(data.n_cols) + "), but expected shape (" +
+			    to_string(dims[1]) + ", " + to_string(dims[2]) + ")");
+
+    }
+
+    hsize_t offset[3] = {static_cast<hsize_t>(timeStep), 0, 0};
+    hsize_t count[3] = {1, dims[1], dims[2]};
+
+    fileSpace.selectHyperslab(H5S_SELECT_SET, count, offset);
+    H5::DataSpace memSpace(3, count);
+
+    // Copy the Armadillo array to a vector
+    vector<T> temp(data.n_rows * data.n_cols);
+    for (int n = 0; n < data.n_rows; n++) {
+      for (int k = 0; k < data.n_cols; k++) {
+        const int nk = n * data.n_cols + k;
+	temp[nk] = data(n, k);
+      }
+    }
+    try {
+      // dataset.write(data.data(), dataType, memSpace, fileSlab);
+      dataset.write(temp.data(), predType, memSpace, fileSpace);
+    }
+    catch (H5::DataSetIException& e) {
+      e.printErrorStack();   // dumps the full internal HDF5 error stack to stderr
+      throw;  // or handle as appropriate
+    }
+}
+
+
+template void HDF5File::writeArray<float>(std::string, std::string, int,
+                                           const arma::Mat<float> &);
+template void HDF5File::writeArray<uint16_t>(
+    std::string, std::string, int, const arma::Mat<uint16_t>&);
