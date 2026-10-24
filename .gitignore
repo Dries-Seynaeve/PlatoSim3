@@ -72,9 +72,9 @@ docs/*/*/*.yaml
 docs/*/*/*.hdf5
 simulations_PlatoSimPaper2023/
 
-# Poetry
+# uv
 
-poetry.lock
+uv.lock
 
 # Setup script
 
