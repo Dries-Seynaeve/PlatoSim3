@@ -1324,12 +1324,10 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
         Axes matplotlib.pyplot handle object to be modified by the user
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
-
-    # TODO ligo skymap is only usable with "poetry install --with platonium"
-    # TODO Implement the code for this single plot and remove package!
-
-    import ligo.skymap.plot
-
+    # Using code bits form:
+    # https://github.com/lpsinger/ligo.skymap/tree/main/ligo/skymap
+    import platosim.skymap
+    
     # Fetch N-CAM map if requested
 
     if ncamMap in ['PIC220', 'PIC210']:
@@ -1401,12 +1399,6 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
     if showGalactic:
         skip = 5
         df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
-        # if ncamMap == 'PLATO-CS': 
-        #     df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
-        #     skip = 5
-        # else:
-        #     df = pd.read_feather(f'{idir}/PlatoGO_PIC210_LOPS2.ftr')
-        #     skip = 8
         df = df.loc[::skip]
         # Convert to galactic coordinates
         starPF = SkyCoord(df.ra*u.deg, df.dec*u.deg, frame='icrs', unit='deg')
