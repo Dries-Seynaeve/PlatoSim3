@@ -31,13 +31,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # PlatoSim functions
+import platosim.plot            as pt
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 import platosim.statistics      as st
 from platosim.simulation   import Simulation
 from platosim.simfile      import SimFile
-from platosim.utilities    import errorcode, getPointingField
-from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
+from platosim.utilities    import errorcode
 from platosim.matplotlibrc import setup; setup()
 
 # pylint: disable=line-too-long
@@ -709,7 +709,7 @@ class PLATOnium(object):
                     print('Setting platform pointing    (PLM FromFile: Quaternion)')
         else:
             # Select PLATO pointing field from inputfile
-            alpha, delta, kappa = getPointingField(self.pointingField)
+            alpha, delta, kappa = ut.getPointingField(self.pointingField)
             sim["Platform/Orientation/Angles/RAPointing"]  = alpha
             sim["Platform/Orientation/Angles/DecPointing"] = delta
             # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
@@ -1264,10 +1264,11 @@ class PLATOnium(object):
         # TODO plot do not work for F-CAM yet!
         if not self.fullFrame and not self.groupID == 'Fast':
             fig1 = plt.figure(figsize=(12,10))
-            drawStarInCCDfocalPlane(fig1, sim,
-                                    self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
-                                    self.df0['CCD'][0], self.group, alpha, delta, kappa)
-
+            pt.drawStarInCCDfocalPlane(
+                fig1, sim,
+                self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
+                self.df0['CCD'][0], self.group, alpha, delta, kappa
+            )
         # Show subfield for first cadence
         if self.fullFrame:
             figsize = (12,12)
@@ -1435,19 +1436,21 @@ class PLATOnium(object):
             if   self.cadence ==  25.0: fps, nskip = 50, 800
             elif self.cadence ==  50.0: fps, nskip = 25, 500
             elif self.cadence == 600.0: fps, nskip = 25, 50
-            plotSubfieldAnimation(outputFile,
-                                  outputFileName=str(self.outputSimName),
-                                  cadence=self.cadence,
-                                  frameRate=fps,
-                                  skipNimages=nskip,
-                                  numImages=False,
-                                  colorMap="magma",
-                                  clipPercentile=5.0, 
-                                  showStarPositions='PIC',
-                                  showMaskOfStarID='1',
-                                  useTitle=True,
-                                  showGrid=True,
-                                  figsize=(6,6))
+            pt.plotSubfieldAnimation(
+                outputFile,
+                outputFileName=str(self.outputSimName),
+                cadence=self.cadence,
+                frameRate=fps,
+                skipNimages=nskip,
+                numImages=False,
+                colorMap="magma",
+                clipPercentile=5.0, 
+                showStarPositions='PIC',
+                showMaskOfStarID='1',
+                useTitle=True,
+                showGrid=True,
+                figsize=(6,6)
+            )
 
         # RESOURCES
         
