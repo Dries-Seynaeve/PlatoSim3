@@ -5,14 +5,20 @@ This python module contains all statistical data analysis utilities
 to more easily analysing PlatoSim data products. 
 """
 
+# Python standard
 import os
 import sys
 import glob
+
+# PlatoSim standard
 import numpy as np
 import pandas as pd
 from colorama import Back, Fore, Style
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
+
+# PlatoSim imports
+import platosim.statistics as st
 
 #--------------------------------------------------------------#
 #                       OLS/WLS STATISTICS                     #
