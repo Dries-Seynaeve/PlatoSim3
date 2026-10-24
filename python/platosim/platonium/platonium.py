@@ -26,18 +26,20 @@ import tracemalloc
 from pathlib import Path
 
 # PlatoSim standard
+import yaml
+import dictdiffer
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 # PlatoSim functions
+import platosim.plot            as pt
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 import platosim.statistics      as st
 from platosim.simulation   import Simulation
 from platosim.simfile      import SimFile
-from platosim.utilities    import errorcode, getPointingField
-from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
+from platosim.utilities    import errorcode
 from platosim.matplotlibrc import setup; setup()
 
 # pylint: disable=line-too-long
@@ -709,7 +711,7 @@ class PLATOnium(object):
                     print('Setting platform pointing    (PLM FromFile: Quaternion)')
         else:
             # Select PLATO pointing field from inputfile
-            alpha, delta, kappa = getPointingField(self.pointingField)
+            alpha, delta, kappa = ut.getPointingField(self.pointingField)
             sim["Platform/Orientation/Angles/RAPointing"]  = alpha
             sim["Platform/Orientation/Angles/DecPointing"] = delta
             # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
@@ -1264,10 +1266,11 @@ class PLATOnium(object):
         # TODO plot do not work for F-CAM yet!
         if not self.fullFrame and not self.groupID == 'Fast':
             fig1 = plt.figure(figsize=(12,10))
-            drawStarInCCDfocalPlane(fig1, sim,
-                                    self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
-                                    self.df0['CCD'][0], self.group, alpha, delta, kappa)
-
+            pt.drawStarInCCDfocalPlane(
+                fig1, sim,
+                self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
+                self.df0['CCD'][0], self.group, alpha, delta, kappa
+            )
         # Show subfield for first cadence
         if self.fullFrame:
             figsize = (12,12)
@@ -1317,7 +1320,8 @@ class PLATOnium(object):
         #         self.beginExposureNr,
         #         showStarPositions=showStarPositions,
         #         showMaskOfStarID=mask,
-        #         useTitle=f'N-CAM {self.group}.{self.camera} observation of {self.sample} (Gaia DR3 {title[7:27]})',
+        #         useTitle=f'N-CAM {self.group}.{self.camera} observation of' +
+        #                  f'{self.sample} (Gaia DR3 {title[7:27]})',
         #         #useTitle=f'F-CAM red observation of {self.sample} (Gaia DR3 {title[7:27]})',
         #         colorMap=cmap,
         #         colorBar=False,
@@ -1386,7 +1390,7 @@ class PLATOnium(object):
                 if yaml.is_file(): yaml.unlink()
             if self.varSourceFile:
                 Path(self.varSourceList).unlink()
-
+                
         # Define output file name
         outputFile = f'{self.outputSimName}.hdf5'
 
@@ -1435,19 +1439,21 @@ class PLATOnium(object):
             if   self.cadence ==  25.0: fps, nskip = 50, 800
             elif self.cadence ==  50.0: fps, nskip = 25, 500
             elif self.cadence == 600.0: fps, nskip = 25, 50
-            plotSubfieldAnimation(outputFile,
-                                  outputFileName=str(self.outputSimName),
-                                  cadence=self.cadence,
-                                  frameRate=fps,
-                                  skipNimages=nskip,
-                                  numImages=False,
-                                  colorMap="magma",
-                                  clipPercentile=5.0, 
-                                  showStarPositions='PIC',
-                                  showMaskOfStarID='1',
-                                  useTitle=True,
-                                  showGrid=True,
-                                  figsize=(6,6))
+            pt.plotSubfieldAnimation(
+                outputFile,
+                outputFileName=str(self.outputSimName),
+                cadence=self.cadence,
+                frameRate=fps,
+                skipNimages=nskip,
+                numImages=False,
+                colorMap="magma",
+                clipPercentile=5.0, 
+                showStarPositions='PIC',
+                showMaskOfStarID='1',
+                useTitle=True,
+                showGrid=True,
+                figsize=(6,6)
+            )
 
         # RESOURCES
         
@@ -1474,36 +1480,6 @@ class PLATOnium(object):
         # Load light curve
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5', path=self.outputDir)
-
-        # GAIN TRANSIENTS
-        # TODO check exp model! Ask Pierre for correction 
-
-        # Apply step if CCD(T) file exists
-        # inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
-
-        # if inputFileGTT.is_file():
-        #     if self.verbose > 1:
-        #         print('Running transient  model : gain(T)')
-
-        #     # Load CCD gain temperature file
-        #     dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
-        #     dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
-        #     temp = dt.temp.to_numpy()
-
-        #     # Fetch the gap durations
-        #     inputFileGap = self.inputDir.joinpath('instrumentGAP.tab')
-        #     dg = pd.read_feather(inputFileGap)
-        #     tdur = dg.td.iloc[0] / 86400
-
-        #     # Use correct gain from either F or E side
-        #     tempNominal   = sim['CCD/NominalOperatingTemperature']
-        #     gainCCD       = sim['CCD/Gain/RefValueRight']
-        #     gainFEE       = sim['FEE/Gain/RefValueRight']
-        #     gainStability = sim['FEE/Gain/Stability']
-
-        #     # Perfect correction
-        #     lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
-        #                     replace=True, plot=self.plotPost)
 
         # DETRENDING
         
@@ -1920,6 +1896,24 @@ class PLATOnium(object):
     #                            OUTPUTS                           #
     #--------------------------------------------------------------#
 
+    def create_yaml_io_diff(self, iyaml, oyaml, ofile=None, show=False):
+        """Module to create a diff YAML file.
+        This is done to increase the transparency of what platonium
+        is actually changing at run time.
+        """
+        with open(iyaml,'r') as rdr: iyaml = rdr.read()
+        with open(oyaml,'r') as rdr: oyaml = rdr.read()
+        iyaml_dict = yaml.load(iyaml, Loader=yaml.FullLoader)
+        oyaml_dict = yaml.load(oyaml, Loader=yaml.FullLoader)
+        if show:
+            for diff in list(dictdiffer.diff(iyaml_dict, oyaml_dict)):
+                print(diff)
+        if ofile:
+            with open(ofile, 'w+') as f:
+                for diff in list(dictdiffer.diff(iyaml_dict, oyaml_dict)):
+                    print(diff, file=f)
+
+            
     def create_sim_table(self, odir):
         """Module to create a overview table of the simulation.
         """
@@ -1941,7 +1935,7 @@ class PLATOnium(object):
                 "yFP":      self.yFP,
                 "ncon":     self.numCon,
         }
-        df1 = pd.DataFrame(data, index=[0])
+        df = pd.DataFrame(data, index=[0])
 
         # Add SPR if available
         if self.photometry:
@@ -1951,11 +1945,11 @@ class PLATOnium(object):
             except:
                 pass
             else:
-                df1['SPR'] = np.mean(mask[5])
-                df1['NSR'] = np.mean(mask[4])
+                df['SPR'] = np.mean(mask[5])
+                df['NSR'] = np.mean(mask[4])
 
         # Save simulation table
-        df1.to_feather(filename)
+        df.to_feather(filename)
 
         
     def failed(self, message):
@@ -1985,6 +1979,12 @@ class PLATOnium(object):
         if self.postProcess and self.verbose < 3:
             os.remove(f'{self.outputSimName}.hdf5')
 
+        # Create a YAML I/O diff file
+        if self.verbose > 1:
+            outputFile = Path(str(self.outputSimName) + '.yaml')
+            outputDiff = Path(str(self.outputSimName) + '.yaml_diff')
+            self.create_yaml_io_diff(self.inputFile, outputFile, ofile=outputDiff)
+            
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}*')
 

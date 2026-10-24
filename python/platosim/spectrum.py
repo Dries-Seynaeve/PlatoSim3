@@ -31,16 +31,15 @@ class Spectrum(object):
     For a given set of Teff, logg, Z, and alpha, it downloads the
     spectrum from the servers mentioned below.
 
-    PHOENIX references:
+    PHOENIX (Husser+2013):
     Webpage : https://phoenix.astro.physik.uni-goettingen.de/
     Download: http://phoenix.astro.physik.uni-goettingen.de/data/
-    Paper   :
+    Paper   : https://ui.adsabs.harvard.edu/abs/2013A%26A...553A...6H/abstract
     NOTE Phoenix NextGen gas phase models are only valid for Teff>2700K
 
-    ATLAS9 references:
-    Webpage : 
+    ATLAS9 (Castelli+2023):
     Download: https://archive.stsci.edu/hlsps/reference-atlases/cdbs/grid/ck04models/
-    Paper   : 
+    Paper   : https://ui.adsabs.harvard.edu/abs/2003IAUS..210P.A20C/abstract
     """
 
     def __init__(self, verbose=1):
