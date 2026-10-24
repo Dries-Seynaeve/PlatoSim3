@@ -13,9 +13,6 @@ import pandas as pd
 from colorama import Back, Fore, Style
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
-import statsmodels.api as sm
-from statsmodels.graphics.gofplots import qqplot
-
 
 #--------------------------------------------------------------#
 #                       OLS/WLS STATISTICS                     #
@@ -208,6 +205,7 @@ def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS', figsize=
 
     """Function to plot Q-Q plot.
     """
+    from statsmodels.graphics.gofplots import qqplot
     
     # Choose correct residuals
     
@@ -376,5 +374,4 @@ def model_selection(AIC_j, BIC_j, method='BIC', show=False):
     if method == 'AIC':
         return best_aic
     elif method == 'BIC':
-        return best_bic
-    
+        return best_bic    
