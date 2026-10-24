@@ -26,6 +26,8 @@ import tracemalloc
 from pathlib import Path
 
 # PlatoSim standard
+import yaml
+import dictdiffer
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -1318,7 +1320,8 @@ class PLATOnium(object):
         #         self.beginExposureNr,
         #         showStarPositions=showStarPositions,
         #         showMaskOfStarID=mask,
-        #         useTitle=f'N-CAM {self.group}.{self.camera} observation of {self.sample} (Gaia DR3 {title[7:27]})',
+        #         useTitle=f'N-CAM {self.group}.{self.camera} observation of' +
+        #                  f'{self.sample} (Gaia DR3 {title[7:27]})',
         #         #useTitle=f'F-CAM red observation of {self.sample} (Gaia DR3 {title[7:27]})',
         #         colorMap=cmap,
         #         colorBar=False,
@@ -1387,7 +1390,7 @@ class PLATOnium(object):
                 if yaml.is_file(): yaml.unlink()
             if self.varSourceFile:
                 Path(self.varSourceList).unlink()
-
+                
         # Define output file name
         outputFile = f'{self.outputSimName}.hdf5'
 
@@ -1477,36 +1480,6 @@ class PLATOnium(object):
         # Load light curve
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5', path=self.outputDir)
-
-        # GAIN TRANSIENTS
-        # TODO check exp model! Ask Pierre for correction 
-
-        # Apply step if CCD(T) file exists
-        # inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
-
-        # if inputFileGTT.is_file():
-        #     if self.verbose > 1:
-        #         print('Running transient  model : gain(T)')
-
-        #     # Load CCD gain temperature file
-        #     dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
-        #     dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
-        #     temp = dt.temp.to_numpy()
-
-        #     # Fetch the gap durations
-        #     inputFileGap = self.inputDir.joinpath('instrumentGAP.tab')
-        #     dg = pd.read_feather(inputFileGap)
-        #     tdur = dg.td.iloc[0] / 86400
-
-        #     # Use correct gain from either F or E side
-        #     tempNominal   = sim['CCD/NominalOperatingTemperature']
-        #     gainCCD       = sim['CCD/Gain/RefValueRight']
-        #     gainFEE       = sim['FEE/Gain/RefValueRight']
-        #     gainStability = sim['FEE/Gain/Stability']
-
-        #     # Perfect correction
-        #     lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
-        #                     replace=True, plot=self.plotPost)
 
         # DETRENDING
         
@@ -1923,6 +1896,24 @@ class PLATOnium(object):
     #                            OUTPUTS                           #
     #--------------------------------------------------------------#
 
+    def create_yaml_io_diff(self, iyaml, oyaml, ofile=None, show=False):
+        """Module to create a diff YAML file.
+        This is done to increase the transparency of what platonium
+        is actually changing at run time.
+        """
+        with open(iyaml,'r') as rdr: iyaml = rdr.read()
+        with open(oyaml,'r') as rdr: oyaml = rdr.read()
+        iyaml_dict = yaml.load(iyaml, Loader=yaml.FullLoader)
+        oyaml_dict = yaml.load(oyaml, Loader=yaml.FullLoader)
+        if show:
+            for diff in list(dictdiffer.diff(iyaml_dict, oyaml_dict)):
+                print(diff)
+        if ofile:
+            with open(ofile, 'w+') as f:
+                for diff in list(dictdiffer.diff(iyaml_dict, oyaml_dict)):
+                    print(diff, file=f)
+
+            
     def create_sim_table(self, odir):
         """Module to create a overview table of the simulation.
         """
@@ -1944,7 +1935,7 @@ class PLATOnium(object):
                 "yFP":      self.yFP,
                 "ncon":     self.numCon,
         }
-        df1 = pd.DataFrame(data, index=[0])
+        df = pd.DataFrame(data, index=[0])
 
         # Add SPR if available
         if self.photometry:
@@ -1954,11 +1945,11 @@ class PLATOnium(object):
             except:
                 pass
             else:
-                df1['SPR'] = np.mean(mask[5])
-                df1['NSR'] = np.mean(mask[4])
+                df['SPR'] = np.mean(mask[5])
+                df['NSR'] = np.mean(mask[4])
 
         # Save simulation table
-        df1.to_feather(filename)
+        df.to_feather(filename)
 
         
     def failed(self, message):
@@ -1988,6 +1979,12 @@ class PLATOnium(object):
         if self.postProcess and self.verbose < 3:
             os.remove(f'{self.outputSimName}.hdf5')
 
+        # Create a YAML I/O diff file
+        if self.verbose > 1:
+            outputFile = Path(str(self.outputSimName) + '.yaml')
+            outputDiff = Path(str(self.outputSimName) + '.yaml_diff')
+            self.create_yaml_io_diff(self.inputFile, outputFile, ofile=outputDiff)
+            
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}*')
 
