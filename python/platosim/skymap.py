@@ -305,7 +305,7 @@ def wrapped_angle_deg(a):
 #
 import astropy_healpix as ah
 import numpy as np
-#from reproject.healpix.utils import parse_coord_system
+from reproject.healpix.utils import parse_coord_system
 from reproject.utils import parse_output_projection
 
 #from ..healpix_tree import HEALPIX_MACHINE_NSIDE, HEALPIX_MACHINE_ORDER
