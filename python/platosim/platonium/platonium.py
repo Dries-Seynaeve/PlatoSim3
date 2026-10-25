@@ -516,14 +516,23 @@ class PLATOnium(object):
                 except IndexError:
                     errorcode('error', f'Stellar catalogue "{self.sample}" does not exist!')
                 else:
+                    print(catTarName)
                     try:
                         self.catTarFile = glob.glob(catTarName)[0]
-                        self.catConFile = glob.glob(catConName)[0]
                     except IndexError:
-                        errorcode('error', 'Stellar contaminant catalogue does not exist! ' +
-                                  'To generate full-frame CCD images, use "--fullframe"')
+                        errorcode('error', 'Stellar target catalogue does not exist: "*_targets.ftr"')
                     else:
                         df = pd.read_feather(self.catTarFile)
+                    try:
+                        self.catConFile = glob.glob(catConName)[0]
+                    except IndexError:
+                        errorcode('warning', 'Stellar contaminant catalogue does not exist: ' +
+                                  'Continuing without it..')
+                        # Quick fix to allow for target catalogues only
+                        dc = df * 0
+                        dc['dis'] = 0
+                        self.catConFile = Path(self.catTarFile).stem[:-7] + 'contaminants.ftr' 
+                    else:
                         dc = pd.read_feather(self.catConFile)
                     
                 # Check if target and contaminant catalogues are consistent
