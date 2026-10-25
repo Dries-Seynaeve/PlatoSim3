@@ -55,9 +55,6 @@ from astropy import units as u
 from tqdm import tqdm
 from prettytable import PrettyTable
 
-# Platonium extra
-import ligo.skymap.plot
-
 # PlatoSim functions
 import platosim.plot      as pt
 import platosim.utilities as ut
