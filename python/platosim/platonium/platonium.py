@@ -1980,7 +1980,7 @@ class PLATOnium(object):
             os.remove(f'{self.outputSimName}.hdf5')
 
         # Create a YAML I/O diff file
-        if self.verbose > 1:
+        if self.verbose == 3:
             outputFile = Path(str(self.outputSimName) + '.yaml')
             outputDiff = Path(str(self.outputSimName) + '.yaml_diff')
             self.create_yaml_io_diff(self.inputFile, outputFile, ofile=outputDiff)
