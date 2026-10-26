@@ -12,11 +12,11 @@ Prerequisites
 
 To avoid having to hardcode any paths in configuration files, tutorials, etc., you must export three environment variables:
 
-* ``PLATO_PROJECT_HOME``: refer to the directory in which PlatoSim3 was installed.
+* ``PLATO_PROJECT_HOME``: refer to the directory in which PlatoSim3 was installed. The Python interface looks for the ``platosim`` executable in its ``build/`` (source installation) or ``bin/`` (Conda installation) sub-directory.
 * ``PLATO_WORKDIR``: refer to your working directory were you should store your own configuration files and save your simulations (preferably not within the PlatoSim installation directory).
 * ``PYTHONPATH``: refer to the directory in which our Python scripts can be found.
 
-Before exporting any environment variables, first make sure to activate your Conda environment. If you have installed PlatoSim as a :doc:`user (via Conda) <install_conda>`, the home location of the PlatoSim project needs to be exported as:
+Before exporting any environment variables, first make sure to activate your Python environment (your Conda environment, or ``source .venv/bin/activate`` for a source installation with uv). If you have installed PlatoSim as a :doc:`user (via Conda) <install_conda>`, the home location of the PlatoSim project needs to be exported as:
 
 .. code-block:: shell
 
@@ -51,7 +51,7 @@ We recommend that you place these three environment variables in a ``.bash_profi
 
    .. code-block:: shell
 
-      platosim -h
+      platosim -version
 
    and from a Python shell:
 
@@ -79,6 +79,6 @@ For all users that want to run PlatoSim from the terminal, we recommend that you
 
 .. warning::
 
-   **For users:** that installs a new version of PlatoSim in an existing Conda environment, all changes will be overwritten, and any files you may have added will be removed from the intallation directory. Hence, better store your files outside of the installation directory.
+   **For users:** when you install a new version of PlatoSim in an existing Conda environment, all changes will be overwritten, and any files you may have added will be removed from the installation directory. Hence, better store your files outside of the installation directory.
 
    **For developers:** having downloaded the source code, should only make changes or add/remove files from the ``PlatoSim3/inputfiles`` directory (or any other directory) if a pull request is the end goal.

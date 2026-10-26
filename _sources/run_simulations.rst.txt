@@ -1,7 +1,7 @@
 Run simulations
 ===============
 
-To run simulations with PlatoSim, you will have to feed a :ref:`Configuration file <run_input_parameters>` as input to the simulator, possibly together with a few additional :ref:`Supplementary files <run_input_files>`. Launching simulations can be done either from the :ref:`command line <run_command_line>` or in :ref:`Python <run_python>` as explained on this page.
+To run simulations with PlatoSim, you will have to feed a :ref:`Configuration file <run_input_parameters>` as input to the simulator, possibly together with a few additional :ref:`Supplementary files <run_input_files>`. Launching simulations can be done either from the :ref:`command line <run_simulations_command>` or in :ref:`Python <run_simulations_python>` as explained on this page.
 
 .. raw:: html
 
@@ -21,19 +21,26 @@ To run a simulation from the command line, simply type:
 		
    platosim <inputFile> <outputFile> [<logFile> <logLevel>]
 
-The log level is an integer value that allows to configure what kind of log messages is written to the log file:
+The log file defaults to ``log.txt`` in the current directory. The log level is an integer value that allows to configure what kind of log messages is written to the log file:
 
-1. messages: ``error``, ``warning`` (default);
+0. messages: ``error``;
+1. messages: ``error``, ``warning``;
 2. messages: ``error``, ``warning``, ``info``;
-3. messages: ``error``, ``warning``, ``info``, ``debug``.
-	 
+3. messages: ``error``, ``warning``, ``info``, ``debug`` (default).
+
+Errors and warnings are also printed on the terminal. To check which version of PlatoSim you are running, use:
+
+.. code-block:: shell
+
+   platosim -version
+
 A simple test simulation looks like:
 
 .. code-block:: shell
 		
    platosim inputfile.yaml out.hdf5
 
-This will generate two files: the HDF5 output file containing the simulation and a ascii log file with the log messages from PlatoSim.
+This will generate two files: the HDF5 output file containing the simulation and an ascii log file with the log messages from PlatoSim. Note that PlatoSim refuses to overwrite an existing output file.
    
 .. raw:: html
 
@@ -47,9 +54,9 @@ This will generate two files: the HDF5 output file containing the simulation and
 *Python*
 --------
 
-`A full suite of Jupyter notebook tutorials are made available <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_. Below we provide a minimal example of how to get started running PlatoSim using our Python interface. If you're planning on creating your own scripts in Python, then besides reading our Jupyter notebooks, we recommend spending a bit of time investigating the different built in `Python classes (and their utilities) <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/python/platosim>`_.
+`A full suite of Jupyter notebook tutorials are made available <https://github.com/IvS-KULeuven/PlatoSim3/tree/develop/docs/tutorials>`_. Below we provide a minimal example of how to get started running PlatoSim using our Python interface. If you're planning on creating your own scripts in Python, then besides reading our Jupyter notebooks, we recommend spending a bit of time investigating the different built in `Python classes (and their utilities) <https://github.com/IvS-KULeuven/PlatoSim3/tree/develop/python/platosim>`_.
 
-We note that the :doc:`PLATOnium toolkit <platonium_overview>` can be used to setup a large scale simulation of imagttes/photometric time series within minutes. This toolkit can be used to generate stellar catalogue from the PIC, generate variable signals, generate instrumental effects, and takes care of the configuration of payload inline with the future observations of PLATO. This toolkit is meant for plug-and-play and in particalar to be used on a computing cluster.
+We note that the :doc:`PLATOnium toolkit <platonium_overview>` can be used to setup a large scale simulation of imagettes/photometric time series within minutes. This toolkit can be used to generate stellar catalogue from the PIC, generate variable signals, generate instrumental effects, and takes care of the configuration of payload inline with the future observations of PLATO. This toolkit is meant for plug-and-play and in particular to be used on a computing cluster.
 
 .. raw:: html
 
@@ -61,7 +68,7 @@ To run PlatoSim from within Python, you have to import the simulation module:
 
 .. code-block:: python
 		
-   import platosim.simulation as Simulation
+   from platosim.simulation import Simulation
 
 and create a new Simulation object (the name ``sim`` is arbitrary):
 
@@ -81,7 +88,7 @@ Note that you can use the working directory (i.e. the directory specified in the
 
 **Input configuration file**
 
-The ``configurationFile`` parameter is optional and contains the full path to the configuration file that will be used as a reference. A copy of this file will be stored in the output directory (with the name ``<outputFile>.yaml``) and only the copy (and not the original file) will be modified. We will show later how to do this.
+The ``configurationFile`` parameter is optional and contains the full path to the configuration file that will be used as a reference. If omitted, the default ``$PLATO_PROJECT_HOME/inputfiles/inputfile.yaml`` is used. A copy of this file will be stored in the output directory (with the name ``<runName>.yaml``) and only the copy (and not the original file) will be modified. We will show later how to do this.
 
 It is possible to also set the path to the reference input file as follows:
 
@@ -94,7 +101,7 @@ In that case, all changes to the configuration parameters you may have applied, 
 
 **Output directory**
 
-Also the ``outputDir`` parameter is optional. This contains the full path to the output directory. This must be specified before you can start the simulation. The output directory can be set can also be set as follows:
+Also the ``outputDir`` parameter is optional. This contains the full path to the output directory and defaults to the current working directory. The output directory can also be set as follows:
 
 .. code-block:: python
 		
@@ -102,9 +109,9 @@ Also the ``outputDir`` parameter is optional. This contains the full path to the
 
 In this directory, the following information will be stored when running the simulation:
 
-  * ``<outputFile>.yaml``: copy of the input file with the chosen configuration parameters (copied from the reference configuration file and possibly modified, as shown below);
-  * ``<outputFile>.hdf5``: resulting exposures (images, PSF, etc.);
-  * ``<outputFile>.log``: log file (to report any problems).
+  * ``<runName>.yaml``: copy of the input file with the chosen configuration parameters (copied from the reference configuration file and possibly modified, as shown below);
+  * ``<runName>.hdf5``: resulting exposures (images, PSF, etc.);
+  * ``<runName>.log``: log file (to report any problems).
 
    
 **Modify configuration parameters**
@@ -121,7 +128,18 @@ for individual parameters in the block of the YAML file (e.g. ``sim["Camera/Foca
 		
    sim["<block>/<sub-block>/<parameter>"] = <new value>
 
-for parameters in sub-block in the YAML file (e.g. ``sim["Platform/Orientation/Angles/RAPointing"] = 90.0``). Note that the original YAML file is not modified. Only the copy of this fill gets modified. In case you change the configuration file of the Simulation object, the copy ``runName.yaml`` file will be overwritten and all changes to the configuration parameters you have applied, will be lost.
+for parameters in sub-block in the YAML file (e.g. ``sim["Platform/Orientation/Angles/RAPointing"] = 90.0``). Note that the original YAML file is not modified. Only the copy of this file gets modified. In case you change the configuration file of the Simulation object, the copy ``runName.yaml`` file will be overwritten and all changes to the configuration parameters you have applied, will be lost.
+
+**Normal and fast cameras**
+
+The default configuration file describes a normal camera (N-CAM) with its *as required* performance at Beginning Of Life (BOL). To switch between camera types, and to account for ageing, use:
+
+.. code-block:: python
+
+   sim.useNormalCamera(performance=False, timeFromBOL=0)
+   sim.useFastCamera(passband="blue", performance=False, timeFromBOL=0)   # or passband="red"
+
+These methods update the parameters that differ between the camera types (e.g. ``Fluxm0``, passband, cycle time, camera group, and quantum efficiency).
 
 **Run the simulation**
 
@@ -129,13 +147,15 @@ The simulation can be launched with the following command:
 
 .. code-block:: python
 
-   sim.run()
+   simfile = sim.run()
 
-By setting the optional input parameter ``removeOutputFile`` to ``True``, any previous simulatedata with the same name within a given folder will be overwritten:
+The method returns a ``SimFile`` object to read the HDF5 output file (see :doc:`Output files <run_output>`). By setting the optional input parameter ``removeOutputFile`` to ``True``, any previous simulated data with the same name within a given folder will be overwritten. The ``logLevel`` (default ``3``) can be set as on the command line:
 
 .. code-block:: python
 		
-   sim.run(removeOutputFile = True)
+   simfile = sim.run(removeOutputFile=True, logLevel=2)
+
+If PlatoSim fails, ``run()`` raises an exception that contains the exit code.
 
 .. raw:: html
 
@@ -151,7 +171,8 @@ By setting the optional input parameter ``removeOutputFile`` to ``True``, any pr
 *Error codes*
 -------------
 		
-If PlatoSim raises an error message upon execution, please have a look the log messages before raising a new GitHub issue. The two most frequent *error codes* are:
+If PlatoSim fails, it stops with a non-zero exit code and writes the reason to the log file (and to the terminal). Please have a look at the log messages before raising a new GitHub issue. The most frequent causes are:
 
-- **Error code -1**: The HDF5 file already exists, hence remove it and try again
-- **Error code -6**: Wrong formatting or typesetting of the YAML file or a supplementary file
+- **The HDF5 output file already exists**: PlatoSim never overwrites an output file. Remove it and try again (or use ``sim.run(removeOutputFile=True)`` in Python).
+- **Configuration error**: a parameter is missing, misspelled, or has the wrong type in the YAML file. This typically happens with a configuration file from an older PlatoSim version; use the :doc:`migration tool <install_migtool>` to update it.
+- **Missing input file**: a :ref:`supplementary file <run_input_files>` (e.g. a PSF file) cannot be found. Check the path, which is either absolute or relative to the :ref:`project location <run_input_parameters_general>`.
