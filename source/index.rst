@@ -17,7 +17,7 @@ its electronics, and all important natural sources of noise.
 
 PlatoSim is a highly versatile tool ideal to model the complex interplay of various noise sources needed for the
 performance assessment and design study of any space-based mission. PlatoSim is widely used by the PLATO Mission
-Consortium (PMC) to also conduct scientific studies related to the core and complimentary program of the mission. Being
+Consortium (PMC) to also conduct scientific studies related to the core and complementary program of the mission. Being
 an indispensable tool in the preparation of the PLATO mission, we hope that you find PlatoSim a useful tool in your
 research. Please consult:
 
@@ -25,7 +25,7 @@ research. Please consult:
   <install_overview>` and :doc:`Running PlatoSim <run_overview>`. Please, follow these instructions carefully before
   running PlatoSim. 
 - The PlatoSim software package includes a Python interface (with a suite of tools) which we
-  explain in our `Python tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_. We highly
+  explain in our `Python tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/develop/docs/tutorials>`_. We highly
   recommend to use this interface to avoid sudden software errors when updating your code (since our Python interface
   is kept backward compatible with previous software versions). 
 - Particularly relevant for simulating multi-camera imagette time series or light curves, the PlatoSim toolkit called 
@@ -59,6 +59,7 @@ Table of Content
    install_overview
    install_conda
    install_source
+   install_migtool
    
 .. toctree::
    :maxdepth: 1

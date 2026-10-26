@@ -17,13 +17,14 @@ You can raise a new issue by clicking the green ``New Issue`` button. This will 
 
 To make the issue tracking faster and smoother please provide the following information:
 
-* PlatoSim branch and version (use command: ``platosim --version``)
+* PlatoSim branch and version (use command: ``platosim -version``)
 * Appropriate issue label (see right-hand menu bottom ``Labels``)
 * Concise explanation of the problem
 * What you have tried to solve the problem
-* Please provide the ``inputfile.yaml`` and ``log.txt`` file (in debug mode: ``<logLevel>=3``)  
+* Please provide the ``inputfile.yaml`` and ``log.txt`` file (in debug mode, i.e. log level ``3``, which is the default)
 * In case of a installation or execution problem, please further provide:
 
   * Your operating system
   * Version of gcc (``gcc --version``) or clang (``clang --version``)
   * Version of CMake (``cmake --version``)
+  * Version of Python (``python --version``) and uv (``uv --version``)

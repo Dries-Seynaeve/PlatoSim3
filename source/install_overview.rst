@@ -5,7 +5,7 @@ Overview
 
    PlatoSim has been tested on recent Linux (Ubuntu, Debian, Fedora) and Mac OS X systems. **We cannot support Windows
    systems at the moment**, so we advise Windows users to install a Virtual Machine (VM) and install PlatoSim inside
-   the VM. Alternatively, if you are using Windows 10, you can use `Windows Subsystems for Linux (WSL)
+   the VM. Alternatively, if you are using Windows 10 or 11, you can use `Windows Subsystem for Linux (WSL)
    <https://docs.microsoft.com/en-us/windows/wsl/install>`_ instead.
 
 PlatoSim can be installed in two ways:

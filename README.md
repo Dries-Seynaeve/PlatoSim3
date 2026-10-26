@@ -1,20 +1,20 @@
 # PlatoSim's Sphinx documentation
 
-## Setting up a Sphinx documentation
+## Setting up Sphinx
 
-The documentation was set up following:
+The Sphinx packages are listed in the `docs` dependency group of `pyproject.toml` on the `develop` branch
+(Sphinx 9 and the `renku-sphinx-theme`). Install them in your PlatoSim checkout of `develop` with:
 
-* Install Spinx: `conda install sphinx`
-* [The Sphinx documentation](https://www.sphinx-doc.org/en/master/index.html). 
-* [Installing a theme](https://sphinx-themes.org/sample-sites/sphinx-rtd-theme/).
+	uv sync --group docs
 
-Note that sphinx 3.1 is required for the [markdown
-integration](https://www.sphinx-doc.org/en/master/usage/markdown.html) to work with the theme 'sphinx-rtd-theme'.
-However, note that there is a bug with sphinx-rtd-theme for the required sphinx version to use markdown.
+and activate that environment (`source .venv/bin/activate`) before running `make` on this branch. Alternatively, run
+Sphinx without installing anything:
 
-To keep the nice layout of the rtd-theme you need to downgrade sphinx to `pip install sphinx==1.8`
+	uvx --from 'sphinx>=9.1,<10' --with 'renku-sphinx-theme>=0.5.2,<0.6' sphinx-build -b html source build/html
 
-## How to update the documentaion page:
+* [The Sphinx documentation](https://www.sphinx-doc.org/en/master/index.html).
+
+## How to update the documentation page:
 
 Changes needs to be made to the files within `source/`. Note all figures are placed within the `figures/` directory. 
 
@@ -28,10 +28,11 @@ When you're happy with the changes simply run:
 
 	make github
 
-This will both create the html files and copy them to root. Now commit your changes:
+This will both create the html files and copy them to root. Note that this does not delete the html files of pages
+you removed from `source/`; delete those (and their `_sources/` copies) by hand. Now commit your changes:
 
 	git add *
-	git commit -m "<message-of-update>
+	git commit -m "<message-of-update>"
 
 Note that the above command add all files that have changed. Now push it to your fork:
 

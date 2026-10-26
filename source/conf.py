@@ -26,7 +26,7 @@ author = 'PlatoSim Developers'
 # The short X.Y version
 version = '3'
 # The full version, including alpha/beta/rc tags
-release = '3.5.4'
+release = '3.8.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -192,5 +192,4 @@ autodoc_class_signature = "separated"
 html_logo = "../figures/logo_platosim_crop.png"
 html_theme_options = {
     'logo_only': True,
-    'display_version': False,
 }

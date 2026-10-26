@@ -10,7 +10,7 @@ Input files
 Configuration parameters
 ------------------------
    
-To configure the PlatoSim, a large set of configuration parameters is required. The input file format used for PlatoSim3 is `YAML <https://learnxinyminutes.com/docs/yaml/>`_. All configuration parameters and files are read from the default YAML file called `inputfile.yaml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/inputfiles/inputfile.yaml>`_ located in the ``inputfiles/`` directory. The different blocks in the configuration files reflect their function in the simulation. We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator.
+To configure the PlatoSim, a large set of configuration parameters is required. The input file format used for PlatoSim3 is `YAML <https://learnxinyminutes.com/docs/yaml/>`_. All configuration parameters and files are read from the default YAML file called `inputfile.yaml <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/inputfiles/inputfile.yaml>`_ located in the ``inputfiles/`` directory. The default file is configured for a normal camera (N-CAM) with its *as required* performance at Beginning Of Life (BOL). To configure a fast camera (F-CAM), we recommend to use the Python methods ``Simulation.useNormalCamera()`` and ``Simulation.useFastCamera()`` (see :doc:`Run simulations <run_simulations>`) rather than editing the parameters by hand. The different blocks in the configuration files reflect their function in the simulation. We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator.
 
 .. admonition:: Overview of Configuration Parameters
 
@@ -33,7 +33,7 @@ To configure the PlatoSim, a large set of configuration parameters is required. 
      * :ref:`Cameras groups <run_input_parameters_groups>`
      * :ref:`CCD positions <run_input_parameters_ccdpos>`
 
-In the following sections we describe these parameters for the simulations in detail. For more details on the reference frames we are using (for the spacecraft, telescope, focal plane, and CCD), radial dependency of the PSF, and rotation angles for platform jitter and camera drift, please, consult the :doc:`PlatoSim paper <basic_acknowledgements>` and the technical note `PLATO-KUL-PL-TN-0001 <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/docs/technicalnotes/KUL-TN-01/PLATO-KUL-PL-TN-0001.pdf>`_. 
+In the following sections we describe these parameters for the simulations in detail. For more details on the reference frames we are using (for the spacecraft, telescope, focal plane, and CCD), radial dependency of the PSF, and rotation angles for platform jitter and camera drift, please, consult the :doc:`PlatoSim paper <basic_acknowledgements>`.
 
 
 
@@ -82,7 +82,7 @@ The **ObservingParameters** block of the configuration file contains the configu
 
    ObservingParameters:
 
-     MissionDuration:                 6.5             
+     MissionDuration:                 4.5             
      NumExposures:                    10              
      BeginExposureNr:                 0              
      CycleTime:                       25              
@@ -97,7 +97,7 @@ Total duration of the mission, from Beginning Of Life (BOL) to End Of Life (EOL)
 
 Number of exposures to generate in the simulation.
 
-**BeginExposureNr:** :guilabel:`Allowed values` :math:`> 0`
+**BeginExposureNr:** :guilabel:`Allowed values` :math:`\ge 0`
 
 Sequential number of the first exposure. Useful for `Slurm <https://en.wikipedia.org/wiki/Slurm_Workload_Manager>`_ parallelisation. In that case, long simulations (i.e. with a large number of exposures) will be chopped up into smaller simulations, covering a small number of exposures (see the Fig. 1).
 
@@ -150,7 +150,7 @@ A fourth column is optional and should contain positive integers, serving as sta
 *Sky*
 .....
 
-The **Sky** block of the configuration file contains all the information that is specific to the sky, i.e. sky background and cosmics. The structure of this block is the following:
+The **Sky** block of the configuration file contains all the information that is specific to the sky, i.e. sky background, variable sources, cosmics, and stray light. The structure of this block is the following:
 
 .. code-block::
 
@@ -168,6 +168,11 @@ The **Sky** block of the configuration file contains all the information that is
        CosmicHitRate:                 10
        TrailLength:                   [0, 15]
        Intensity:                     [2500., 2000., 30.]
+     StrayLight:
+       IncludeStrayLight:             no
+       FilePath:                      inputfiles/Plato_straylight_example_index_2574.csv
+       PstRadiancePath:               inputfiles/pst.hdf5
+       Time0:                         20260718T015614
 
 **SkyBackground:**
        
@@ -234,7 +239,27 @@ The following parameters are only applicable if cosmics are included in at least
 
   Cosmics/**Intensity:** :guilabel:`Allowed values` :math:`> \{0, 0, 0\} \ \text{e}^-` 
 
-  Interval for the allowed number of electrons comprised in a cosmic hit (that are to be spread over the trail).
+  Location, scale (:math:`> 0`), and shape of the skew-normal distribution from which the total number of electrons of a cosmic hit (that are to be spread over the trail) is drawn.
+
+**StrayLight:**
+
+Stray light from the Moon. For every exposure, PlatoSim computes the position of the Moon (and the Sun) w.r.t. the spacecraft and the camera boresight, and adds the resulting stray light, scaled by the Point Source Transmittance (PST) of the camera, to the subfield.
+
+  StrayLight/**IncludeStrayLight:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+  Indicates whether or not stray light must be included. The parameters below are only used if ``IncludeStrayLight = yes``.
+
+  StrayLight/**FilePath:** :guilabel:`Allowed values` Path to _`Stray Light Ephemeris File`
+
+  Comma-separated (CSV) file with the ephemerides of the spacecraft, the Sun, and the Moon. Lines starting with ``#`` are skipped. Each row holds a time stamp (format ``YYYYMMDDTHHMMSS``) in the first column, the spacecraft position :math:`(X, Y, Z)` in columns 4-6, the Sun position in columns 8-10, and the Moon position in columns 12-14, all in km in the EME2000 frame. See the example file ``inputfiles/Plato_straylight_example_index_2574.csv`` for the exact layout.
+
+  StrayLight/**PstRadiancePath:** :guilabel:`Allowed values` Path to _`PST File`
+
+  HDF5 file with the Point Source Transmittance (PST) of the camera as a function of the off-axis angle of the source, for several azimuth angles and wavelengths.
+
+  StrayLight/**Time0:** :guilabel:`Allowed values` Time stamp ``YYYYMMDDTHHMMSS``
+
+  Time stamp in the ephemeris file that corresponds to exposure number 0. The ephemeris file must cover the full time span of the simulation.
 
 
 
@@ -267,17 +292,17 @@ The **Platform** block of the configuration file contains all the information th
 	                               0.6254816331711222,   0.23446412111462545]
      UseJitter:                       yes             
      JitterSource:                    FromRedNoise
-     JitterYawRms:                    1.0             
-     JitterPitchRms:                  1.0             
-     JitterRollRms:                   1.0             
-     JitterTimeScale:                 3600.           
-     JitterFileName:                  /inputfiles/jitter.txt
+     JitterYawRms:                    0.038
+     JitterPitchRms:                  0.038
+     JitterRollRms:                   0.040
+     JitterTimeScale:                 250.
+     JitterFileName:                  inputfiles/jitter.txt
 
 **Orientation:**
 
 The orientation of the spacecraft can be configured either through the the sky (coordinate) angles (:math:`\alpha`, :math:`\delta`, :math:`\kappa`) or using a so-called `Quaternion <https://en.wikipedia.org/wiki/Quaternion>`_.
      
-  Angles/**RApointing:** :guilabel:`Allowed values` :math:`\alpha \in [0, 360]` deg
+  Angles/**RAPointing:** :guilabel:`Allowed values` :math:`\alpha \in [0, 360]` deg
 
   Right ascension of the platform pointing.
 
@@ -313,7 +338,7 @@ The angles are defined such that they increase with a clockwise rotation, when l
 
 Indicates from where to read the jitter:
 
-* ``FromRedNoise``: Jitter positions must be generator from the jitter parameters;
+* ``FromRedNoise``: Jitter positions must be generated from the jitter parameters;
 * ``FromFile``    : Jitter time series must be read from a jitter file;
 * ``FromNetwork`` : Jitter positions must be read from a network (see :ref:`ControlTcpConnection <run_input_parameters_tcp>`).
 
@@ -325,7 +350,7 @@ Standard deviation of the normal distribution (with zero mean) describing the ya
 
 Standard deviation of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one. This entry is only applicable if ``JitterSource = FromRedNoise``.
 
-**JitterRollRms:** :guilabel:`Allowed values` :math:`\ge 0`
+**JitterRollRms:** :guilabel:`Allowed values` :math:`\ge 0` arcsec
 
 Standard deviation of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one. This entry is only applicable if ``JitterSource = FromRedNoise``.
 
@@ -371,8 +396,8 @@ The **Telescope** block of the configuration file contains all the information t
      TiltAngle:                       0.0
      LightCollectingArea:             113.1
      TransmissionEfficiency:
-         BOL:                         0.8135
-         EOL:                         0.7945
+         BOL:                         0.8125
+         EOL:                         0.7941
      UseDrift:                        no
      DriftSource:                     FromRedNoise
      DriftYawRms:                     2.0         
@@ -446,7 +471,7 @@ The camera reference frame can be obtained from the payload module reference fra
 
 Indicates from where to read the drift:
 
-* ``FromRedNoise``: the drift positions must be generator from the drift parameters
+* ``FromRedNoise``: the drift positions must be generated from the drift parameters
 * ``FromFile``: the drift time series must be read from a drift file
 
 **DriftYawRms:** :guilabel:`Allowed values` :math:`\ge 0` arcsec
@@ -494,41 +519,41 @@ The **Camera** block of the configuration file contains all the information that
 
    Camera:
 
-     PlateScale:                      0.8333         
+     PlateScale:                      0.8333
      FocalPlaneOrientation:
-         Source:                      ConstantValue  
+         Source:                      ConstantValue
          ConstantValue:               0.0
          FromFile:                    inputfiles/fporientation.txt
-    FocalLength:
-	 Source:                      ConstantValue   
-	 ConstantValue:               0.24752         
-	 FromFile:                    inputfiles/focallength.txt 
-     ThroughputBandwidth:             532          
-     ThroughputLambdaC:               550          
-     IncludeAberrationCorrection:     yes          
+     FocalLength:
+         Source:                      ConstantValue
+         ConstantValue:               0.24752
+         FromFile:                    inputfiles/focallength.txt
+     ThroughputBandwidth:             500
+     ThroughputLambdaC:               750
+     IncludeAberrationCorrection:     yes
      AberrationCorrection:
-	 Type:                        differential 
-	 OrbitFile:                   inputfiles/orbit.txt
-	 StartTime:                   101489.207030
-     IncludeFieldDistortion:          yes          
-     FieldDistortion:                              
-	 Source:                      ConstantValue
-	 ConstantCoefficients:        [ 0.32419,  0.0232909,  0.407979,  0.00022463,
-					0.000217599,  0.000381958,  0.000963902] 
-	 ConstantInverseCoefficients: [-0.323487, 0.268344,  -0.435473, -0.00019304,
-				       -0.000176961, -0.000321713, -0.000827654] 
-	 CoefficientsFromFile:        inputfiles/distortioncoefficients.txt       
-	 InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
+         Type:                        differential
+         OrbitFile:                   inputfiles/orbit_prime_10_years.txt
+         StartTime:                   0.
+     IncludeFieldDistortion:          yes
+     FieldDistortion:
+         Source:                      ConstantValue
+         ConstantCoefficients:        [ 0.32419,  0.0232909,  0.407979,  0.00022463,
+                                        0.000217599,  0.000381958,  0.000963902]
+         ConstantInverseCoefficients: [-0.323487, 0.268344,  -0.435473, -0.00019304,
+                                       -0.000176961, -0.000321713, -0.000827654]
+         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt
+         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
      IncludePointLikeGhosts:          yes
      IncludeExtendedGhosts:           no
      Ghosts:
-	 PointLike:
-	     FluxRatio:               0.08
-	     DistanceCutOff:          8   
-	 Extended:
-	     FluxRatio:               0.06
-	     RadiusCoefficients:      [0.0062, -0.0251, 1.8402]
-	     DistanceRatio:           1.065
+         PointLike:
+             FluxRatio:               0.08
+             DistanceCutOff:          8
+         Extended:
+             FluxRatio:               0.06
+             RadiusCoefficients:      [0.0062, -0.0251, 1.8402]
+             DistanceRatio:           1.065
 
 **PlateScale:** :guilabel:`Allowed values` :math:`> 0 \ \text{arcsec} \, \text{micron}^{-1}`
 
@@ -582,11 +607,11 @@ The focal length can either be kept constant over the simulations or vary, accor
 
 **ThroughputBandwidth:** :guilabel:`Allowed values` :math:`> 0` nm
 
-FWHM of the throughput passband
+FWHM of the throughput passband. Note that this value is different for the F-CAMs.
 
 **ThroughputLambdaC:** :guilabel:`Allowed values` :math:`> 0` nm
 
-Central wavelength of the throughput passband.
+Central wavelength of the throughput passband. Note that this value is different for the F-CAMs.
 
 **IncludeAberrationCorrection:** :guilabel:`Allowed values` ``yes`` and ``no``
 
@@ -594,37 +619,40 @@ Indicates whether or not to apply the aberration correction to all star position
 
 **AberrationCorrection:**
 
-The calculation of the aberration correction is based on a elliptic earth orbit around the sun and does likewise take the `Lissajous orbit <https://en.wikipedia.org/wiki/Lissajous_orbit>`_ of the satellite around L2 into account. We do calculate the kinematic aberration both in an absolute sense and differentially. The latter will be the observant for PLATO data products due to a absolute correction by the fine guidance sensor. The following parameters are only applicable if ``IncludeAbberationCorrection = yes``:
+The calculation of the aberration correction is based on a elliptic earth orbit around the sun and does likewise take the `Lissajous orbit <https://en.wikipedia.org/wiki/Lissajous_orbit>`_ of the satellite around L2 into account. We do calculate the kinematic aberration both in an absolute sense and differentially. The latter will be the observant for PLATO data products due to a absolute correction by the fine guidance sensor. The following parameters are only applicable if ``IncludeAberrationCorrection = yes``:
 
-  IncludeAberrationCorrection/**Type:** :guilabel:`Allowed values` ``differential`` and ``absolute``
+  AberrationCorrection/**Type:** :guilabel:`Allowed values` ``differential`` and ``absolute``
 
   Indicates whether to apply either differential or absolute aberration correction.
 
-  IncludeAberrationCorrection/**OrbitFile:** :guilabel:`Allowed values` Path to _`Orbit File`
+  AberrationCorrection/**OrbitFile:** :guilabel:`Allowed values` Path to _`Orbit File`
 
-  The orbit file needs to be provided in ascii format and consist of four columns, each seperated by a space:
+  The orbit file needs to be provided in ascii format (lines starting with ``#`` are skipped) and consist of nine columns, each separated by a space:
 
+  * Row index
   * Time [s]
-  * Coordinates of the spacecraft :math:`(x, y, z)`
-  * Velocity of the spacecraft :math:`(v_x, v_y, v_z)` [m/s]
-  * Speed of the spacecraft [m/s].
+  * Coordinates of the spacecraft :math:`(X, Y, Z)` [km]
+  * Unit vector along the velocity of the spacecraft :math:`(e_x, e_y, e_z)`
+  * Speed of the spacecraft [km/s]
 
-  IncludeAberrationCorrection/**StartTime:** :guilabel:`Allowed values` :math:`> 0`
-  
-  The time at in the orbit file that coresponds with exposure number 0.
-  
+  The default orbit file ``inputfiles/orbit_prime_10_years.txt`` covers the nominal 10 years of the mission, where :math:`t = 0` corresponds to 2027-01-20T15:30:00.000.
+
+  AberrationCorrection/**StartTime:** :guilabel:`Allowed values` :math:`\ge 0` s
+
+  The time in the orbit file that corresponds with exposure number 0.
+
 
 **IncludeFieldDistortion:** :guilabel:`Allowed values` ``yes`` and ``no``
 
-Indicates whether or not the field distortion must be taken into account.
+Indicates whether or not the field distortion must be taken into account. This is not used when ``PSF/Model = MappedFromFile``.
   
 **FieldDistortion:**
 
-The field distortion is represented by Distortion model from `Wang et al. (2007) <https://www.sciencedirect.com/science/article/abs/pii/S0031320307003020>`_ with coefficients: :math:`(k_1, \, k_2, \, k_3, \, q_1, \, q_2, \, p_1, \, p_2)`. Note that the default distortion coeffcients are only applicable for the Wang model of the N-CAMs used for when ``PSF/Model = AnalyticNonGaussian`` (see :ref:`PSF block <run_input_parameters_psf>`). 
+The field distortion is represented by Distortion model from `Wang et al. (2007) <https://www.sciencedirect.com/science/article/abs/pii/S0031320307003020>`_ with coefficients: :math:`(k_1, \, k_2, \, k_3, \, q_1, \, q_2, \, p_1, \, p_2)`. Note that the default distortion coefficients are only applicable for the Wang model of the N-CAMs used for when ``PSF/Model = AnalyticNonGaussian`` (see :ref:`PSF block <run_input_parameters_psf>`). 
 
   FieldDistortion/**Source:** :guilabel:`Allowed values` ``ConstantValue`` and  ``FromFile``
 
-  Indicates that the field distortion is calculated from a ``ConstantVlaue`` (constant in time) or ``FromFile`` (time dependent). The latter needs to be a time series of the field distortion coefficients and their inverse in two files in ascii format. 
+  Indicates that the field distortion is calculated from a ``ConstantValue`` (constant in time) or ``FromFile`` (time dependent). The latter needs to be a time series of the field distortion coefficients and their inverse in two files in ascii format. 
 
   FieldDistortion/**ConstantCoefficients:** :guilabel:`Allowed values` :math:`\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}\}`
 
@@ -641,16 +669,24 @@ The field distortion is represented by Distortion model from `Wang et al. (2007)
   * Time [s]
   * Field distortion coefficients (all separated by spaces)
 
-  FieldDistortion/**InverseCoefficientsFromFile:** :guilabel:`Allowed values` Path to Inverse Disotion File
+  FieldDistortion/**InverseCoefficientsFromFile:** :guilabel:`Allowed values` Path to Inverse Distortion File
 
   If ``FieldDistortion/Source = FromFile``, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Field distortion inverse coefficients (all separated by spaces)
   
+**IncludePointLikeGhosts:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not point-like ghosts must be included.
+
+**IncludeExtendedGhosts:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not extended ghosts must be included.
+
 **Ghosts:**
 
-Sources in the FOV can produces two types of ghosts:
+Sources in the FOV can produce two types of ghosts:
 
 * a point-like ghost;
 * an extended ghost.
@@ -671,11 +707,11 @@ Note that the flux loss of the sources (due to reflection off the CCD surface) i
   
     Ghosts/PointLike/**FluxRatio:** :guilabel:`Allowed values` :math:`> [0, 1]`
 
-    Irradiance ratio of the point-like ghost w.r.t. the source producing it, measured on-axis. The flux ratio off-axis decreases linearly from the optical axis to the distance cut-off (where it drops to zero), due to vignetting by the pupil around L3. This entry is only applicable if ``IncludePointLikeGhost = yes``.
+    Irradiance ratio of the point-like ghost w.r.t. the source producing it, measured on-axis. The flux ratio off-axis decreases linearly from the optical axis to the distance cut-off (where it drops to zero), due to vignetting by the pupil around L3. This entry is only applicable if ``IncludePointLikeGhosts = yes``.
 
     Ghosts/PointLike/**DistanceCutOff:** :guilabel:`Allowed values` :math:`> 0` deg
 
-    Distance from the optical axis beyond which sources no longer produce point-like ghosts. At this distance, the flux ratio has dropped to zero. This entry is only applicable if ``IncludePointLikeGhost = yes``.
+    Distance from the optical axis beyond which sources no longer produce point-like ghosts. At this distance, the flux ratio has dropped to zero. This entry is only applicable if ``IncludePointLikeGhosts = yes``.
 
   Ghosts/**Extended:**
 
@@ -683,15 +719,15 @@ Note that the flux loss of the sources (due to reflection off the CCD surface) i
   
     Ghosts/Extended/**FluxRatio:** :guilabel:`Allowed values` :math:`> [0, 1]`
 
-    Irradiance ratio of the extended ghost w.r.t. the source producing it. This entry is only applicable if ``IncludeExtendedLikeGhost = yes``.
+    Irradiance ratio of the extended ghost w.r.t. the source producing it. This entry is only applicable if ``IncludeExtendedGhosts = yes``.
     
     Ghosts/Extended/**RadiusCoefficients:** :guilabel:`Allowed values` :math:`> \{0, 0, 0\}`
 
-    Coefficients of the 2nd order polynomial (in distance from the optical axis), describing the radius of the (circular) extended source. This entry is only applicable if ``IncludeExtendedLikeGhost = yes``.
+    Coefficients of the 2nd order polynomial (in distance from the optical axis), describing the radius of the (circular) extended source. This entry is only applicable if ``IncludeExtendedGhosts = yes``.
     
     Ghosts/Extended/**DistanceRatio:** :guilabel:`Allowed values` :math:`> 0` deg
 
-    A star at focal-plane coordinates :math:`(x, y)` will produce a ghost at focal-plane coordinates (``distanceRatio`` :math:`\cdot x`, ``distanceRatio`` :math:`\cdot y`). This entry is only applicable if ``IncludeExtendedLikeGhost = yes``.
+    A star at focal-plane coordinates :math:`(x, y)` will produce a ghost at focal-plane coordinates (``distanceRatio`` :math:`\cdot x`, ``distanceRatio`` :math:`\cdot y`). This entry is only applicable if ``IncludeExtendedGhosts = yes``.
 
   
 
@@ -720,7 +756,7 @@ The **PSF** block of the configuration file contains all the information that is
 	 Filename:                    inputfiles/PSF_Focus_0mu.hdf5
 	 NumberOfPixels:              8                      
 	 ChargeDiffusionStrength:     0.2                    
-	 IncludeChargeDiffusion:      no                     
+	 IncludeChargeDiffusion:      yes
 	 IncludeJitterSmoothing:      no                     
      AnalyticGaussian:                                       
 	 Sigma00:                     1.0                    
@@ -972,93 +1008,100 @@ Both detector halves are treated independently.
 
    CCD:
 
-     Position:                        Custom          
-     OriginOffsetX:                   0               
-     OriginOffsetY:                   0               
-     Orientation:                     0               
-     NumColumns:                      4510            
-     NumRows:                         4510            
-     FirstRowExposed:                 0               
-     TimeShift:                       0.0             
-     PixelSize:                       18              
-     BFE:                                             
-	 CoefficientsFileName:        inputfiles/a_bfe.hdf5
+     Position:                        Custom
+     OriginOffsetX:                   0
+     OriginOffsetY:                   0
+     Orientation:                     0
+     NumColumns:                      4510
+     NumRows:                         4510
+     FirstRowExposed:                 0
+     TimeShift:                       0.0
+     PixelSize:                       18
+     BFE:
+         CoefficientsFileName:        inputfiles/a_bfe.hdf5
      Gain:
-	 RefValueLeft:                2.14            
-	 RefValueRight:               2.21            
-	 Stability:                   -0.001          
-	 AllowedDifference:           15.0
+         RefValueLeft:                2.15
+         RefValueRight:               2.15
+         Stability:                   -0.001
+         AllowedDifference:           15.0
          Nonlinearity:                [0.0, -0.0042789409, 0.0000002365]
      QuantumEfficiency:
-	 MeanQuantumEfficiency:       0.6218          
-	 MeanAngleDependency:         1.01            
-     FullWellSaturation:              900000          
-     DigitalSaturation:               65535           
-     ReadoutNoise:                    38.7            
-     SerialTransferTime:              340             
-     ParallelTransferTime:            110             
-     ParallelTransferTimeFast:        90              
+         MeanQuantumEfficiency:       0.6267
+         MeanAngleDependency:         1.01
+     FullWellSaturation:              900000
+     DigitalSaturation:               65535
+     ReadoutNoise:                    38.7
+     SerialTransferTime:              340
+     ParallelTransferTime:            110
+     ParallelTransferTimeFast:        90
      ReadoutMode:
-	ReadoutMode:                  Nominal         
-	Partial:
-	   FirstRowReadout:           0               
-	   NumRowsReadout:            4510            
-     FlatfieldNoiseRMS:               0.010           
-     RelativeTransmissivity:                          
-	 Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]
-	 RadiusFOV:                   18.8908         
-	 ExpectedValue:               0.920           
+        ReadoutMode:                  Nominal
+        Partial:
+           FirstRowReadout:           0
+           NumRowsReadout:            4510
+     Flatfield:
+         Source:                      FromRedNoise
+         FromFile:
+           FilePath:                  inputfiles/prnu.hdf5
+         FromRedNoise:
+           FlatfieldNoiseRMS:         0.010
+     RelativeTransmissivity:
+         Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]
+         RadiusFOV:                   18.8908
+         ExpectedValue:               0.920
      Polarization:
-	 ExpectedValue:               0.989           
+         ExpectedValue:               0.989
      Contamination:
-	 ParticulateContaminationEfficiency: 0.972    
-	 MolecularContaminationEfficiency:   0.9573   
+         ParticulateContaminationEfficiency: 0.972
+         MolecularContaminationEfficiency:   0.9573
+     BadPixelMap:
+         includeBadPixelMap:          yes
+         badPixelParameter:           0.001
      DarkSignal:
-       DarkCurrent:                   1.2             
-       DSNU:                          15.0            
-       Stability:                     5.0             
+       DarkCurrent:                   1.2
+       DSNU:                          15.0
+       Stability:                     5.0
      CTI:
-	 Model:                       Short2013       
-	 Simple:
-	     MeanCTE:                 0.99999         
-	 Short2013:
-	     Beta:                    0.37            
-	     Temperature:             203.            
-	     NumTrapSpecies:          4               
-	     TrapDensity:                             
-		 BOL:                 [0.0, 0.0, 0.0, 0.0]     
-		 EOL:                 [9.8, 3.31, 1.56, 13.24] 
-	     TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
-	     ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]    
-	 Short2013FromFile:                           
-	     CTIFileName:             inputfiles/ctiInput.hdf5
-     ChargeInjection:                                 
-	 InjectionLevel:              90.0            
-	 RowInterval:                 100             
-	 FirstRow:                    50              
-     NominalOperatingTemperature:     203.15          
-     Temperature:                     Nominal         
+         Model:                       Short2013
+         Simple:
+             MeanCTE:                 0.99999
+         Short2013:
+             Beta:                    0.37
+             Temperature:             203.
+             NumTrapSpecies:          4
+             TrapDensity:
+                 BOL:                 [0.0, 0.0, 0.0, 0.0]
+                 EOL:                 [4.9, 1.655, 0.78, 6.62]
+             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
+             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
+         Short2013FromFile:
+             CTIFileName:             inputfiles/ctiInput.hdf5
+     ChargeInjection:
+         InjectionLevel:              90.0
+         RowInterval:                 100
+         FirstRow:                    50
+     NominalOperatingTemperature:     203.15
+     Temperature:                     Nominal
      TemperatureFileName:             inputfiles/ccdTemperature.txt
-     IncludeFlatfield:                yes             
-     IncludeDarkSignal:               yes             
-     IncludeBFE:                      yes             
-     IncludePhotonNoise:              yes             
-     IncludeReadoutNoise:             yes             
-     IncludeCTIeffects:               yes             
-     IncludeChargeInjection:          no              
-     IncludeOpenShutterSmearing:      yes             
-     IncludeQuantumEfficiency:        yes             
-     IncludeRelativeTransmissivity:   yes             
-     IncludePolarization:             yes             
-     IncludeParticulateContamination: yes             
-     IncludeMolecularContamination:   yes             
-     IncludeConvolution:              yes             
-     IncludeFullWellSaturation:       yes             
-     IncludeDigitalSaturation:        yes             
-     IncludeQuantisation:             yes             
+     IncludeFlatfield:                yes
+     IncludeDarkSignal:               yes
+     IncludeBFE:                      yes
+     IncludePhotonNoise:              yes
+     IncludeReadoutNoise:             yes
+     IncludeCTIeffects:               yes
+     IncludeChargeInjection:          no
+     IncludeOpenShutterSmearing:      yes
+     IncludeQuantumEfficiency:        yes
+     IncludeRelativeTransmissivity:   yes
+     IncludePolarization:             yes
+     IncludeParticulateContamination: yes
+     IncludeMolecularContamination:   yes
+     IncludeConvolution:              yes
+     IncludeFullWellSaturation:       yes
+     IncludeDigitalSaturation:        yes
+     IncludeQuantisation:             yes
      IncludeGainNonlinearity:         yes
 
-   
 **Position:** :guilabel:`Allowed values` ``1``, ``2``, ``3``, ``4``, and ``Custom``
 
 The CCD position can be used to select a specific predefined CCD or a custom one. The predefined CCD positions are shown in the Fig. 11 and 12.
@@ -1200,11 +1243,29 @@ This determines how the CCD is read out. The readout mode can either be Nominal 
 
     Numbers of rows that will be read out by the FEE.
 
-**FlatfieldNoiseRMS:** :guilabel:`Allowed values` :math:`\ge 0`
+**Flatfield:**
 
 Local Pixel Response Non-Uniformity (PRNU), defined as the standard deviation in the signal level (:math:`S_i`), divided by the mean signal (:math:`\overline{S}`):
 
 :math:`\text{PRNU} = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}`
+
+The flatfield is only applied if ``IncludeFlatfield = yes``.
+
+  Flatfield/**Source:** :guilabel:`Allowed values` ``FromRedNoise`` and ``FromFile``
+
+  Indicates whether the flatfield map is generated as random red noise (``FromRedNoise``) or read from a file (``FromFile``).
+
+  Flatfield/FromFile/**FilePath:** :guilabel:`Allowed values` Path to _`PRNU File`
+
+  HDF5 file holding a full-CCD PRNU map in the dataset ``/PRNU`` (number of rows :math:`\times` number of columns of the CCD). PlatoSim cuts out the part that corresponds to the subfield. This entry is only applicable if ``Flatfield/Source = FromFile``.
+
+  Flatfield/FromRedNoise/**FlatfieldNoiseRMS:** :guilabel:`Allowed values` :math:`\ge 0`
+
+  RMS of the generated PRNU map. This entry is only applicable if ``Flatfield/Source = FromRedNoise``.
+
+.. note::
+
+   Before PlatoSim 3.8.0 this parameter was called ``CCD/FlatfieldNoiseRMS``. Use the :doc:`migration tool <install_migtool>` to update older configuration files.
 
 **RelativeTransmissivity:**
 
@@ -1250,6 +1311,18 @@ The contribution to contamination is two-fold:
   Contamination/**MolecularContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Throughput efficiency due to molecular contamination.
+
+**BadPixelMap:**
+
+Map of dead pixels. A pixel flagged as bad has its signal set to zero.
+
+  BadPixelMap/**includeBadPixelMap:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+  Indicates whether or not to apply a bad pixel map.
+
+  BadPixelMap/**badPixelParameter:** :guilabel:`Allowed values` :math:`\in [0, 1]`
+
+  Parameter that governs the distribution of bad pixels. For now this is the probability for a pixel to be bad, drawn from a Bernoulli distribution (see also ``RandomSeeds/BadPixelSeed``).
 
 **DarkSignal:**
 
@@ -1437,7 +1510,11 @@ Indicates whether or not to apply quantisation. This includes:
 * Applying gain (FEE and CCD), hence converting from electrons to ADUs
 * Adding electronic offset
 * Forcing the ADU values to be integers
-* Applying digital saturation (can be switched off separately using ``IinclDigitalSaturation``).
+* Applying digital saturation (can be switched off separately using ``IncludeDigitalSaturation``).
+
+**IncludeGainNonlinearity:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to apply the non-linear gain (conversion from electrons to ADU) described by ``Gain/Nonlinearity``.
 
 
 
@@ -1581,14 +1658,15 @@ The **RandomSeeds** block of the configuration file contains all the seeds for r
 .. code-block::
 
    RandomSeeds:
-   
-     ReadOutNoiseSeed:            1424949740 
-     PhotonNoiseSeed:             1433320336 
-     JitterSeed:                  1433320381 
-     FlatFieldSeed:               1425284070 
-     DriftSeed:                   1433429158 
-     CosmicSeed:                  1494750830 
-     DarkSignalSeed:              1468838669 
+
+     ReadOutNoiseSeed:            1424949740
+     PhotonNoiseSeed:             1433320336
+     JitterSeed:                  1433320381
+     FlatFieldSeed:               1425284070
+     DriftSeed:                   1433429158
+     CosmicSeed:                  1494750830
+     DarkSignalSeed:              1468838669
+     BadPixelSeed:                1443910483
 
 Below each random seed can be set to a value of ``-1``, which imply that the computer time at the start of the simulation will be used. That way, the fast-forward of the random generator when using Slurm is no longer needed (which is better for performance reasons). Note that the actual value that is used, will be written to the output HDF5 file.
      
@@ -1620,6 +1698,10 @@ Seed for the random-number generators for the cosmics.
 
 Seed for the random-number generators for the dark signal.
 
+**BadPixelSeed:** :guilabel:`Allowed values` :math:`> 0 \, \text{and} \, -1`
+
+Seed for the random-number generator for the bad pixel map.
+
 .. warning::
 
    To avoid jumps in the power spectrum when using auto-generated red noise **jitter** and/or **drift** models, it is advised to take special care in setting the random seeds. Another options is to generate these red noise time series for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.
@@ -1640,41 +1722,42 @@ Seed for the random-number generators for the dark signal.
 *Control HDF5 content*
 ......................
 
-The **ControlHDF5Content** block of the configuration file contains all the seeds for random-number generation in the simulator. The structure of this block is the following:
+The **ControlHDF5Content** block of the configuration file controls which data is written to the HDF5 output file (see :doc:`Output files <run_output>`). The structure of this block is the following:
 
 .. code-block::
 
    ControlHDF5Content:
 
-     GroupByExposure:                 yes             
-     WritePixelMaps:                  yes             
-     WriteBiasMaps:                   yes             
-     WriteSmearingMaps:               yes             
-     WriteFlatfieldMap:               yes             
-     WriteThroughputMaps:             yes             
-     WriteTransmissionEfficiency:     yes             
-     WriteBackgroundMap:              yes             
-     WriteCTI:                        yes             
-     WriteSubPixelImages:             no              
-     WriteDiffusedPSF:                no              
-     WriteHighResolutionPSF:          no              
-     WriteACS:                        yes             
-     WriteTelescopeACS:               yes             
-     WriteStarCatalog:                yes             
-     WriteStarPositions:              yes             
-     WriteGhostPositions:             yes             
-     WriteCosmics:                    yes             
+     GroupByExposure:                 yes
+     WritePixelMaps:                  yes
+     WriteBiasMaps:                   yes
+     WriteSmearingMaps:               yes
+     WriteFlatfieldMap:               yes
+     WriteThroughputMaps:             yes
+     WriteTransmissionEfficiency:     yes
+     WriteBackgroundMap:              yes
+     WriteCTI:                        yes
+     WriteSubPixelImages:             no
+     WriteDiffusedPSF:                no
+     WriteHighResolutionPSF:          no
+     WriteACS:                        yes
+     WriteTelescopeACS:               yes
+     WriteStarCatalog:                yes
+     WriteStarPositions:              yes
+     WriteGhostPositions:             yes
+     WriteCosmics:                    yes
+     WriteBadPixelMap:                yes
 
 **GroupByExposure:** :guilabel:`Allowed values` ``yes`` and ``no``
 
-This entry controls the exact output structure of the groups ``StarPositions``, ``PointLikeGhostPositions``, ``ExtendedGhostPositions``, and ``Cosmics``:
+This entry controls the exact output structure of the groups ``StarPositions``, ``PointLikeGhostPositions``, and ``ExtendedGhostPositions``:
 
 * If ``yes``: all information is saved in folders **per exposure**
 * if ``no`` : all information is saved **per star ID**.
 
-For long baseline simulations (more than :math:`100\,000` exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). Note that the information about the cosmic rays are never saved per star, however, it is saved into subfolders of 1000 exposures each if ``GroupByExposure = no``.
+For long baseline simulations (more than :math:`100\,000` exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). The cosmic rays are not affected by this setting (see :doc:`Output files <run_output>`).
 
-**WritePixelImages:** :guilabel:`Allowed values` ``yes`` and ``no``
+**WritePixelMaps:** :guilabel:`Allowed values` ``yes`` and ``no``
 
 Indicates whether or not the pixel maps must be stored in the output file.
 
@@ -1698,13 +1781,13 @@ Indicates whether or not the throughput maps must be stored in the output file.
 
 Indicates whether the Transmission Efficiency should be stored in the output file.
 
-**WriteBackgroundMaps:** :guilabel:`Allowed values` ``yes`` and ``no``
+**WriteBackgroundMap:** :guilabel:`Allowed values` ``yes`` and ``no``
 
-Indicates whether the Sky Background maps hould be stored in the output file. If a constant background values is used this will be a single float value and not an image map.
+Indicates whether the Sky Background map should be stored in the output file. If a constant background values is used this will be a single float value and not an image map.
 
 **WriteCTI:** :guilabel:`Allowed values` ``yes`` and ``no``
 
-Indicates whether the CTI maps hould be stored in the output file. This is the trap density maps at BOL and EOL for each species.
+Indicates whether the CTI maps should be stored in the output file. This is the trap density maps at BOL and EOL for each species.
 
 **WriteSubPixelImages:** :guilabel:`Allowed values` ``yes`` and ``no``
 
@@ -1740,7 +1823,11 @@ Indicates whether or not the ghost positions should be stored in pixel and focal
 
 **WriteCosmics:** :guilabel:`Allowed values` ``yes`` and ``no``
 
-Indicates whether or not the columns, rows and flux of the cosmics should stored in the output file. This scales with the number of exposures.
+Indicates whether or not the columns, rows and flux of the cosmics should be stored in the output file. This scales with the number of exposures.
+
+**WriteBadPixelMap:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not the bad pixel map (binary values) should be stored in the output file. Only applicable if ``CCD/BadPixelMap/includeBadPixelMap = yes``.
 
 
 
@@ -1830,7 +1917,7 @@ The **CameraGroups** block in the configuration file is used in case of a predef
      AzimuthAngle:                    [45.0, 135.0, 225.0, 315.0, 0.0]
      TiltAngle:                       [9.2, 9.2, 9.2, 9.2, 0.0] 
 
-For more information, consult our technical note: `PLATO-KUL-PL-TN-0001 <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/docs/technicalnotes/KUL-TN-01/PLATO-KUL-PL-TN-0001.pdf>`_.
+For more information, consult the :doc:`PlatoSim paper <basic_acknowledgements>`.
 
 
 
@@ -1871,7 +1958,7 @@ The **CCDPositions** block in the configuration file is used in case of a predef
 	 ShieldRowCoordinates:        [2260, 4505]                
      TimeShift:                       [0.0, 6.25, 12.5, 18.75] 
 
-For more information, consult our technical note: `PLATO-KUL-PL-TN-0001 <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/docs/technicalnotes/KUL-TN-01/PLATO-KUL-PL-TN-0001.pdf>`_.
+For more information, consult the :doc:`PlatoSim paper <basic_acknowledgements>`.
 
 
 
@@ -1898,12 +1985,15 @@ Depending on you configuration, some additional files may be required. We here p
    * `Focal Plane Orientation File`_: a time series for the focal-plane orientation
    * `Focal Length File`_: a time series for the focal length
    * `Orbit File`_: a time series of the spacecraft position and velocity
+   * `Stray Light Ephemeris File`_: a time series of the positions of the spacecraft, the Sun, and the Moon
+   * `PST File`_: the Point Source Transmittance of the camera, used for stray light
    * `Field Distortion`_: two time series for the field distortion coefficients and their inverse
    * `Mapped PSF File`_: a file with precomputed Zemax PSFs
    * `Analytic PSF File`_: a file with parameters of the analytic non-Gaussian PSF
    * `Analytic PSF Width`_: a time series for the width of the analytic non-Gaussian PSF
    * `FEE Temperature File`_: a time series for the operating temperature of the FEE
    * `BFE Coefficients`_: a file with the coefficients of the BFE model
+   * `PRNU File`_: a full-CCD flatfield (PRNU) map
    * `CTI File`_: a file with trap dencities that may vary spatially across the CCD
    * `CCD Temperature File`_: a time series for the operating temperature of the CCD
    * `Photometry List`_: a photometry list of the sources from the star catalog
@@ -1912,7 +2002,7 @@ A few notes about the provided time series:
 
 * The path to each file above can be given as an absolute path or relative to the :ref:`project location <run_input_parameters_general>`.
 * Always secure that the duration of your time series is greater than the planned simulation.
-* PlatoSim will automatically interpolate the provided time series if time step is larger that the cadence.
+* PlatoSim will automatically interpolate the provided time series if the time step is larger than the cadence.
 
 
 
@@ -1928,7 +2018,7 @@ A few notes about the provided time series:
 PSF data packages
 -----------------
 
-If you want to use realistic PSF models instead of a Gaussian, you can download these from out FTP server. The default file for most users (in focus PSF at a 6000K stellar effective temperature) can be found here.
+If you want to use realistic PSF models instead of the analytic ones, you can download these from our FTP server. The default file for most users (in focus PSF at a 6000K stellar effective temperature) can be found here.
 
 **Default PSF (at 6000K):**
 

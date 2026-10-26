@@ -26,13 +26,13 @@ you have to take.
 
 .. important::
    
-   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.11**.
+   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.12**.
 
 First, create a Conda environment (e.g. called ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n <environment-name> python=3.11
+   conda create -n platosim python=3.12
 
 Activate your new conda environment:
 
@@ -57,7 +57,7 @@ more information on how to use and manage `Conda environments
 *Installing* 
 ------------
 
-Start by activating your desired Conda environment. The installation procedures below will automatically detect which operating system your are running and will install the appropriate packages for you.
+Start by activating your desired Conda environment. The installation procedures below will automatically detect which operating system you are running and will install the appropriate packages for you.
 
 Before you install PlatoSim via conda, for the first time in this environment, type: 
 
@@ -123,34 +123,36 @@ Accordingly, if you want to update the ``develop`` branch, type:
 *Python packages*
 -----------------
 
-Conda, for which Jenkins depends on, is unfortunately not capable of installing the full suite of Python packages needed to use PlatoSim's built-in Python interface. Thus, minimally you need to install the packages listed under the section ``tool.poetry.dependencies`` in the file `pyproject.toml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_. As an alternative to installing each of the Python libraries one-by-one yourself using Conda/PyPi, in the following we show how to use `Poetry <https://python-poetry.org/>`_ to handle the package managing and install all packages in one command. Poetry manages your project installation easily over multiple platforms in a deterministic way, which has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine (e.g. on a computing cluster).
+Conda, for which Jenkins depends on, is unfortunately not capable of installing the full suite of Python packages needed to use PlatoSim's built-in Python interface. Thus, minimally you need to install the packages listed under the section ``[project] dependencies`` in the file `pyproject.toml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_. Rather than installing each of the Python libraries one-by-one yourself, we use `uv <https://docs.astral.sh/uv/>`_ to install all packages in one command. Older PlatoSim versions used Poetry, which is no longer supported.
 
-**Install Poetry**
+**Install uv**
 
-First install Poetry by following `Poetry's documentation <https://python-poetry.org/docs/>`_.
+First install uv by following `uv's documentation <https://docs.astral.sh/uv/getting-started/installation/>`_, e.g.:
+
+.. code-block:: shell
+
+   curl -LsSf https://astral.sh/uv/install.sh | sh
 
 **Install Python packages**
 
 As a user, you need to download the ``pyproject.toml`` file from either the `master branch <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_ or the `develop branch <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/pyproject.toml>`_, depending on which branch you have installed. We recommend to store this file in your ``$CONDA_PREFIX/python`` directory which accordingly points to your active Conda environment.
-   	 
-Move to the directory where the ``pyproject.toml`` file is located and install the packages with:
+
+Activate your Conda environment, move to the directory where the ``pyproject.toml`` file is located, and install the packages with:
 
 .. code-block:: shell
 
-   poetry install --no-root
+   uv pip install -r pyproject.toml
 
-Verify the success of the installation by typing ``poetry show`` (any failed installations will show up in red). Also verify that Poetry successfully installed all packages into your Conda environment by typing ``conda list`` (see packages installed with PyPi).
+Because a Conda environment is active, uv installs the packages into that environment (rather than creating a new virtual environment). Verify the success of the installation by typing ``uv pip list``.
 
-You have now installed the default Python package distribution of PlatoSim, which is sufficient for running the `Jupyter noteboook tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_ and to use most of PlatoSim's Python modules for scripting. Always remember to activate your Conda environment before using PlatoSim's Python interface.
+You have now installed the default Python package distribution of PlatoSim, which is sufficient for running the `Jupyter notebook tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_ and to use most of PlatoSim's Python modules for scripting. Always remember to activate your Conda environment before using PlatoSim's Python interface.
 
+Extra packages are organised in dependency groups (``picsim``, ``varsim``, ``platonium``, ``pipeline``, ``tools``, and ``docs``; see :ref:`Python packages for developers <install_source_python>`). Install them with ``--group``, e.g. for the HDF5 viewer argos:
 
-.. warning::
+.. code-block:: shell
 
-   Some users may find that Poetry stalls during the installation procedure. If that happens it is typically caused by a bad *keyring* setting in Poetry. Simple run the following command and retry the installation:
+   uv pip install -r pyproject.toml --group tools
 
-   .. code-block:: shell
-		   
-      export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
 
 
 
