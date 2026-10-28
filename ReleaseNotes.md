@@ -44,6 +44,12 @@
 
 
 
+** Deprecations
+
+*** The Intel Mac (`osx-64`) Conda package is deprecated and will be dropped in a future release. Installing it shows a warning. Intel Mac users can move to an Apple Silicon Mac or Linux, or install PlatoSim from source.
+
+
+
 ** Bug fixes
 
 *** Fixed issue #1191: Removed a duplicate call to `applyThroughputEfficiency()` for the analytic Gaussian PSF, which applied the throughput efficiency twice.

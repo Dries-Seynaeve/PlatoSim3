@@ -57,6 +57,10 @@ Checklist to update for a future release:
 * Added validation tests for the cosmics in the new HDF5 layout.
 * Added new Jupyter notebooks for GO proposals, PIC, K-dwarf oscillators, target observability, and the Moonwalk paper.
 
+### Deprecated
+
+* The Intel Mac (`osx-64`) Conda package is deprecated and will be dropped in a future release. Installing it shows a warning. Intel Mac users can move to an Apple Silicon Mac or Linux, or install PlatoSim from source.
+
 ### Removed
 
 * Removed Poetry support and the tracked `uv.lock` file.
