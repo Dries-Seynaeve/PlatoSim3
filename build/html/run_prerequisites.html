@@ -63,8 +63,8 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Prerequisites</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#export-environment-variables"><em>Export environment variables</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#file-storage"><em>File storage</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#environment-variables"><em>Environment variables</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-to-keep-your-files"><em>Where to keep your files</em></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
@@ -105,55 +105,88 @@
              
   <section id="prerequisites">
 <h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h1>
-<hr><section id="export-environment-variables">
-<span id="run-prerequisites-export"></span><h2><em>Export environment variables</em><a class="headerlink" href="#export-environment-variables" title="Link to this heading"></a></h2>
-<p>To avoid having to hardcode any paths in configuration files, tutorials, etc., you must export three environment variables:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code>: refer to the directory in which PlatoSim3 was installed. The Python interface looks for the <code class="docutils literal notranslate"><span class="pre">platosim</span></code> executable in its <code class="docutils literal notranslate"><span class="pre">build/</span></code> (source installation) or <code class="docutils literal notranslate"><span class="pre">bin/</span></code> (Conda installation) sub-directory.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code>: refer to your working directory were you should store your own configuration files and save your simulations (preferably not within the PlatoSim installation directory).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>: refer to the directory in which our Python scripts can be found.</p></li>
-</ul>
-<p>Before exporting any environment variables, first make sure to activate your Python environment (your Conda environment, or <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">.venv/bin/activate</span></code> for a source installation with uv). If you have installed PlatoSim as a <a class="reference internal" href="install_conda.html"><span class="doc">user (via Conda)</span></a>, the home location of the PlatoSim project needs to be exported as:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span>
+<hr><section id="environment-variables">
+<span id="run-prerequisites-export"></span><h2><em>Environment variables</em><a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h2>
+<p>PlatoSim uses environment variables, so that no paths have to be hard-coded in configuration files, scripts, or
+tutorials. If you followed the <a class="reference internal" href="install_conda.html"><span class="doc">Conda installation</span></a> or the <a class="reference internal" href="install_source.html"><span class="doc">source installation</span></a>, you have already set them; this section explains what they do.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code></p></td>
+<td><p>The directory where PlatoSim is installed: <code class="docutils literal notranslate"><span class="pre">$CONDA_PREFIX</span></code> for a Conda installation, or the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code>
+directory for a source installation. <strong>Required.</strong> PlatoSim reads its default input files from
+<code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME/inputfiles</span></code>, and the Python interface runs the simulator from the <code class="docutils literal notranslate"><span class="pre">bin/</span></code> (Conda) or
+<code class="docutils literal notranslate"><span class="pre">build/</span></code> (source) sub-directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code></p></td>
+<td><p>Your working directory, where you keep your own configuration files and simulations. Choose a directory
+<em>outside</em> the installation directory. Used by PLATOnium and several Python tools, and convenient in your own
+scripts.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code></p></td>
+<td><p>Only for a Conda installation: must include <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME/python</span></code>, so that Python finds the <code class="docutils literal notranslate"><span class="pre">platosim</span></code>
+package. A source installation with uv does not need it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PATH</span></code></p></td>
+<td><p>Only for a source installation: must include <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME/build</span></code>, so that your shell finds the
+<code class="docutils literal notranslate"><span class="pre">platosim</span></code> command. A Conda installation adds the command to your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> automatically.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Conda installation.</strong> Store the variables in your Conda environment; they are then set every time you activate it:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>platosim
+conda<span class="w"> </span>env<span class="w"> </span>config<span class="w"> </span>vars<span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span><span class="w"> </span><span class="nv">PLATO_WORKDIR</span><span class="o">=</span><span class="nv">$HOME</span>/platosim_workdir<span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span>/python
+conda<span class="w"> </span>deactivate
+conda<span class="w"> </span>activate<span class="w"> </span>platosim
 </pre></div>
 </div>
-<p>On the other hand, if you installed PlatoSim as a <a class="reference internal" href="install_source.html"><span class="doc">developer (from Source)</span></a>, this environment variable needs to be exported as:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span>&lt;full/path/to/PlatoSim3&gt;
+<p><strong>Source installation.</strong> Add the following lines to your shell start-up file (<code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> for bash, the default on
+Linux; <code class="docutils literal notranslate"><span class="pre">~/.zshrc</span></code> for zsh, the default on macOS), with the full path to your <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory, and open a new
+terminal:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="nv">$HOME</span>/PlatoSim3
+<span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_WORKDIR</span><span class="o">=</span><span class="nv">$HOME</span>/platosim_workdir
+<span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PLATO_PROJECT_HOME</span>/build:<span class="nv">$PATH</span>
 </pre></div>
 </div>
-<p>Next, choose a PlatoSim working directory and export the two following environment variables (which are independent on if you are a user or a developer):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_WORKDIR</span><span class="o">=</span>&lt;full/path/to/working/directory&gt;
-<span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="nv">$PYTHONPATH</span>:<span class="nv">$PLATO_PROJECT_HOME</span>/python
-</pre></div>
-</div>
-<p>Lastly, check that the exported paths are set to the proper locations with:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>
-<span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
-<span class="nb">echo</span><span class="w"> </span><span class="nv">$PYTHONPATH</span>
-</pre></div>
-</div>
-<p>We recommend that you place these three environment variables in a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> script that can be read by your system at all times.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You should now be able to run PlatoSim from the command line:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>-version
-</pre></div>
-</div>
-<p>and from a Python shell:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">platosim</span>
-</pre></div>
-</div>
-</div>
-<hr></section>
-<section id="file-storage">
-<span id="run-prerequisites-storage"></span><h2><em>File storage</em><a class="headerlink" href="#file-storage" title="Link to this heading"></a></h2>
-<p>To avoid problems when updating the PlatoSim software, it is best to store your own input and output files in a designated working directory. We recommend to use the path environment <code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code> as described above.</p>
-<p>For all users that want to run PlatoSim from the terminal, we recommend that you copy the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> file (located within the directory <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME/inputfiles</span></code>) and modify the copy rather than the original file. Note that you can always download the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> directly from GitHub (from the branch matching your installation).</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p><strong>For users:</strong> when you install a new version of PlatoSim in an existing Conda environment, all changes will be overwritten, and any files you may have added will be removed from the installation directory. Hence, better store your files outside of the installation directory.</p>
-<p><strong>For developers:</strong> having downloaded the source code, should only make changes or add/remove files from the <code class="docutils literal notranslate"><span class="pre">PlatoSim3/inputfiles</span></code> directory (or any other directory) if a pull request is the end goal.</p>
+<p>Do not put <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">PLATO_PROJECT_HOME=$CONDA_PREFIX</span></code> in your shell start-up file. <code class="docutils literal notranslate"><span class="pre">$CONDA_PREFIX</span></code> is read when
+the terminal starts, before you activate your PlatoSim environment, so it points to the wrong environment. Use
+<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">env</span> <span class="pre">config</span> <span class="pre">vars</span> <span class="pre">set</span></code> as shown above instead.</p>
 </div>
+<p><strong>Check the result.</strong> The first two commands should print the paths you chose, and the last two should run without
+errors (for a source installation, activate the environment first with <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">$PLATO_PROJECT_HOME/.venv/bin/activate</span></code>):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
+platosim<span class="w"> </span>-version
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import platosim"</span>
+</pre></div>
+</div>
+<hr></section>
+<section id="where-to-keep-your-files">
+<span id="run-prerequisites-storage"></span><h2><em>Where to keep your files</em><a class="headerlink" href="#where-to-keep-your-files" title="Link to this heading"></a></h2>
+<p>Keep all your own files, such as configuration files and simulations, in your working directory (<code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code>),
+never inside the installation directory:</p>
+<ul class="simple">
+<li><p><strong>Conda installation:</strong> installing or updating PlatoSim replaces the whole installation directory, so your files
+there would be lost.</p></li>
+<li><p><strong>Source installation:</strong> files you change or add inside <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> get in the way when you update the code with
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code>. Only change files there if you intend to <a class="reference internal" href="install_source.html#install-source-contribute"><span class="std std-ref">contribute them</span></a>.</p></li>
+</ul>
+<p>To make your own configuration file, copy the default one and edit the copy:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cp<span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles/inputfile.yaml<span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>/my_inputfile.yaml
+</pre></div>
+</div>
+<p>The default file always matches your installed version. You can also download it from GitHub, but make sure to take it
+from the same branch as your installation.</p>
 </section>
 </section>
 

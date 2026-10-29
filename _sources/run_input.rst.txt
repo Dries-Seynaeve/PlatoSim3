@@ -12,6 +12,14 @@ Configuration parameters
    
 To configure the PlatoSim, a large set of configuration parameters is required. The input file format used for PlatoSim3 is `YAML <https://learnxinyminutes.com/docs/yaml/>`_. All configuration parameters and files are read from the default YAML file called `inputfile.yaml <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/inputfiles/inputfile.yaml>`_ located in the ``inputfiles/`` directory. The default file is configured for a normal camera (N-CAM) with its *as required* performance at Beginning Of Life (BOL). To configure a fast camera (F-CAM), we recommend to use the Python methods ``Simulation.useNormalCamera()`` and ``Simulation.useFastCamera()`` (see :doc:`Run simulations <run_simulations>`) rather than editing the parameters by hand. The different blocks in the configuration files reflect their function in the simulation. We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator.
 
+.. admonition:: How to read this page
+
+   Each block of the configuration file has its own section below, which starts with the block as it appears in the
+   default file (including the default values). Below it, every parameter is explained, with its
+   :guilabel:`Allowed values` and unit. Parameters inside a sub-block are written as ``SubBlock/Parameter``, e.g.
+   ``Cosmics/CosmicHitRate``. In Python, you change a parameter with its full path, e.g.
+   ``sim["Sky/Cosmics/CosmicHitRate"] = 5`` (see :doc:`Run simulations <run_simulations>`).
+
 .. admonition:: Overview of Configuration Parameters
 
    * :ref:`General <run_input_parameters_general>`
@@ -189,9 +197,9 @@ The **Sky** block of the configuration file contains all the information that is
      :align: center
      :width: 550
 
-     **Fig. 2**: Aitoff projection of the sky background map in Galactic coordimates.
+     **Fig. 2**: Aitoff projection of the sky background map in Galactic coordinates.
 
-  In case a negative value is given (:math:`<0`), the sky background is automatically computed from tabulations of a zodiacal and galactic sky map. Fig. 2 shows the interpolated sky background map used where the blue dashed line is the ecliptica and the orange and magenta crosses are current LOP North and South pointings. Note that the sky background value has not been multiplied with the tranmission efficiency yet.
+  In case a negative value is given (:math:`<0`), the sky background is automatically computed from tabulations of a zodiacal and galactic sky map. Fig. 2 shows the interpolated sky background map used where the blue dashed line is the ecliptic and the orange and magenta crosses are current LOP North and South pointings. Note that the sky background value has not been multiplied with the transmission efficiency yet.
 
 **IncludeVariableSources:** :guilabel:`Allowed values` ``yes`` and ``no``
 
@@ -316,7 +324,7 @@ The orientation of the spacecraft can be configured either through the the sky (
 
   Quaternion/**Components:** :guilabel:`Allowed values` :math:`\in [-1, 1]` for all four component. 
 
-  A unit quaternion to transform from the equatorial to the platfrom reference frame.
+  A unit quaternion to transform from the equatorial to the platform reference frame.
   
 **UseJitter:** :guilabel:`Allowed values` ``yes`` and ``no``
 
@@ -444,11 +452,11 @@ The transmission efficiency of the optical system, considering the passband and 
 
   TransmissionEfficiency/**BOL:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
-  Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the ``Fluxm0`` parameter and the magnitudes in the star catalogue, at the beginning of the mission (BOL).
+  Transmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the ``Fluxm0`` parameter and the magnitudes in the star catalogue, at the beginning of the mission (BOL).
 
   TransmissionEfficiency/**EOL:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
-  Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the ``Fluxm0`` parameter and the magnitudes in the star catalogue, at the end of the mission (EOL).
+  Transmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the ``Fluxm0`` parameter and the magnitudes in the star catalogue, at the end of the mission (EOL).
 
 **UseDrift:** :guilabel:`Allowed values` ``yes`` and ``no``
 
@@ -581,7 +589,7 @@ The optical axis :math:`Z_{\rm FP}` is the blue dot in the middle of the 4 CCDs 
   
   FocalPlaneOrientation/**FromFile:** :guilabel:`Allowed values` Path to _`Focal Plane Orientation File`
 
-  If ``FocalPlaneOrientation/Source = FromFile``, a focal-plane orientation time series must be provided in an acsii file. This file should contain two columns, separated by a space, holding the following information:
+  If ``FocalPlaneOrientation/Source = FromFile``, a focal-plane orientation time series must be provided in an ascii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Focal-plane orientation [deg]
@@ -600,7 +608,7 @@ The focal length can either be kept constant over the simulations or vary, accor
   
   FocalLength/**FromFile:** :guilabel:`Allowed values` Path to _`Focal Length File`
 
-  If ``FocalLength/Source = FromFile``, a focal-length time series must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:
+  If ``FocalLength/Source = FromFile``, a focal-length time series must be provided in a ascii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Focal length [m]
@@ -619,7 +627,7 @@ Indicates whether or not to apply the aberration correction to all star position
 
 **AberrationCorrection:**
 
-The calculation of the aberration correction is based on a elliptic earth orbit around the sun and does likewise take the `Lissajous orbit <https://en.wikipedia.org/wiki/Lissajous_orbit>`_ of the satellite around L2 into account. We do calculate the kinematic aberration both in an absolute sense and differentially. The latter will be the observant for PLATO data products due to a absolute correction by the fine guidance sensor. The following parameters are only applicable if ``IncludeAberrationCorrection = yes``:
+The kinematic aberration is computed from the velocity of the spacecraft, which is read from an orbit file. PlatoSim can apply either the absolute or the differential aberration. The differential aberration is what PLATO data will show, because the fine guidance sensors keep the absolute pointing fixed. The following parameters are only applicable if ``IncludeAberrationCorrection = yes``:
 
   AberrationCorrection/**Type:** :guilabel:`Allowed values` ``differential`` and ``absolute``
 
@@ -664,14 +672,14 @@ The field distortion is represented by Distortion model from `Wang et al. (2007)
   
   FieldDistortion/**CoefficientsFromFile:** :guilabel:`Allowed values` Path to _`Field Distortion` file
 
-  If ``FieldDistortion/Source = FromFile``, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:
+  If ``FieldDistortion/Source = FromFile``, a time series of the change in field distortion must be provided in a ascii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Field distortion coefficients (all separated by spaces)
 
   FieldDistortion/**InverseCoefficientsFromFile:** :guilabel:`Allowed values` Path to Inverse Distortion File
 
-  If ``FieldDistortion/Source = FromFile``, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:
+  If ``FieldDistortion/Source = FromFile``, a time series of the change in field distortion must be provided in a ascii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Field distortion inverse coefficients (all separated by spaces)
@@ -963,7 +971,7 @@ Indicates whether or not to include F-FEE over-/undershoot.
 
 .. warning::
 
-   Over-/undershoot is currently only availble for fast cameras (``GroupID = Fast``). 
+   Over-/undershoot is currently only available for fast cameras (``GroupID = Fast``). 
 
 **OverAndUnderShoot:**
 
@@ -1207,7 +1215,7 @@ Full-well saturation limit of a single CCD pixel. If a pixels receives more elec
 
 **DigitalSaturation:** :guilabel:`Allowed values` :math:`> 0 \ \text{ADU} \ ,\text{pixel}^{-1}`
 
-Digital saturation limit of the CCD to which pixel values are topped off. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is :math:`655\,36` ADU. The gain of the front-end electronics and detector should be such that the full-well saturation results in values below the digital saturation limit.
+Digital saturation limit of the CCD to which pixel values are topped off. This value depends on the A/D converter of the detector. For a 16-bit converter, the digital saturation limit is :math:`655\,36` ADU. The gain of the front-end electronics and detector should be such that the full-well saturation results in values below the digital saturation limit.
 
 **ReadoutNoise:** :guilabel:`Allowed values` :math:`\ge 0 \ \text{e}^- \, \text{pixel}^{-1}`
 
@@ -1265,7 +1273,7 @@ The flatfield is only applied if ``IncludeFlatfield = yes``.
 
 .. note::
 
-   Before PlatoSim 3.8.0 this parameter was called ``CCD/FlatfieldNoiseRMS``. Use the :doc:`migration tool <install_migtool>` to update older configuration files.
+   Before PlatoSim 3.7.1 this parameter was called ``CCD/FlatfieldNoiseRMS``. Use the :doc:`migration tool <install_migtool>` to update older configuration files.
 
 **RelativeTransmissivity:**
 
@@ -1301,7 +1309,7 @@ Optical elements induce a preferred direction for the propagation of light. This
 
 The contribution to contamination is two-fold:
 
-* Particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the effciency
+* Particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the efficiency
 * Molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).
 
   Contamination/**ParticulateContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in [0, 1]`
@@ -1351,7 +1359,7 @@ The charge trails impact photometry, noise, and astrometry of sources. CTI remov
   PlatoSim offers two implementation of the CTI:
 
   * The simple implementation (``Simple``) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.
-  * A more sophisticated implementation (``Short2013``) is based on the paper by `Short et al. (2013) <http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf>`_, in which only parallel readout is taken into account.
+  * A more sophisticated implementation (``Short2013``) is based on the paper by `Short et al. (2013) <https://academic.oup.com/mnras/article/430/4/3078/1109937>`_, in which only parallel readout is taken into account.
 
     CTI/**Simple:**
     
@@ -1449,7 +1457,7 @@ Indicates whether or not to include dark signal.
 
 **IncludeBFE:** :guilabel:`Allowed values` ``yes`` and ``no``
 
-Indicates whether or not to inlcude the Brighter Fatter Effect
+Indicates whether or not to include the Brighter Fatter Effect
 
 **IncludePhotonNoise:** :guilabel:`Allowed values` ``yes`` and ``no``
 
@@ -1612,7 +1620,7 @@ The **Photometry** block of the configuration file contains all information to r
      MaskUpdateInterval:              14.0
      TargetFileName:                  inputfiles/photometry.txt
 
-PlatoSim utilises the *optimal aperture photometry* algortihm from `Marchiori et al. (2019) <https://arxiv.org/abs/1906.00892>`_. This method is optimised to lower the photometric noise relevant for planet transit searches. This algorithm allows to update the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a :math:`V=11` star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).
+PlatoSim utilises the *optimal aperture photometry* algorithm from `Marchiori et al. (2019) <https://arxiv.org/abs/1906.00892>`_. This method is optimised to lower the photometric noise relevant for planet transit searches. This algorithm allows to update the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a :math:`V=11` star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).
 
 .. figure:: ../figures/photometry.png
    :align: center
@@ -1994,7 +2002,7 @@ Depending on you configuration, some additional files may be required. We here p
    * `FEE Temperature File`_: a time series for the operating temperature of the FEE
    * `BFE Coefficients`_: a file with the coefficients of the BFE model
    * `PRNU File`_: a full-CCD flatfield (PRNU) map
-   * `CTI File`_: a file with trap dencities that may vary spatially across the CCD
+   * `CTI File`_: a file with trap densities that may vary spatially across the CCD
    * `CCD Temperature File`_: a time series for the operating temperature of the CCD
    * `Photometry List`_: a photometry list of the sources from the star catalog
 
@@ -2018,7 +2026,13 @@ A few notes about the provided time series:
 PSF data packages
 -----------------
 
-If you want to use realistic PSF models instead of the analytic ones, you can download these from our FTP server. The default file for most users (in focus PSF at a 6000K stellar effective temperature) can be found here.
+If you want to use realistic PSF models instead of the analytic ones, you can download these from our FTP server. The files are large (about 9 GB each), and most web browsers no longer open FTP links, so download them from the command line. For example, the default file for most users (in-focus PSF at a stellar effective temperature of 6000 K) is downloaded into your ``inputfiles`` directory with:
+
+.. code-block:: shell
+
+   curl -o $PLATO_PROJECT_HOME/inputfiles/PSF_Focus_0mu.hdf5 ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5
+
+For the other files below, replace the file name in both places. To use a mapped PSF, set ``PSF/Model`` to ``MappedFromFile`` and ``PSF/MappedFromFile/Filename`` to the downloaded file (see :ref:`PSF <run_input_parameters_psf>`).
 
 **Default PSF (at 6000K):**
 

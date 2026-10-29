@@ -15,7 +15,7 @@ To run simulations with PlatoSim, you will have to feed a :ref:`Configuration fi
 *Command line*
 --------------
    
-To run a simulation from the command line, simply type:
+Make sure the :doc:`environment variables <run_prerequisites>` are set. To run a simulation from the command line, type:
 
 .. code-block:: shell
 		
@@ -34,13 +34,14 @@ Errors and warnings are also printed on the terminal. To check which version of 
 
    platosim -version
 
-A simple test simulation looks like:
+For example, to run a simulation with your own copy of the configuration file (see :ref:`Where to keep your files <run_prerequisites_storage>`):
 
 .. code-block:: shell
-		
-   platosim inputfile.yaml out.hdf5
 
-This will generate two files: the HDF5 output file containing the simulation and an ascii log file with the log messages from PlatoSim. Note that PlatoSim refuses to overwrite an existing output file.
+   cd $PLATO_WORKDIR
+   platosim my_inputfile.yaml out.hdf5
+
+This generates two files: the HDF5 output file ``out.hdf5`` with the simulated data, and the text file ``log.txt`` with the log messages. PlatoSim refuses to overwrite an existing output file, so remove ``out.hdf5`` before you run the same command again.
    
 .. raw:: html
 
@@ -116,19 +117,18 @@ In this directory, the following information will be stored when running the sim
    
 **Modify configuration parameters**
 
-Individual configuration parameters can be modified in the copy of the configuration file (which will be stored with the name runName.yaml in the output directory) as follows:
+Change a configuration parameter by giving its full path in the YAML file, with the names of the blocks separated by slashes:
 
 .. code-block:: python
-		
-   sim["<block>/<parameter>"] = <new value>
 
-for individual parameters in the block of the YAML file (e.g. ``sim["Camera/FocalPlaneOrientation"] = 0``), or:
+   sim["ObservingParameters/NumExposures"] = 100
+   sim["Platform/Orientation/Angles/RAPointing"] = 90.0
 
-.. code-block:: python
-		
-   sim["<block>/<sub-block>/<parameter>"] = <new value>
+Read the current value in the same way, e.g. ``print(sim["ObservingParameters/NumExposures"])``, or print all parameters with ``print(sim)``. The changes are stored in the copy ``<runName>.yaml`` in the output directory; the original configuration file is never modified. If you load another configuration file with ``readConfigurationFile()``, all changes you made are lost.
 
-for parameters in sub-block in the YAML file (e.g. ``sim["Platform/Orientation/Angles/RAPointing"] = 90.0``). Note that the original YAML file is not modified. Only the copy of this file gets modified. In case you change the configuration file of the Simulation object, the copy ``runName.yaml`` file will be overwritten and all changes to the configuration parameters you have applied, will be lost.
+.. warning::
+
+   Check the spelling of the parameter path carefully. If a path does not exist, PlatoSim prints ``ERROR: no node with the name ... found in input yaml file`` but does **not** stop: the simulation then runs with the default value. Also make sure the path ends at a parameter, not at a block: ``sim["Camera/FocalLength"] = 0.25`` replaces the whole ``FocalLength`` block, whereas ``sim["Camera/FocalLength/ConstantValue"] = 0.25`` changes the value.
 
 **Normal and fast cameras**
 
@@ -139,7 +139,10 @@ The default configuration file describes a normal camera (N-CAM) with its *as re
    sim.useNormalCamera(performance=False, timeFromBOL=0)
    sim.useFastCamera(passband="blue", performance=False, timeFromBOL=0)   # or passband="red"
 
-These methods update the parameters that differ between the camera types (e.g. ``Fluxm0``, passband, cycle time, camera group, and quantum efficiency).
+These methods update the parameters that differ between the camera types (e.g. ``Fluxm0``, passband, cycle time, camera group, and quantum efficiency). The optional arguments are:
+
+* ``performance``: ``"required"``, ``"expected"``, or ``"designed"`` to use the corresponding values from the Mission Parameter Database for the detector gain and noise, transmission, and quantum efficiency. With the default ``False``, these parameters are left unchanged.
+* ``timeFromBOL``: time since the Beginning Of Life of the mission, **in seconds**, used to age the detector noise (only together with ``performance``). For example, ``timeFromBOL=2*365.25*86400`` for two years into the mission.
 
 **Run the simulation**
 

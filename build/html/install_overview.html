@@ -54,7 +54,10 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#requirements"><em>Requirements</em></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
@@ -101,21 +104,145 @@
              
   <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
+<p>There are two ways to install PlatoSim. Pick one:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 39.0%" />
+<col style="width: 39.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p><a class="reference internal" href="install_conda.html"><span class="doc">With Conda</span></a></p></th>
+<th class="head"><p><a class="reference internal" href="install_source.html"><span class="doc">From source</span></a></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Choose this if</strong></p></td>
+<td><p>you want to <em>use</em> PlatoSim.</p></td>
+<td><p>you want to change the code, contribute, or Conda is not available for your system.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>What you get</strong></p></td>
+<td><p>A pre-built <code class="docutils literal notranslate"><span class="pre">platosim</span></code> executable from our build server (Jenkins).</p></td>
+<td><p>The full source code, which you build on your own machine.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Effort</strong></p></td>
+<td><p>A few commands, a few minutes.</p></td>
+<td><p>More steps; compiling the bundled libraries takes a while.</p></td>
+</tr>
+</tbody>
+</table>
+<p>If you are not sure, start with the <a class="reference internal" href="basic_quickstart.html"><span class="doc">Quickstart</span></a>, which uses Conda.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>PlatoSim has been tested on recent Linux (Ubuntu, Debian, Fedora) and Mac OS X systems. <strong>We cannot support Windows
-systems at the moment</strong>, so we advise Windows users to install a Virtual Machine (VM) and install PlatoSim inside
-the VM. Alternatively, if you are using Windows 10 or 11, you can use <a class="reference external" href="https://docs.microsoft.com/en-us/windows/wsl/install">Windows Subsystem for Linux (WSL)</a> instead.</p>
+<p>PlatoSim runs on Linux and macOS. <strong>Windows is not supported.</strong> On Windows 10 or 11, install PlatoSim inside the
+<a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/install">Windows Subsystem for Linux (WSL)</a> and follow the Linux
+instructions there.</p>
+<p>Pre-built Conda packages exist for Linux (x86-64) and for Apple Silicon and Intel Macs. The <strong>Intel Mac</strong> package is
+deprecated and will be dropped in a future release; on an Intel Mac, consider installing from source.</p>
 </div>
-<p>PlatoSim can be installed in two ways:</p>
-<ul class="simple">
-<li><p>Pre-built versions of PlatoSim3 via Conda – <a class="reference internal" href="install_conda.html"><span class="doc">For Users (via Conda)</span></a></p></li>
-<li><p>Download and build the software yourself – <a class="reference internal" href="install_source.html"><span class="doc">For Developers (from Source)</span></a>.</p></li>
-</ul>
-<p>The latter option gives you the freedom to make changes to the code, but it is a more complex procedure and in most
-cases not needed.</p>
-<a class="reference internal image-reference" href="_images/flowchart_usersVsDevelopers.png"><img alt="_images/flowchart_usersVsDevelopers.png" class="align-center" src="_images/flowchart_usersVsDevelopers.png" width="1000" />
-</a>
+<hr><section id="requirements">
+<span id="install-overview-requirements"></span><h2><em>Requirements</em><a class="headerlink" href="#requirements" title="Link to this heading"></a></h2>
+<p>Make sure the following software is installed before you start. The versions are the <em>minimum</em> versions; newer
+versions work as well.</p>
+<p><strong>For both installation routes</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Software</p></th>
+<th class="head"><p>Minimum version</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Python</p></td>
+<td><p>3.12</p></td>
+<td><p>We recommend Python 3.12; Python 3.13 also works. Python 3.14 and newer are not supported yet, because some
+packages are not yet available for them.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://docs.astral.sh/uv/">uv</a></p></td>
+<td><p>0.6.7</p></td>
+<td><p>Installs PlatoSim’s Python packages. Check your version with <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">--version</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Only for the Conda route</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Software</p></th>
+<th class="head"><p>Minimum version</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Conda</p></td>
+<td><p>any recent version</p></td>
+<td><p>Provided by <a class="reference external" href="https://conda-forge.org/download/">Miniforge</a>, Miniconda, or Anaconda.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Only for the source route</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Software</p></th>
+<th class="head"><p>Minimum version</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference external" href="https://git-scm.com/">Git</a></p></td>
+<td><p>any recent version</p></td>
+<td><p>To download the source code.</p></td>
+</tr>
+<tr class="row-odd"><td><p>C and C++ compiler</p></td>
+<td><p>gcc 5.1 or clang 3.4</p></td>
+<td><p>The compiler must support C++14. Check with <code class="docutils literal notranslate"><span class="pre">gcc</span> <span class="pre">--version</span></code> or <code class="docutils literal notranslate"><span class="pre">clang</span> <span class="pre">--version</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://cmake.org/">CMake</a></p></td>
+<td><p><strong>3.26</strong></p></td>
+<td><p>Required by the bundled HDF5 library. Check with <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--version</span></code>. Older Linux distributions (e.g. Ubuntu
+22.04 and Debian 12) ship an older CMake; install a newer one with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cmake</span></code> or from
+<a class="reference external" href="https://cmake.org/download/">cmake.org</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Make, tar</p></td>
+<td><p>any recent version</p></td>
+<td><p>Standard on Linux and macOS (on macOS, install the Xcode command line tools: <code class="docutils literal notranslate"><span class="pre">xcode-select</span> <span class="pre">--install</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p>Python 3</p></td>
+<td><p>any 3.x</p></td>
+<td><p>The scripts that install the bundled libraries are written in Python.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Disk space</p></td>
+<td><p>2 GB</p></td>
+<td><p>For the source code, the compiled libraries, and the Python environment. A mapped PSF file needs another 9 GB,
+and the validation suite another 11 GB.</p></td>
+</tr>
+<tr class="row-even"><td><p>BLAS and LAPACK</p></td>
+<td><p>optional</p></td>
+<td><p>Make PlatoSim faster. Pre-installed on macOS; on Linux install them with your package manager (e.g.
+<code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt</span> <span class="pre">install</span> <span class="pre">libopenblas-dev</span> <span class="pre">liblapack-dev</span></code>).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The source installation was last tested on Linux with gcc 16.2, CMake 4.4, GNU Make 4.4, Python 3.12, and uv 0.13.</p>
+</div>
+</section>
 </section>
 
 

@@ -128,6 +128,14 @@
 <hr><section id="configuration-parameters">
 <span id="run-input-parameters"></span><h2>Configuration parameters<a class="headerlink" href="#configuration-parameters" title="Link to this heading"></a></h2>
 <p>To configure the PlatoSim, a large set of configuration parameters is required. The input file format used for PlatoSim3 is <a class="reference external" href="https://learnxinyminutes.com/docs/yaml/">YAML</a>. All configuration parameters and files are read from the default YAML file called <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/inputfiles/inputfile.yaml">inputfile.yaml</a> located in the <code class="docutils literal notranslate"><span class="pre">inputfiles/</span></code> directory. The default file is configured for a normal camera (N-CAM) with its <em>as required</em> performance at Beginning Of Life (BOL). To configure a fast camera (F-CAM), we recommend to use the Python methods <code class="docutils literal notranslate"><span class="pre">Simulation.useNormalCamera()</span></code> and <code class="docutils literal notranslate"><span class="pre">Simulation.useFastCamera()</span></code> (see <a class="reference internal" href="run_simulations.html"><span class="doc">Run simulations</span></a>) rather than editing the parameters by hand. The different blocks in the configuration files reflect their function in the simulation. We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator.</p>
+<div class="admonition-how-to-read-this-page admonition">
+<p class="admonition-title">How to read this page</p>
+<p>Each block of the configuration file has its own section below, which starts with the block as it appears in the
+default file (including the default values). Below it, every parameter is explained, with its
+<span class="guilabel">Allowed values</span> and unit. Parameters inside a sub-block are written as <code class="docutils literal notranslate"><span class="pre">SubBlock/Parameter</span></code>, e.g.
+<code class="docutils literal notranslate"><span class="pre">Cosmics/CosmicHitRate</span></code>. In Python, you change a parameter with its full path, e.g.
+<code class="docutils literal notranslate"><span class="pre">sim[&quot;Sky/Cosmics/CosmicHitRate&quot;]</span> <span class="pre">=</span> <span class="pre">5</span></code> (see <a class="reference internal" href="run_simulations.html"><span class="doc">Run simulations</span></a>).</p>
+</div>
 <div class="admonition-overview-of-configuration-parameters admonition">
 <p class="admonition-title">Overview of Configuration Parameters</p>
 <ul class="simple">
@@ -244,10 +252,10 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <a class="reference internal image-reference" href="_images/config_skyBackground.png"><img alt="_images/config_skyBackground.png" src="_images/config_skyBackground.png" width="550" />
 </a>
 <figcaption>
-<p><span class="caption-text"><strong>Fig. 2</strong>: Aitoff projection of the sky background map in Galactic coordimates.</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+<p><span class="caption-text"><strong>Fig. 2</strong>: Aitoff projection of the sky background map in Galactic coordinates.</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<p>In case a negative value is given (<span class="math notranslate nohighlight">\(&lt;0\)</span>), the sky background is automatically computed from tabulations of a zodiacal and galactic sky map. Fig. 2 shows the interpolated sky background map used where the blue dashed line is the ecliptica and the orange and magenta crosses are current LOP North and South pointings. Note that the sky background value has not been multiplied with the tranmission efficiency yet.</p>
+<p>In case a negative value is given (<span class="math notranslate nohighlight">\(&lt;0\)</span>), the sky background is automatically computed from tabulations of a zodiacal and galactic sky map. Fig. 2 shows the interpolated sky background map used where the blue dashed line is the ecliptic and the orange and magenta crosses are current LOP North and South pointings. Note that the sky background value has not been multiplied with the transmission efficiency yet.</p>
 </div></blockquote>
 <p><strong>IncludeVariableSources:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether or not stellar variability must be included.</p>
@@ -326,7 +334,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Angles/<strong>SolarPanelOrientation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\kappa \in [0, 360]\)</span> deg</p>
 <p>Orientation angle of the solar panel. This is the roll angle of the platform, which enables orienting the solar panels towards the Sun each quarter, i.e. at the beginning of each quarter the roll angle must be increased by 90 degrees (being either 0, 90, 180, and 270). Note that to properly account for the re-orientation of the solar panels, simulations must be chopped up in chunks of maximum three months (one mission quarter).</p>
 <p>Quaternion/<strong>Components:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [-1, 1]\)</span> for all four component.</p>
-<p>A unit quaternion to transform from the equatorial to the platfrom reference frame.</p>
+<p>A unit quaternion to transform from the equatorial to the platform reference frame.</p>
 </div></blockquote>
 <p><strong>UseJitter:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether pointing variations should be taken into account.</p>
@@ -417,9 +425,9 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>The transmission efficiency of the optical system, considering the passband and the spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue degrades linearly over the mission lifetime. The following two parameters are used to model the (linear) degradation in transmission efficiency over the mission lifetime:</p>
 <blockquote>
 <div><p>TransmissionEfficiency/<strong>BOL:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
-<p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue, at the beginning of the mission (BOL).</p>
+<p>Transmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue, at the beginning of the mission (BOL).</p>
 <p>TransmissionEfficiency/<strong>EOL:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
-<p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue, at the end of the mission (EOL).</p>
+<p>Transmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue, at the end of the mission (EOL).</p>
 </div></blockquote>
 <p><strong>UseDrift:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether the thermo-elastic drift of the camera (w.r.t. the platform) should be taken into account. Similar to the <code class="docutils literal notranslate"><span class="pre">UseJitter</span></code> parameter for the platform jitter.</p>
@@ -516,7 +524,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>FocalPlaneOrientation/<strong>ConstantValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 360]\)</span> deg</p>
 <p>Orientation angle of the focal plane. This entry is only applicable if <code class="docutils literal notranslate"><span class="pre">FocalPlaneOrientation/Source</span> <span class="pre">=</span> <span class="pre">ConstantValue</span></code>.</p>
 <p>FocalPlaneOrientation/<strong>FromFile:</strong> <span class="guilabel">Allowed values</span> Path to <span class="target" id="focal-plane-orientation-file">Focal Plane Orientation File</span></p>
-<p>If <code class="docutils literal notranslate"><span class="pre">FocalPlaneOrientation/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a focal-plane orientation time series must be provided in an acsii file. This file should contain two columns, separated by a space, holding the following information:</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">FocalPlaneOrientation/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a focal-plane orientation time series must be provided in an ascii file. This file should contain two columns, separated by a space, holding the following information:</p>
 <ul class="simple">
 <li><p>Time [s]</p></li>
 <li><p>Focal-plane orientation [deg]</p></li>
@@ -530,7 +538,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>FocalLength/<strong>ConstantValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0\)</span> m</p>
 <p>Focal length as recovered from the Zemax model. This entry is only applicable if <code class="docutils literal notranslate"><span class="pre">FocalLength/Source</span> <span class="pre">=</span> <span class="pre">ConstantValue</span></code>.</p>
 <p>FocalLength/<strong>FromFile:</strong> <span class="guilabel">Allowed values</span> Path to <span class="target" id="focal-length-file">Focal Length File</span></p>
-<p>If <code class="docutils literal notranslate"><span class="pre">FocalLength/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a focal-length time series must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">FocalLength/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a focal-length time series must be provided in a ascii file. This file should contain two columns, separated by a space, holding the following information:</p>
 <ul class="simple">
 <li><p>Time [s]</p></li>
 <li><p>Focal length [m]</p></li>
@@ -543,7 +551,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p><strong>IncludeAberrationCorrection:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether or not to apply the aberration correction to all star positions in the star catalogue.</p>
 <p><strong>AberrationCorrection:</strong></p>
-<p>The calculation of the aberration correction is based on a elliptic earth orbit around the sun and does likewise take the <a class="reference external" href="https://en.wikipedia.org/wiki/Lissajous_orbit">Lissajous orbit</a> of the satellite around L2 into account. We do calculate the kinematic aberration both in an absolute sense and differentially. The latter will be the observant for PLATO data products due to a absolute correction by the fine guidance sensor. The following parameters are only applicable if <code class="docutils literal notranslate"><span class="pre">IncludeAberrationCorrection</span> <span class="pre">=</span> <span class="pre">yes</span></code>:</p>
+<p>The kinematic aberration is computed from the velocity of the spacecraft, which is read from an orbit file. PlatoSim can apply either the absolute or the differential aberration. The differential aberration is what PLATO data will show, because the fine guidance sensors keep the absolute pointing fixed. The following parameters are only applicable if <code class="docutils literal notranslate"><span class="pre">IncludeAberrationCorrection</span> <span class="pre">=</span> <span class="pre">yes</span></code>:</p>
 <blockquote>
 <div><p>AberrationCorrection/<strong>Type:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">differential</span></code> and <code class="docutils literal notranslate"><span class="pre">absolute</span></code></p>
 <p>Indicates whether to apply either differential or absolute aberration correction.</p>
@@ -572,13 +580,13 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>FieldDistortion/<strong>ConstantInverseCoefficients:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}\}\)</span></p>
 <p>Inverse coefficients for the Wang model that converts the normalised distorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the (negative) distortion, expressed in normalised pixel coordinates. This entry is only applicable if <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">ConstantValue</span></code>.</p>
 <p>FieldDistortion/<strong>CoefficientsFromFile:</strong> <span class="guilabel">Allowed values</span> Path to <span class="target" id="field-distortion">Field Distortion</span> file</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a time series of the change in field distortion must be provided in a ascii file. This file should contain two columns, separated by a space, holding the following information:</p>
 <ul class="simple">
 <li><p>Time [s]</p></li>
 <li><p>Field distortion coefficients (all separated by spaces)</p></li>
 </ul>
 <p>FieldDistortion/<strong>InverseCoefficientsFromFile:</strong> <span class="guilabel">Allowed values</span> Path to Inverse Distortion File</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a time series of the change in field distortion must be provided in a ascii file. This file should contain two columns, separated by a space, holding the following information:</p>
 <ul class="simple">
 <li><p>Time [s]</p></li>
 <li><p>Field distortion inverse coefficients (all separated by spaces)</p></li>
@@ -783,7 +791,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Indicates whether or not to include F-FEE over-/undershoot.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Over-/undershoot is currently only availble for fast cameras (<code class="docutils literal notranslate"><span class="pre">GroupID</span> <span class="pre">=</span> <span class="pre">Fast</span></code>).</p>
+<p>Over-/undershoot is currently only available for fast cameras (<code class="docutils literal notranslate"><span class="pre">GroupID</span> <span class="pre">=</span> <span class="pre">Fast</span></code>).</p>
 </div>
 <p><strong>OverAndUnderShoot:</strong></p>
 <p>Over-/undershoot has been noticed in F-FEE measurements. Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance <span class="math notranslate nohighlight">\(\Delta x\)</span>. For a difference in signal between two such pixels, <span class="math notranslate nohighlight">\(\Delta S\)</span>, the induced over-/undershoot will be:</p>
@@ -965,7 +973,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p><strong>FullWellSaturation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \ \text{e}^- \, \text{pixel}^{-1}\)</span></p>
 <p>Full-well saturation limit of a single CCD pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called <em>blooming</em>. The electrons reaching the edge of the CCD will not be detected.</p>
 <p><strong>DigitalSaturation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \ \text{ADU} \ ,\text{pixel}^{-1}\)</span></p>
-<p>Digital saturation limit of the CCD to which pixel values are topped off. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is <span class="math notranslate nohighlight">\(655\,36\)</span> ADU. The gain of the front-end electronics and detector should be such that the full-well saturation results in values below the digital saturation limit.</p>
+<p>Digital saturation limit of the CCD to which pixel values are topped off. This value depends on the A/D converter of the detector. For a 16-bit converter, the digital saturation limit is <span class="math notranslate nohighlight">\(655\,36\)</span> ADU. The gain of the front-end electronics and detector should be such that the full-well saturation results in values below the digital saturation limit.</p>
 <p><strong>ReadoutNoise:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0 \ \text{e}^- \, \text{pixel}^{-1}\)</span></p>
 <p>Mean readout noise of the detector. Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the square-root of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).</p>
 <p><strong>SerialTransferTime:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0\)</span> ns</p>
@@ -1001,7 +1009,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 </div></blockquote>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Before PlatoSim 3.8.0 this parameter was called <code class="docutils literal notranslate"><span class="pre">CCD/FlatfieldNoiseRMS</span></code>. Use the <a class="reference internal" href="install_migtool.html"><span class="doc">migration tool</span></a> to update older configuration files.</p>
+<p>Before PlatoSim 3.7.1 this parameter was called <code class="docutils literal notranslate"><span class="pre">CCD/FlatfieldNoiseRMS</span></code>. Use the <a class="reference internal" href="install_migtool.html"><span class="doc">migration tool</span></a> to update older configuration files.</p>
 </div>
 <p><strong>RelativeTransmissivity:</strong></p>
 <p>On top of the (time-dependent) transmission efficiency, the overall relative transmissivity should be taken into account.  This decrease in efficiency with distance to the optical axis, comprises the following contributions:</p>
@@ -1027,7 +1035,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p><strong>Contamination:</strong></p>
 <p>The contribution to contamination is two-fold:</p>
 <ul>
-<li><p>Particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the effciency</p></li>
+<li><p>Particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the efficiency</p></li>
 <li><p>Molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).</p>
 <p>Contamination/<strong>ParticulateContaminationEfficiency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Throughput efficiency due to particulate contamination.</p>
@@ -1061,7 +1069,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>PlatoSim offers two implementation of the CTI:</p>
 <ul>
 <li><p>The simple implementation (<code class="docutils literal notranslate"><span class="pre">Simple</span></code>) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.</p></li>
-<li><p>A more sophisticated implementation (<code class="docutils literal notranslate"><span class="pre">Short2013</span></code>) is based on the paper by <a class="reference external" href="http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf">Short et al. (2013)</a>, in which only parallel readout is taken into account.</p>
+<li><p>A more sophisticated implementation (<code class="docutils literal notranslate"><span class="pre">Short2013</span></code>) is based on the paper by <a class="reference external" href="https://academic.oup.com/mnras/article/430/4/3078/1109937">Short et al. (2013)</a>, in which only parallel readout is taken into account.</p>
 <p>CTI/<strong>Simple:</strong></p>
 <p>The simple implementation (<code class="docutils literal notranslate"><span class="pre">Simple</span></code>) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.</p>
 <blockquote>
@@ -1123,7 +1131,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p><strong>IncludeDarkSignal:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether or not to include dark signal.</p>
 <p><strong>IncludeBFE:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
-<p>Indicates whether or not to inlcude the Brighter Fatter Effect</p>
+<p>Indicates whether or not to include the Brighter Fatter Effect</p>
 <p><strong>IncludePhotonNoise:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether or not to include photon noise.</p>
 <p><strong>IncludeReadoutNoise:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
@@ -1213,7 +1221,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
   <span class="n">TargetFileName</span><span class="p">:</span>                  <span class="n">inputfiles</span><span class="o">/</span><span class="n">photometry</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 </div>
-<p>PlatoSim utilises the <em>optimal aperture photometry</em> algortihm from <a class="reference external" href="https://arxiv.org/abs/1906.00892">Marchiori et al. (2019)</a>. This method is optimised to lower the photometric noise relevant for planet transit searches. This algorithm allows to update the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a <span class="math notranslate nohighlight">\(V=11\)</span> star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).</p>
+<p>PlatoSim utilises the <em>optimal aperture photometry</em> algorithm from <a class="reference external" href="https://arxiv.org/abs/1906.00892">Marchiori et al. (2019)</a>. This method is optimised to lower the photometric noise relevant for planet transit searches. This algorithm allows to update the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a <span class="math notranslate nohighlight">\(V=11\)</span> star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).</p>
 <figure class="align-center" id="id20">
 <a class="reference internal image-reference" href="_images/photometry.png"><img alt="_images/photometry.png" src="_images/photometry.png" width="600" />
 </a>
@@ -1431,7 +1439,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <li><p><a class="reference internal" href="#fee-temperature-file">FEE Temperature File</a>: a time series for the operating temperature of the FEE</p></li>
 <li><p><a class="reference internal" href="#bfe-coefficients">BFE Coefficients</a>: a file with the coefficients of the BFE model</p></li>
 <li><p><a class="reference internal" href="#prnu-file">PRNU File</a>: a full-CCD flatfield (PRNU) map</p></li>
-<li><p><a class="reference internal" href="#cti-file">CTI File</a>: a file with trap dencities that may vary spatially across the CCD</p></li>
+<li><p><a class="reference internal" href="#cti-file">CTI File</a>: a file with trap densities that may vary spatially across the CCD</p></li>
 <li><p><a class="reference internal" href="#ccd-temperature-file">CCD Temperature File</a>: a time series for the operating temperature of the CCD</p></li>
 <li><p><a class="reference internal" href="#photometry-list">Photometry List</a>: a photometry list of the sources from the star catalog</p></li>
 </ul>
@@ -1445,7 +1453,11 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <hr></section>
 <section id="psf-data-packages">
 <span id="run-input-data"></span><h2>PSF data packages<a class="headerlink" href="#psf-data-packages" title="Link to this heading"></a></h2>
-<p>If you want to use realistic PSF models instead of the analytic ones, you can download these from our FTP server. The default file for most users (in focus PSF at a 6000K stellar effective temperature) can be found here.</p>
+<p>If you want to use realistic PSF models instead of the analytic ones, you can download these from our FTP server. The files are large (about 9 GB each), and most web browsers no longer open FTP links, so download them from the command line. For example, the default file for most users (in-focus PSF at a stellar effective temperature of 6000 K) is downloaded into your <code class="docutils literal notranslate"><span class="pre">inputfiles</span></code> directory with:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-o<span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles/PSF_Focus_0mu.hdf5<span class="w"> </span>ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5
+</pre></div>
+</div>
+<p>For the other files below, replace the file name in both places. To use a mapped PSF, set <code class="docutils literal notranslate"><span class="pre">PSF/Model</span></code> to <code class="docutils literal notranslate"><span class="pre">MappedFromFile</span></code> and <code class="docutils literal notranslate"><span class="pre">PSF/MappedFromFile/Filename</span></code> to the downloaded file (see <a class="reference internal" href="#run-input-parameters-psf"><span class="std std-ref">PSF</span></a>).</p>
 <p><strong>Default PSF (at 6000K):</strong></p>
 <ul class="simple">
 <li><p><a class="reference external" href="ftp://plato:miSotalP&#64;ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5">N-CAM PSF: 0 mu, 6000 K</a></p></li>

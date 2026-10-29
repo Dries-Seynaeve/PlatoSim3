@@ -57,15 +57,14 @@
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">For Developers (from Source)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#prerequisites"><em>Prerequisites</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#forking-cloning"><em>Forking &amp; Cloning</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#dependencies"><em>Dependencies</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#building-the-code"><em>Building the code</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#remote-repositories"><em>Remote repositories</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#update-procedure"><em>Update procedure</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-1-check-the-requirements"><em>Step 1: Check the requirements</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-2-download-the-code"><em>Step 2: Download the code</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-3-build-platosim"><em>Step 3: Build PlatoSim</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-4-install-the-python-packages"><em>Step 4: Install the Python packages</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-5-set-the-environment-variables"><em>Step 5: Set the environment variables</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-6-check-the-installation"><em>Step 6: Check the installation</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#keep-your-installation-up-to-date"><em>Keep your installation up to date</em></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#contribute-to-the-code"><em>Contribute to the code</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#branching-strategy"><em>Branching strategy</em></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#python-packages"><em>Python packages</em></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
@@ -112,291 +111,273 @@
              
   <section id="for-developers-from-source">
 <h1>For Developers (from Source)<a class="headerlink" href="#for-developers-from-source" title="Link to this heading"></a></h1>
-<p>The scheme below shows an overview of the procedure to download, update, and build the PlatoSim software on your system
-yourself. This scheme is valid for developers who may want to contribute to the code at some point. Also the procedure
-to make your own modifications to the code available for others is described.</p>
-<a class="reference internal image-reference" href="_images/flowchart_installPlatoSimFromSource.png"><img alt="_images/flowchart_installPlatoSimFromSource.png" class="align-center" src="_images/flowchart_installPlatoSimFromSource.png" width="600" />
-</a>
-<div class="admonition-overview-of-procedure-to-download-update-and-build-platosim admonition">
-<p class="admonition-title">Overview of procedure to download, update, and build PlatoSim</p>
+<p>This page explains how to download, build, and install PlatoSim from its source code. Follow this route if you want to
+change the code or contribute to it, or if the <a class="reference internal" href="install_conda.html"><span class="doc">Conda installation</span></a> is not available for your
+system. The page has three parts:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#install-source-prerequisites"><span class="std std-ref">Prerequisites</span></a>: needed to download and update PlatoSim.</p></li>
-<li><p><a class="reference internal" href="#install-source-forking"><span class="std std-ref">Forking &amp; cloning the repository</span></a>: for first-time installation on your local machine.</p></li>
-<li><p><a class="reference internal" href="#install-source-dependencies"><span class="std std-ref">Dependencies</span></a>: required for running PlatoSim.</p></li>
-<li><p><a class="reference internal" href="#install-source-build"><span class="std std-ref">Building the code</span></a>: related to the C++ code.</p></li>
-<li><p><a class="reference internal" href="#install-source-remote"><span class="std std-ref">Remote repositories</span></a>: to configure your GitHub setup.</p></li>
-<li><p><a class="reference internal" href="#install-source-update"><span class="std std-ref">Update procedure</span></a>: to get the latest version of the code (from upstream).</p></li>
-<li><p><a class="reference internal" href="#install-source-contribute"><span class="std std-ref">Contributing to the code</span></a>: by transfering your local changes to the upstream repo.</p></li>
-<li><p><a class="reference internal" href="#install-source-branching"><span class="std std-ref">Branching strategy</span></a>: which is used in PlatoSim.</p></li>
-<li><p><a class="reference internal" href="#install-source-python"><span class="std std-ref">Python packages</span></a>: to install if running PlatoSim with Python.</p></li>
+<li><p><a class="reference internal" href="#install-source-prerequisites"><span class="std std-ref">Install PlatoSim</span></a> (steps 1 to 6)</p></li>
+<li><p><a class="reference internal" href="#install-source-update"><span class="std std-ref">Keep your installation up to date</span></a></p></li>
+<li><p><a class="reference internal" href="#install-source-contribute"><span class="std std-ref">Contribute to the code</span></a></p></li>
+</ul>
+<hr><section id="step-1-check-the-requirements">
+<span id="install-source-prerequisites"></span><h2><em>Step 1: Check the requirements</em><a class="headerlink" href="#step-1-check-the-requirements" title="Link to this heading"></a></h2>
+<p>Make sure that all software listed in the <a class="reference internal" href="install_overview.html#install-overview-requirements"><span class="std std-ref">requirements</span></a> is installed, in
+particular a C++14 compiler and <strong>CMake 3.26 or more recent</strong>. You can check the versions with:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>gcc<span class="w"> </span>--version<span class="w">      </span><span class="c1"># or: clang --version</span>
+cmake<span class="w"> </span>--version
+uv<span class="w"> </span>--version
+</pre></div>
+</div>
+<div class="admonition-want-to-use-a-different-compiler admonition">
+<p class="admonition-title">Want to use a different compiler?</p>
+<p>To build with a compiler other than the system default, export the variables <code class="docutils literal notranslate"><span class="pre">CC</span></code> and <code class="docutils literal notranslate"><span class="pre">CXX</span></code> before you build,
+for example:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span>gcc-14
+<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span>g++-14
+</pre></div>
+</div>
+</div>
+<hr></section>
+<section id="step-2-download-the-code">
+<span id="install-source-forking"></span><h2><em>Step 2: Download the code</em><a class="headerlink" href="#step-2-download-the-code" title="Link to this heading"></a></h2>
+<p>Download the source code with Git. This creates a directory called <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/IvS-KULeuven/PlatoSim3.git
+<span class="nb">cd</span><span class="w"> </span>PlatoSim3
+</pre></div>
+</div>
+<p>You now have the <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch, which contains the latest development version. To use the latest stable release
+instead, switch to the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch (see <a class="reference internal" href="#install-source-branching"><span class="std std-ref">Branches and releases</span></a>):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>master
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you plan to contribute to PlatoSim, clone your own <em>fork</em> of the repository instead. See <a class="reference internal" href="#install-source-contribute"><span class="std std-ref">Contribute to the
+code</span></a>.</p>
+</div>
+<hr></section>
+<section id="step-3-build-platosim">
+<span id="install-source-dependencies"></span><h2><em>Step 3: Build PlatoSim</em><a class="headerlink" href="#step-3-build-platosim" title="Link to this heading"></a></h2>
+<p>PlatoSim uses a number of C++ libraries (HDF5, yaml-cpp, Armadillo, FFTW, Faddeeva, and ZeroMQ). They are included in
+the <code class="docutils literal notranslate"><span class="pre">dependencies/</span></code> directory, so you do not have to download them yourself. The script <code class="docutils literal notranslate"><span class="pre">install.sh</span></code> builds these
+libraries and then PlatoSim itself. From the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory, run:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./install.sh<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p>This takes a while, because all libraries are compiled from source. The option <code class="docutils literal notranslate"><span class="pre">-j</span></code> sets how many files are compiled
+in parallel (4 if you leave it out). Set it to the number of CPU cores of your computer (<code class="docutils literal notranslate"><span class="pre">nproc</span></code> on Linux,
+<code class="docutils literal notranslate"><span class="pre">sysctl</span> <span class="pre">-n</span> <span class="pre">hw.ncpu</span></code> on macOS) to speed up the build. As an indication, the full build takes about 13 minutes on a
+Linux computer with <code class="docutils literal notranslate"><span class="pre">-j</span> <span class="pre">4</span></code>.
+The script stops as soon as something fails. When it finishes successfully, the simulator is available as
+<code class="docutils literal notranslate"><span class="pre">build/platosim</span></code>.</p>
+<div class="admonition-the-build-fails admonition">
+<p class="admonition-title">The build fails?</p>
+<ul>
+<li><p>Check that your CMake and compiler meet the <a class="reference internal" href="install_overview.html#install-overview-requirements"><span class="std std-ref">requirements</span></a>. An old CMake is
+the most common cause.</p></li>
+<li><p>Build the libraries one by one to find out which one fails (run these from the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory). Each
+script compiles 4 files in parallel; to change that, first run e.g. <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">INSTALL_NUM_THREADS=8</span></code>.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>./dependencies/installscripts/install_hdf5.py
+python3<span class="w"> </span>./dependencies/installscripts/install_yaml.py
+python3<span class="w"> </span>./dependencies/installscripts/install_armadillo.py
+python3<span class="w"> </span>./dependencies/installscripts/install_fftw.py
+python3<span class="w"> </span>./dependencies/installscripts/install_faddeeva.py
+python3<span class="w"> </span>./dependencies/installscripts/install_zeromq.py
+</pre></div>
+</div>
+</li>
+<li><p>Still stuck? <a class="reference internal" href="basic_troubleshooting.html"><span class="doc">Open an issue</span></a> and attach the full output of the build, which you can
+save with <code class="docutils literal notranslate"><span class="pre">./install.sh</span> <span class="pre">&gt;</span> <span class="pre">output.txt</span> <span class="pre">2&gt;</span> <span class="pre">errors.txt</span></code>.</p></li>
 </ul>
 </div>
-<hr><section id="prerequisites">
-<span id="install-source-prerequisites"></span><h2><em>Prerequisites</em><a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h2>
-<p><strong>Git</strong></p>
-<p>The PlatoSim code is under version control in GitHub. To be able to get the latest version of the code on your local
-machine and to share possible contributions with other people in the project, you need to install Git on your computer.
-Installation instructions can be found in the <a class="reference external" href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">Git reference documentation</a>.</p>
-<a class="reference internal image-reference" href="_images/logo_git.png"><img alt="Alternative text" class="align-center" src="_images/logo_git.png" width="200" />
-</a>
-<p><strong>GitHub</strong></p>
-<p>The PlatoSim code is located in a <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">public repository on GitHub</a>.
-If you have not done so already, you can make an <a class="reference external" href="https://github.com/">account on GitHub</a> for free.</p>
-<a class="reference internal image-reference" href="_images/logo_github.png"><img alt="Alternative text" class="align-center" src="_images/logo_github.png" width="300" />
-</a>
-<p><strong>Installed software packages</strong></p>
-<p>To be able to install the dependencies and build the code, the following software must be installed on your computer:</p>
-<ul class="simple">
-<li><p>A C++14 compiler: <a class="reference external" href="https://gcc.gnu.org/">gcc</a> v5.1 or more recent, or <a class="reference external" href="https://clang.llvm.org/">clang</a> v3.4 or more recent</p></li>
-<li><p><a class="reference external" href="https://cmake.org/">CMake</a> v3.5 or more recent: cross-platform open-source build system to control the software compilation process
-(using simple platform and compiler independent configuration files)</p></li>
-<li><p>Python 3: the scripts that install the dependencies are written in Python</p></li>
-<li><p><a class="reference external" href="http://www.openblas.net/">BLAS</a> and <a class="reference external" href="https://netlib.org/lapack/">LAPACK</a>. Without these, the simulator will
-likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything).
-Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install
-them.</p></li>
-</ul>
-<div class="admonition-want-to-change-the-system-default-compiler admonition">
-<p class="admonition-title">Want to change the system default compiler?</p>
-<p>If you want to use a different compiler than the system default to build the code, you have to export two additional
-environment variables, CXX and CC, as follows:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span>g++-5
-<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span>gcc-5
-</pre></div>
-</div>
-<p>where you may want to adapt the right-hand side of these two lines to the compiler (version) of your choice.</p>
-</div>
 <hr></section>
-<section id="forking-cloning">
-<span id="install-source-forking"></span><h2><em>Forking &amp; Cloning</em><a class="headerlink" href="#forking-cloning" title="Link to this heading"></a></h2>
-<p>The PlatoSim repository can be found on the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">IvS-KULeuven GitHub pages</a>.
-This repository is referred to as <em>upstream</em>. This section describes the process shown in the diagram below.</p>
-<a class="reference internal image-reference" href="_images/github_forkAndClone.png"><img alt="Alternative text" class="align-center" src="_images/github_forkAndClone.png" width="900" />
-</a>
-<p><strong>Fork</strong></p>
-<p>To be able to not only use the code but also to contribute to it, you have to <em>fork</em> this repository. To do this, you
-have to go to the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">upstream GitHub page</a>, shown in the figure below. Just
-press the <code class="docutils literal notranslate"><span class="pre">Fork</span></code> button at the top right (encircled in red in the screenshot above) and follow the instructions. Your
-personal copy of the PlatoSim repository will then show up on your personal GitHub pages. This copy is referred to as
-<em>origin</em>.</p>
-<a class="reference internal image-reference" href="_images/github_forkPlatoSim.png"><img alt="Alternative text" class="align-center" src="_images/github_forkPlatoSim.png" width="900" />
-</a>
-<p><strong>Clone</strong></p>
-<p>From there you can <em>clone</em> it to a designated directory on your local machine. The following command will download the
-source code folder called <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code>:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/&lt;your-GitHub-username&gt;/PlatoSim3.git
-</pre></div>
-</div>
-<p>It is possible that you will be asked for a username and password. In that case, follow the section <em>GitHub credentials</em> below.</p>
-<p>After you have downloaded PlatoSim’s source code, you first have to install a few packages (so-called dependencies)
-before you can actually build and run PlatoSim (<a class="reference internal" href="#install-source-dependencies"><span class="std std-ref">see next section</span></a>).</p>
-<p>Note that it is also possible to clone the repository directly onto your local machine, without forking it first. Doing
-so you will be able to update the software but not to contribute to it, hence, we strongly discourage this approach. If
-you only want to use PlatoSim (without changing the code), you may want to follow the <a class="reference internal" href="install_conda.html"><span class="doc">user installation procedure</span></a> instead.</p>
-<p><strong>GitHub credentials</strong></p>
-<p>When cloning the repository to your local machine your GitHub username and <a class="reference external" href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token">personal access tokens</a>
-will be needed. If you want your machine to remember these in the future, write the following command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>config<span class="w"> </span>credential.helper<span class="w"> </span>store
-</pre></div>
-</div>
-<p>PlatoSim can then be cloned to your local machine using the command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://<span class="s2">"&lt;USERNAME&gt;:&lt;ACCESS_TOKEN&gt;"</span>@github.com/&lt;your-GitHub-username&gt;/PlatoSim3.git
-</pre></div>
-</div>
-<hr></section>
-<section id="dependencies">
-<span id="install-source-dependencies"></span><h2><em>Dependencies</em><a class="headerlink" href="#dependencies" title="Link to this heading"></a></h2>
-<p>PlatoSim relies on a number software packages, which are all included in the PlatoSim distribution for your convenience. Everything concerning the dependencies (HDF5, yaml-cpp, Armadillo, FFTW, Faddeeva, and ZeroMQ) can be found in the <code class="docutils literal notranslate"><span class="pre">dependencies/</span></code> directory. The <code class="docutils literal notranslate"><span class="pre">dependencies/Downloads</span></code> sub-directory contains the tarball or zipball file of all required packages. In the <code class="docutils literal notranslate"><span class="pre">dependencies/installscripts</span></code> sub-directory you can find Python scripts that help you to unzip or untar these files into the <code class="docutils literal notranslate"><span class="pre">dependencies/Installs</span></code> directory.</p>
-<p>You can install all the required dependencies and build the code in one go by typing (from the PlatoSim3 directory):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./install.sh
-</pre></div>
-</div>
-<p>Running this script will create the <code class="docutils literal notranslate"><span class="pre">platosim</span></code> executable (in the <code class="docutils literal notranslate"><span class="pre">build/</span></code> directory) needed to run simulations from bash. The script stops as soon as one of the dependencies fails to install. By default it compiles with 4 parallel jobs; use the <code class="docutils literal notranslate"><span class="pre">-j</span></code> option to change this, e.g.:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./install.sh<span class="w"> </span>-j<span class="w"> </span><span class="m">8</span>
-</pre></div>
-</div>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
-<p>If problems would arise when executing the <code class="docutils literal notranslate"><span class="pre">./install.sh</span></code> command, we recommend to install the dependencies one-by-one to pinpoint the problem. Hence, copy-and-paste and run each of the following commands (also from the PlatoSim3 directory):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>./dependencies/installscripts/install_hdf5.py
-python<span class="w"> </span>./dependencies/installscripts/install_yaml.py
-python<span class="w"> </span>./dependencies/installscripts/install_armadillo.py
-python<span class="w"> </span>./dependencies/installscripts/install_fftw.py
-python<span class="w"> </span>./dependencies/installscripts/install_faddeeva.py
-python<span class="w"> </span>./dependencies/installscripts/install_zeromq.py
-</pre></div>
-</div>
-<p><strong>Still experiencing problems?</strong></p>
-<p>If you are still experiencing problems with the installation above, <a class="reference internal" href="basic_troubleshooting.html"><span class="doc">please raise an issue</span></a>! It’s convenient if you can send us the full error log, which you can get using the command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./install.sh<span class="w"> </span>&gt;<span class="w"> </span>output.txt<span class="w"> </span><span class="m">2</span>&gt;<span class="w"> </span>errors.txt
-</pre></div>
-</div>
-</div>
-<hr></section>
-<section id="building-the-code">
-<span id="install-source-build"></span><h2><em>Building the code</em><a class="headerlink" href="#building-the-code" title="Link to this heading"></a></h2>
-<p><strong>Software changes</strong></p>
-<p>In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself), or in case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. From the directory <code class="docutils literal notranslate"><span class="pre">/build</span></code> type:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>..
-make<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
-</pre></div>
-</div>
-<p><strong>Updated dependencies</strong></p>
-<p>At some stage, we will want to update (some of) the dependencies. You will be notified by the developer team in case this happens. You will then have to:</p>
-<ul class="simple">
-<li><p>Clear the <code class="docutils literal notranslate"><span class="pre">dependencies/Installs</span></code> directory</p></li>
-<li><p>Run the install script again (see <a class="reference internal" href="#install-source-dependencies"><span class="std std-ref">Dependencies</span></a>)</p></li>
-</ul>
-<p><strong>Switching between branches</strong></p>
-<p>As you can read <a class="reference internal" href="#install-source-branching"><span class="std std-ref">here</span></a>, we don’t just use the master branch. If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.</p>
-<hr></section>
-<section id="remote-repositories">
-<span id="install-source-remote"></span><h2><em>Remote repositories</em><a class="headerlink" href="#remote-repositories" title="Link to this heading"></a></h2>
-<p>To <em>pull</em> or <em>fetch</em> the latest version of the upstream software into your local copy (we’ll come back to this) we advise you to add <em>upstream</em> to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>remote<span class="w"> </span>-v
-</pre></div>
-</div>
-<p>This should give output similar to this:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>origin<span class="w">    </span>https://github.com/&lt;your<span class="w"> </span>GitHub<span class="w"> </span>username&gt;/PlatoSim3.git<span class="w"> </span><span class="o">(</span>fetch<span class="o">)</span>
-origin<span class="w">    </span>https://github.com/&lt;your<span class="w"> </span>GitHub<span class="w"> </span>username&gt;/PlatoSim3.git<span class="w"> </span><span class="o">(</span>push<span class="o">)</span>
-upstream<span class="w">  </span>https://github.com/IvS-KULeuven/PlatoSim3.git<span class="w"> </span><span class="o">(</span>fetch<span class="o">)</span>
-upstream<span class="w">  </span>https://github.com/IvS-KULeuven/PlatoSim3.git<span class="w"> </span><span class="o">(</span>push<span class="o">)</span>
-</pre></div>
-</div>
-<p>If there’s no sign of the upstream (the last two lines), you can add it with the following command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/IvS-KULeuven/PlatoSim3.git
-</pre></div>
-</div>
-<p>In case you pointed upstream to the wrong location (i.e. you used the command from above with the wrong link), you can undo this by executing the following command in the the installation folder (or one of its sub-folders):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>remote<span class="w"> </span>rm<span class="w"> </span>upstream
-</pre></div>
-</div>
-<hr></section>
-<section id="update-procedure">
-<span id="install-source-update"></span><h2><em>Update procedure</em><a class="headerlink" href="#update-procedure" title="Link to this heading"></a></h2>
-<p>In the course of the development process, the code in the upstream repository will be updated. The <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch will always contain the latest version of the code, whereas the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch is (supposed to be) stable and well-tested. The workflow is shown schematically in the figure below.</p>
-<a class="reference internal image-reference" href="_images/github_pullAndPush.png"><img alt="_images/github_pullAndPush.png" class="align-center" src="_images/github_pullAndPush.png" width="900" />
-</a>
-<p>To get the latest version on your local machine, execute the following command for the <code class="docutils literal notranslate"><span class="pre">develop</span></code> and <code class="docutils literal notranslate"><span class="pre">master</span></code> branch, respectively:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>develop
-git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>master
-</pre></div>
-</div>
-<p>Note that this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the <code class="docutils literal notranslate"><span class="pre">/inputfiles</span></code> and the <code class="docutils literal notranslate"><span class="pre">/build</span></code> folder, where you can add files.</p>
-<p>Please note that you have to re-build the code each time you fetch (C++) software changes. How to do this is explained <a class="reference internal" href="#install-source-build"><span class="std std-ref">here</span></a>.</p>
-<hr></section>
-<section id="contribute-to-the-code">
-<span id="install-source-contribute"></span><h2><em>Contribute to the code</em><a class="headerlink" href="#contribute-to-the-code" title="Link to this heading"></a></h2>
-<p>The workflow to contribute to PlatoSim is shown schematically in the figure below. We assume you already went through the procedure to use the code. Do not forget to bring your local repository in line with the upstream.</p>
-<a class="reference internal image-reference" href="_images/github_pushPullRequest.png"><img alt="_images/github_pushPullRequest.png" class="align-center" src="_images/github_pushPullRequest.png" width="900" />
-</a>
-<p><strong>Pushing your changes</strong></p>
-<p>If you have made local changes to some files that are already under version control or you have added new files, and you want to transfer these changes to the <code class="docutils literal notranslate"><span class="pre">origin</span></code> repository, you must first <em>stage</em> these files and then <em>commit</em> them.</p>
-<p>Staging a file can be done with the command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>add<span class="w"> </span>&lt;relative/path/to/file&gt;
-</pre></div>
-</div>
-<p>To inspect the status of the files in your local repository, execute the following command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>status
-</pre></div>
-</div>
-<p>To <em>commit</em> all staged files, execute the following command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"&lt;commit-message&gt;"</span>
-</pre></div>
-</div>
-<p>We advise you not to squeeze too much into one commit and to write clear commit messages. Before pushing your commit(s) you shall always fetch the upstream and merge potential changes (and perhaps resolve merge conflicts) before pushing your changes to your personal GitHub repository. This can be done using:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>fetch<span class="w"> </span>upstream
-git<span class="w"> </span>merge<span class="w"> </span>upstream/develop
-</pre></div>
-</div>
-<p>You can now transfer the committed changes to the origin repository with the command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>develop
-</pre></div>
-</div>
-<p>To further transfer these changes to the upstream repository, you must open a pull request (see below). Alternatively, you can use a <em>Graphical Git Clients</em> to perform the steps described above. An overview of the possibilities can be found <a class="reference external" href="https://git-scm.com/downloads/guis">here</a>.</p>
-<p><strong>Pull requests</strong></p>
-<p>Now that you have <em>pushed</em> your changes to the <code class="docutils literal notranslate"><span class="pre">origin</span></code> repository, you want your changes to be incorporated into the <code class="docutils literal notranslate"><span class="pre">upstream</span></code> repository, so other people can benefit from your efforts. To do this, go to the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">upstream GitHub page</a> and just select the <code class="docutils literal notranslate"><span class="pre">Pull</span> <span class="pre">requests</span></code> tab at the top (encircled in red in the screenshot below).</p>
-<a class="reference internal image-reference" href="_images/github_pullRequest.png"><img alt="_images/github_pullRequest.png" class="align-center" src="_images/github_pullRequest.png" width="900" />
-</a>
-<p>From there you can open a new pull request by pressing the green <code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">pull</span> <span class="pre">request</span></code> button. Select <code class="docutils literal notranslate"><span class="pre">compare</span> <span class="pre">across</span> <span class="pre">forks</span></code>, and then you can compare the upstream repository (on the left-hand side in the screenshot below) and the origin repository (on the right-hand side in the screenshot below). You will get an overview of the differences between the two.</p>
-<a class="reference internal image-reference" href="_images/github_compareAcrossForks.png"><img alt="_images/github_compareAcrossForks.png" class="align-center" src="_images/github_compareAcrossForks.png" width="900" />
-</a>
-<p>To confirm you want to open a pull request, press the green <code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">pull</span> <span class="pre">request</span></code> button and fill out the required information. The development team will review the changes, and accept or reject the request.</p>
-<hr></section>
-<section id="branching-strategy">
-<span id="install-source-branching"></span><h2><em>Branching strategy</em><a class="headerlink" href="#branching-strategy" title="Link to this heading"></a></h2>
-<p>We have adopted the branching strategy of Vincent Driessen, which means that the following two branches will be used permanently:</p>
-<ul class="simple">
-<li><p>The master branch, with the stable (i.e. tested) code, which is considered safe to use</p></li>
-<li><p>The develop branch, with the latest development, which might be (highly) experimental at times (use at your own risk).</p></li>
-</ul>
-<p><strong>Branches</strong></p>
-<p>To switch to a specific branch, use the command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>&lt;branch-name&gt;
-</pre></div>
-</div>
-<p>To grab all branches and get an overview, use the following commands:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>fetch
-git<span class="w"> </span>branch
-</pre></div>
-</div>
-<p>The first command pulls all remote branches (not only the one you are currently working on) and the second command gives you an overview of all branches you have on your system.</p>
-<p><strong>Release candidates and releases</strong></p>
-<p>Release candidates and releases correspond to tagged versions of the master branch. To start using a specific release or release candidate, you have to check out the version of the master branch with a specific tag to a new branch, like this:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>&lt;new-branch-name&gt;<span class="w"> </span>&lt;tag-name&gt;
-</pre></div>
-</div>
-<p>We will send around the tag name for new release candidates and releases once they become available. To get an overview of the available tags, use</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>tag<span class="w"> </span>-l
-</pre></div>
-</div>
-<p><strong>Switching between branches</strong></p>
-<p>If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described in <a class="reference internal" href="#install-source-build"><span class="std std-ref">Building the Code</span></a>.</p>
-<hr></section>
-<section id="python-packages">
-<span id="install-source-python"></span><h2><em>Python packages</em><a class="headerlink" href="#python-packages" title="Link to this heading"></a></h2>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>PlatoSim’s Python distribution requires <strong>Python 3.12 or more recent</strong>. We use <a class="reference external" href="https://docs.astral.sh/uv/">uv</a> to manage the Python environment and packages. Older PlatoSim versions used Poetry, which is no longer supported.</p>
-</div>
-<p><strong>Install uv</strong></p>
-<p>Install uv by following <a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv’s documentation</a>, e.g.:</p>
+<section id="step-4-install-the-python-packages">
+<span id="install-source-python"></span><h2><em>Step 4: Install the Python packages</em><a class="headerlink" href="#step-4-install-the-python-packages" title="Link to this heading"></a></h2>
+<p>PlatoSim’s Python interface needs Python 3.12 or 3.13 (3.12 recommended), and a number of Python packages. We use <a class="reference external" href="https://docs.astral.sh/uv/">uv</a> to install them. If you do not have uv yet, install it by following <a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv’s documentation</a>, for example:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
 </pre></div>
 </div>
-<p>You do not need to install Python yourself: uv downloads a suitable Python version if none is found on your system.</p>
-<p><strong>Install Python packages</strong></p>
-<p>Move to the base of the PlatoSim repository and install the Python packages with:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
+<p>You do not need to install Python yourself: uv downloads Python 3.12 if needed. From the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory,
+run:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
 </pre></div>
 </div>
-<p>This creates a virtual environment in the <code class="docutils literal notranslate"><span class="pre">.venv</span></code> directory of the repository and installs the default package distribution of PlatoSim, which is sufficient for running the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/develop/docs/tutorials">Jupyter notebook tutorials</a> and to use most of PlatoSim’s Python modules for scripting. Activate the environment before using PlatoSim’s Python interface:</p>
+<p>This creates a virtual environment in the directory <code class="docutils literal notranslate"><span class="pre">PlatoSim3/.venv</span></code> and installs PlatoSim’s Python package
+together with everything needed for the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/develop/docs/tutorials">Jupyter notebook tutorials</a>. Activate this environment whenever you use
+PlatoSim from Python:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </pre></div>
 </div>
-<p>Alternatively, prefix your commands with <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">jupyter</span> <span class="pre">notebook</span></code>) to run them inside the environment without activating it.</p>
-<p><strong>Optional dependency groups</strong></p>
-<p>Additional packages are organised in <em>dependency groups</em> in the file <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/pyproject.toml">pyproject.toml</a>:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">picsim</span></code>: querying star catalogues (used by <code class="docutils literal notranslate"><span class="pre">picsim</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">varsim</span></code>: simulating variable sources (used by <code class="docutils literal notranslate"><span class="pre">varsim</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">platonium</span></code>: the <a class="reference internal" href="platonium_overview.html"><span class="doc">PLATOnium toolkit</span></a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pipeline</span></code>: the PLATOnium L1 pipeline setup</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tools</span></code>: the HDF5 viewer <a class="reference external" href="https://pypi.org/project/argos/">argos</a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">docs</span></code>: Sphinx packages needed to modify this documentation (see <code class="docutils literal notranslate"><span class="pre">sphinx</span></code> branch)</p></li>
-</ul>
-<p>Install one or more groups with <code class="docutils literal notranslate"><span class="pre">--group</span></code>, or all of them with <code class="docutils literal notranslate"><span class="pre">--all-groups</span></code>:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>tools<span class="w"> </span>--group<span class="w"> </span>docs
-uv<span class="w"> </span>sync<span class="w"> </span>--all-groups
+<p>Alternatively, put <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span></code> in front of a command to run it inside the environment without activating it (e.g.
+<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">jupyter</span> <span class="pre">notebook</span></code>).</p>
+<p id="install-source-groups"><strong>Optional dependency groups</strong></p>
+<p>Extra packages are organised in <em>dependency groups</em> in the file <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/pyproject.toml">pyproject.toml</a>:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Group</p></th>
+<th class="head"><p>What it is for</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">picsim</span></code></p></td>
+<td><p>Querying star catalogues with <code class="docutils literal notranslate"><span class="pre">picsim</span></code> (PLATOnium)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">varsim</span></code></p></td>
+<td><p>Simulating variable sources with <code class="docutils literal notranslate"><span class="pre">varsim</span></code> (PLATOnium)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">platonium</span></code></p></td>
+<td><p>The <a class="reference internal" href="platonium_overview.html"><span class="doc">PLATOnium toolkit</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pipeline</span></code></p></td>
+<td><p>The PLATOnium L1 pipeline setup</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tools</span></code></p></td>
+<td><p>The HDF5 viewer <a class="reference external" href="https://pypi.org/project/argos/">argos</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">docs</span></code></p></td>
+<td><p>Building this documentation (see the <code class="docutils literal notranslate"><span class="pre">sphinx</span></code> branch)</p></td>
+</tr>
+</tbody>
+</table>
+<p>Add groups with <code class="docutils literal notranslate"><span class="pre">--group</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12<span class="w"> </span>--group<span class="w"> </span>tools<span class="w"> </span>--group<span class="w"> </span>docs
 </pre></div>
 </div>
-<p>Note that <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span></code> removes packages that are not requested, so always list all the groups you need. Since the lock file (<code class="docutils literal notranslate"><span class="pre">uv.lock</span></code>) is not part of the repository, uv resolves the newest compatible package versions on your machine.</p>
-<p><strong>Running the validation suite</strong></p>
-<p>As a good practice in software building, PlatoSim has an automated test harness consisting of a collection of modules and test data configured to validate the software unit. Hence, as a developer, the test harness is a mandatory sanity check before you push code and open a pull request.</p>
-<p>In order to be able to run the test harness, you must first build the code and <a class="reference internal" href="run_prerequisites.html"><span class="doc">export the required environment variables</span></a>. From the PlatoSim3 directory, simply run the command:</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span></code> removes every package that you do not ask for. Always list <em>all</em> the groups you need in one command;
+running <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span> <span class="pre">--group</span> <span class="pre">tools</span></code> and then <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span> <span class="pre">--group</span> <span class="pre">docs</span></code> leaves you with only the <code class="docutils literal notranslate"><span class="pre">docs</span></code> group.</p>
+</div>
+<hr></section>
+<section id="step-5-set-the-environment-variables">
+<span id="install-source-variables"></span><h2><em>Step 5: Set the environment variables</em><a class="headerlink" href="#step-5-set-the-environment-variables" title="Link to this heading"></a></h2>
+<p>PlatoSim needs to know where it is installed, and your shell needs to find the <code class="docutils literal notranslate"><span class="pre">platosim</span></code> executable. Run the
+following commands from the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory. The working directory <code class="docutils literal notranslate"><span class="pre">$HOME/platosim_workdir</span></code> is an example;
+choose any directory outside <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> for your own files (see <a class="reference internal" href="run_prerequisites.html"><span class="doc">Prerequisites</span></a>).</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_WORKDIR</span><span class="o">=</span><span class="nv">$HOME</span>/platosim_workdir
+<span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PLATO_PROJECT_HOME</span>/build:<span class="nv">$PATH</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
+</pre></div>
+</div>
+<p>These variables only last until you close the terminal. To set them permanently, add the three <code class="docutils literal notranslate"><span class="pre">export</span></code> lines to
+your shell start-up file: <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> for bash (the default on Linux) or <code class="docutils literal notranslate"><span class="pre">~/.zshrc</span></code> for zsh (the default on
+macOS). In that file, replace <code class="docutils literal notranslate"><span class="pre">$(pwd)</span></code> by the full path to your <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory, e.g.
+<code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">PLATO_PROJECT_HOME=$HOME/PlatoSim3</span></code>.</p>
+<hr></section>
+<section id="step-6-check-the-installation">
+<span id="install-source-verify"></span><h2><em>Step 6: Check the installation</em><a class="headerlink" href="#step-6-check-the-installation" title="Link to this heading"></a></h2>
+<p>Both of the following commands should run without errors:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>-version
+uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import platosim"</span>
+</pre></div>
+</div>
+<p>You are ready to <a class="reference internal" href="run_simulations.html"><span class="doc">run your first simulation</span></a>.</p>
+<hr></section>
+<section id="keep-your-installation-up-to-date">
+<span id="install-source-update"></span><h2><em>Keep your installation up to date</em><a class="headerlink" href="#keep-your-installation-up-to-date" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch is updated regularly; the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch is updated at each release. To get the latest
+version of the branch you are on, go to the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory and run:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>pull
+</pre></div>
+</div>
+<p>If you cloned your fork, pull from the main repository instead, e.g. <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">develop</span></code> (see
+<a class="reference internal" href="#install-source-contribute"><span class="std std-ref">Contribute to the code</span></a>). After pulling, update your installation:</p>
+<p id="install-source-build"><strong>Rebuild PlatoSim</strong> after every update of the C++ code. This does not rebuild the bundled libraries, so it is much
+faster than <code class="docutils literal notranslate"><span class="pre">install.sh</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>build
+cmake<span class="w"> </span>..
+make<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
+<span class="nb">cd</span><span class="w"> </span>..
+</pre></div>
+</div>
+<p><strong>Update the Python packages</strong>, in case <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> changed (list the same groups as before):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.12
+</pre></div>
+</div>
+<p><strong>When the bundled libraries change</strong> (we announce this in the release notes), remove the old libraries and run the
+full installation again:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>rm<span class="w"> </span>-rf<span class="w"> </span>dependencies/Installs
+./install.sh
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> only works smoothly if you have not changed any of the files that are tracked by Git. Keep your own
+configuration files and simulations in your working directory (<code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code>), not inside <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code>.</p>
+</div>
+<p id="install-source-branching"><strong>Branches and releases</strong></p>
+<p>PlatoSim uses two permanent branches:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">master</span></code>: the latest stable release, which is tested and safe to use;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">develop</span></code>: the latest development version, which may be experimental at times.</p></li>
+</ul>
+<p>Releases are tagged on the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch (e.g. <code class="docutils literal notranslate"><span class="pre">3.8.0</span></code>). List the available releases with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-l</span></code>, or see
+the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tags">releases on GitHub</a>. To switch to a branch or a release, use
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span></code>, for example:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>master<span class="w">         </span><span class="c1"># latest stable release</span>
+git<span class="w"> </span>checkout<span class="w"> </span>develop<span class="w">        </span><span class="c1"># latest development version</span>
+git<span class="w"> </span>checkout<span class="w"> </span><span class="m">3</span>.8.0<span class="w">          </span><span class="c1"># a specific release</span>
+</pre></div>
+</div>
+<p>After switching, <a class="reference internal" href="#install-source-build"><span class="std std-ref">rebuild PlatoSim</span></a> and run <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span> <span class="pre">--python</span> <span class="pre">3.12</span></code> again.</p>
+<hr></section>
+<section id="contribute-to-the-code">
+<span id="install-source-contribute"></span><h2><em>Contribute to the code</em><a class="headerlink" href="#contribute-to-the-code" title="Link to this heading"></a></h2>
+<p>We welcome contributions through pull requests on GitHub. You need a free <a class="reference external" href="https://github.com/">GitHub account</a>.</p>
+<p><strong>1. Fork and clone the repository</strong></p>
+<p>Go to the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">PlatoSim repository</a> and press the <code class="docutils literal notranslate"><span class="pre">Fork</span></code> button at the top
+right. This creates your own copy of the repository on GitHub, called your <em>fork</em> (or <em>origin</em>). The main repository
+is called <em>upstream</em>.</p>
+<a class="reference internal image-reference" href="_images/github_forkAndClone.png"><img alt="The upstream repository is forked to your GitHub account (origin), which you clone to your computer." class="align-center" src="_images/github_forkAndClone.png" width="900" />
+</a>
+<p>Clone your fork (instead of the main repository, see <a class="reference internal" href="#install-source-forking"><span class="std std-ref">Step 2</span></a>) and connect it to the
+main repository:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/&lt;your-GitHub-username&gt;/PlatoSim3.git
+<span class="nb">cd</span><span class="w"> </span>PlatoSim3
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/IvS-KULeuven/PlatoSim3.git
+</pre></div>
+</div>
+<p>Check the result with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">remote</span> <span class="pre">-v</span></code>, which should list both <code class="docutils literal notranslate"><span class="pre">origin</span></code> (your fork) and <code class="docutils literal notranslate"><span class="pre">upstream</span></code>. Then continue
+with <a class="reference internal" href="#install-source-dependencies"><span class="std std-ref">Step 3</span></a> to build PlatoSim.</p>
+<p>To push to GitHub, Git needs to know who you are. The easiest options are to <a class="reference external" href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh">connect with SSH</a> or to log in with the <a class="reference external" href="https://cli.github.com/">GitHub CLI</a> (<code class="docutils literal notranslate"><span class="pre">gh</span> <span class="pre">auth</span> <span class="pre">login</span></code>).</p>
+<p><strong>2. Make your changes on a new branch</strong></p>
+<p>Start from the latest <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch of the main repository and create a branch for your work:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>develop
+git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>develop
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>&lt;short-description-of-your-change&gt;
+</pre></div>
+</div>
+<p>Make your changes, then <em>stage</em> and <em>commit</em> them. Keep each commit focused and write a clear commit message:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>status<span class="w">                       </span><span class="c1"># see which files changed</span>
+git<span class="w"> </span>add<span class="w"> </span>&lt;path/to/changed/file&gt;
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"&lt;what you changed and why&gt;"</span>
+</pre></div>
+</div>
+<p><strong>3. Run the validation suite</strong></p>
+<p>PlatoSim has a suite of validation tests. Run it before you open a pull request; all tests should report <code class="docutils literal notranslate"><span class="pre">Success</span></code>.
+<a class="reference internal" href="#install-source-build"><span class="std std-ref">Rebuild PlatoSim</span></a> first and make sure the <a class="reference internal" href="#install-source-variables"><span class="std std-ref">environment variables</span></a> are set. The tests also need the default mapped PSF file <code class="docutils literal notranslate"><span class="pre">PSF_Focus_0mu.hdf5</span></code> (8.9 GB)
+in the <code class="docutils literal notranslate"><span class="pre">inputfiles</span></code> directory; download it once as described under <a class="reference internal" href="run_input.html#run-input-data"><span class="std std-ref">PSF data packages</span></a>. From the
+<code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory, run:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>tests/validationTests/scripts/run.py
 </pre></div>
 </div>
+<p>The suite runs about 50 tests and takes roughly half an hour. It prints its results only when it has finished. The
+tests write about 11 GB of output to <code class="docutils literal notranslate"><span class="pre">tests/validationTests/ioFiles</span></code>, which you can delete afterwards.</p>
+<p><strong>4. Push your branch and open a pull request</strong></p>
+<p>Push your branch to your fork:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>&lt;short-description-of-your-change&gt;
+</pre></div>
+</div>
+<p>GitHub then shows a link to open a <em>pull request</em>. Alternatively, go to the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">PlatoSim repository</a>, open the <code class="docutils literal notranslate"><span class="pre">Pull</span> <span class="pre">requests</span></code> tab, press <code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">pull</span> <span class="pre">request</span></code>, and select
+<code class="docutils literal notranslate"><span class="pre">compare</span> <span class="pre">across</span> <span class="pre">forks</span></code>. Choose <code class="docutils literal notranslate"><span class="pre">develop</span></code> of <code class="docutils literal notranslate"><span class="pre">IvS-KULeuven/PlatoSim3</span></code> as the base and your branch as the compare
+branch. The development team will review your changes.</p>
+<a class="reference internal image-reference" href="_images/github_compareAcrossForks.png"><img alt="GitHub page to compare the upstream develop branch with a branch of your fork." class="align-center" src="_images/github_compareAcrossForks.png" width="900" />
+</a>
 </section>
 </section>
 

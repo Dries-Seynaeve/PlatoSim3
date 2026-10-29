@@ -101,9 +101,19 @@
              
   <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
-<p>The scheme below shows an overview of the procedure to run the PlatoSim3 software on your system. If you followed the installation procedure for developers, you have to build it in order to be able to run it. The first time you download the software and on the rare occasions we update the dependencies (i.e. software packages we use in the code and that are distributed together with the PlatoSim3 code), you will have to resolve the dependencies.</p>
-<a class="reference internal image-reference" href="_images/flowchart_howToRunPlatoSim.png"><img alt="Alternative text" class="align-center" src="_images/flowchart_howToRunPlatoSim.png" width="450" />
-</a>
+<p>Running PlatoSim always follows the same three steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Install PlatoSim</strong>, either <a class="reference internal" href="install_conda.html"><span class="doc">with Conda</span></a> or <a class="reference internal" href="install_source.html"><span class="doc">from source</span></a> (see the
+<a class="reference internal" href="install_overview.html"><span class="doc">installation overview</span></a>). When you update PlatoSim, rebuild the code (source installation
+only) and update the Python packages as described on those pages.</p></li>
+<li><p><strong>Set the environment variables</strong> that tell PlatoSim where it is installed and where your own files are (see
+<a class="reference internal" href="run_prerequisites.html"><span class="doc">Prerequisites</span></a>).</p></li>
+<li><p><strong>Run a simulation</strong>, from the command line or from Python (see <a class="reference internal" href="run_simulations.html"><span class="doc">Run simulations</span></a>). A
+simulation is configured with a YAML <a class="reference internal" href="run_input.html"><span class="doc">input file</span></a> and writes its results to an HDF5 <a class="reference internal" href="run_output.html"><span class="doc">output
+file</span></a>.</p></li>
+</ol>
+<p>The default configuration runs out of the box: you do not need to download extra data. Realistic (mapped) PSFs are
+optional and can be downloaded separately (see <a class="reference internal" href="run_input.html#run-input-data"><span class="std std-ref">PSF data packages</span></a>).</p>
 </section>
 
 
