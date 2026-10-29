@@ -847,7 +847,7 @@ void Detector::reset()
 
     rowsOfCosmicsInSmearingMap.clear();
     columnsOfCosmicsInSmearingMap.clear();
-    columnsOfCosmicsInSmearingMap.clear();
+    fluxOfCosmicsInSmearingMap.clear();
 
     rowsOfCosmicsInBiasMapLeft.clear();
     columnsOfCosmicsInBiasMapLeft.clear();
@@ -1737,6 +1737,7 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInBiasMap)
     {
         Log.debug("Detector: adding cosmic hits to bias map");
+        cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsBiasMap - 1);                                  // [pixels]
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
         const double biasMapRowLifeTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime + parallelTransferTime;
         addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft,
@@ -1958,16 +1959,21 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
                     columnsOfCosmicsMap.push_back(trailColumn);
                     fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
                 }
-
-                if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back())
-                {
-                    rowsOfCosmicsMap.push_back(trailRow);
-                    columnsOfCosmicsMap.push_back(trailColumn);
-                    fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
-                }
                 else
                 {
-                    fluxOfCosmicsMap.back() += (trailWeights(index) * intensity);
+                    // Only compare with the last record when there is one, otherwise the
+                    // first trail point would be added to the record it just created.
+
+                    if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back())
+                    {
+                        rowsOfCosmicsMap.push_back(trailRow);
+                        columnsOfCosmicsMap.push_back(trailColumn);
+                        fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
+                    }
+                    else
+                    {
+                        fluxOfCosmicsMap.back() += (trailWeights(index) * intensity);
+                    }
                 }
 
             }
@@ -3808,6 +3814,45 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 			     rowsOfCosmicsInSubField,
 			     columnsOfCosmicsInSubField,
 			     fluxOfCosmicsInSubField);
+   }
+
+   if (includeCosmicsInSmearingMap && writeCosmics)
+   {
+       hdf5File.writeCosmics(smearingCosmics,
+			     exposureNr - beginExposureNr,
+			     cosmicEntryRowSmearingMap,
+			     cosmicEntryColSmearingMap,
+			     cosmicsTrailsSmearingMap,
+			     cosmicsAnglesSmearingMap,
+			     cosmicsIntensitiesSmearingMap,
+			     rowsOfCosmicsInSmearingMap,
+			     columnsOfCosmicsInSmearingMap,
+			     fluxOfCosmicsInSmearingMap);
+   }
+
+   if (includeCosmicsInBiasMap && writeCosmics)
+   {
+       hdf5File.writeCosmics(leftBiasCosmics,
+			     exposureNr - beginExposureNr,
+			     cosmicEntryRowBiasMapLeft,
+			     cosmicEntryColBiasMapLeft,
+			     cosmicsTrailsBiasMapLeft,
+			     cosmicsAnglesBiasMapLeft,
+			     cosmicsIntensitiesBiasMapLeft,
+			     rowsOfCosmicsInBiasMapLeft,
+			     columnsOfCosmicsInBiasMapLeft,
+			     fluxOfCosmicsInBiasMapLeft);
+
+       hdf5File.writeCosmics(rightBiasCosmics,
+			     exposureNr - beginExposureNr,
+			     cosmicEntryRowBiasMapRight,
+			     cosmicEntryColBiasMapRight,
+			     cosmicsTrailsBiasMapRight,
+			     cosmicsAnglesBiasMapRight,
+			     cosmicsIntensitiesBiasMapRight,
+			     rowsOfCosmicsInBiasMapRight,
+			     columnsOfCosmicsInBiasMapRight,
+			     fluxOfCosmicsInBiasMapRight);
    }
 }
 

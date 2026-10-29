@@ -260,8 +260,23 @@ def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False
     return locs
 
 
+def makeLegendMarkersOpaque(legend):
+    """Function to make markers in legend opaque.
+    """
+    for handle in legend.legend_handles:
+        handle.set_alpha(1.0)
+        if hasattr(handle, "_legmarker"):
+            handle._legmarker.set_alpha(1.0)
 
-
+            
+def ms_scatter(n):
+    if (n <=  50): return 150
+    if (n >   50)  & (n <=   200): return 100
+    if (n >   200) & (n <=  1000): return 50
+    if (n >  1000) & (n <=  5000): return 30
+    if (n >  5000) & (n <= 10000): return 15
+    if (n > 10000) & (n <= 30000): return 10    
+    if (n > 30000): return 5
 
 #--------------------------------------------------------------#
 #                         PROJECTIONS                          #
@@ -1262,9 +1277,11 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
                  # Settings without colorbar
                  raStars=0, decStars=0, magStars=None, ms=2, aa=1, ec='k',
                  # Settings with colorbar
-                 c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
+                 c=None, clabel=None, cmap='Spectral',
+                 s=None, lw=0.1,
+                 cbarExtend='both', cbarShrink=0.8,
                  # Settings for add-ons
-                 ncamStars=False, ncamMap='PIC210',
+                 ncamStars=False, ncamMap='PIC220',
                  showGalactic=False, aa_gal=0.01,
                  showGroups=False, showFcamFOV=False,
                  # General settings
@@ -1307,24 +1324,25 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
         Axes matplotlib.pyplot handle object to be modified by the user
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
-
-    # NOTE ligo skymap is only usable with "poetry install --with platonium"
-
-    import ligo.skymap.plot
-
+    # ligo.skymap registers the sky projections used below ('astro degrees zoom', ...).
+    # It is only installed with the picsim dependency group.
+    try:
+        import ligo.skymap.plot  # noqa: F401
+    except ImportError as error:
+        raise ImportError("plotPlatoFOV() needs the package ligo.skymap: install the picsim "
+                          "dependency group (e.g. uv sync --group picsim)") from error
+    
     # Fetch N-CAM map if requested
 
-    if ncamMap == 'PIC210':
-        if pointingField not in ['LOPS2']:
-            ut.errorcode('error', 'Not valid pointing for PIC210! Choose [LOPS2]')
+    if ncamMap in ['PIC220', 'PIC210']:
+        if pointingField != 'LOPS2':
+            ut.errorcode('error', f'Not valid for PIC release {ncamMap}! Use LOPS2')
     elif ncamMap in ['PIC200', 'PLATO-CS']:
         if pointingField not in ['LOPS2', 'LOPN1']:
-            ut.errorcode('error', f'Not valid pointing for {ncamMap}! Choose [LOPS2, LOPN1]')        
-    elif ncamMap == 'PIC110':
-        if pointingField not in ['SPF', 'NPF']:
-            ut.errorcode('error', 'Not valid pointing for PIC110! Choose [SPF, NPF]')
+            ut.errorcode('error', f'Not valid PIC release {ncamMap}! Use [LOPS2, LOPN1]') 
     else:
-        ut.errorcode('error', 'Not valid N-CAM map! Choose [PIC210, PIC200, PIC110, PLATO-CS]')
+        ut.errorcode('error', f'Not valid PIC release {ncamMap}! ' +
+                     'Use [PIC220, PIC210, PIC200, PLATO-CS]')
                 
     # Select field [deg]
 
@@ -1354,7 +1372,7 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
             df = ncamStars
         else:
             idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-            if ncamMap in ['PIC210', 'PIC200', 'PIC110']:
+            if ncamMap in ['PIC220', 'PIC210', 'PIC200']:
                 df = pd.read_feather(f'{idir}/{ncamMap}_{pointingField}_targets.ftr')
             elif ncamMap == 'PLATO-CS':
                 df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
@@ -1367,44 +1385,24 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
             ncam = df.ncams
 
         # Plot sources after N-CAM visibility
-        PF06 = df[ncam == 6]
-        PF12 = df[ncam == 12]
-        PF18 = df[ncam == 18]
-        PF24 = df[ncam == 24]
-        starPF06 = SkyCoord(PF06.ra*u.deg, PF06.dec*u.deg, frame='icrs', unit='deg')
-        starPF12 = SkyCoord(PF12.ra*u.deg, PF12.dec*u.deg, frame='icrs', unit='deg')
-        starPF18 = SkyCoord(PF18.ra*u.deg, PF18.dec*u.deg, frame='icrs', unit='deg')
-        starPF24 = SkyCoord(PF24.ra*u.deg, PF24.dec*u.deg, frame='icrs', unit='deg')
-        if system == "icrs":
-            x06, y06 = starPF06.ra.deg, starPF06.dec.deg
-            x12, y12 = starPF12.ra.deg, starPF12.dec.deg
-            x18, y18 = starPF18.ra.deg, starPF18.dec.deg
-            x24, y24 = starPF24.ra.deg, starPF24.dec.deg
-        elif system == "galactic":
-            starPF06 = starPF06.transform_to(system)
-            starPF12 = starPF12.transform_to(system)
-            starPF18 = starPF18.transform_to(system)
-            starPF24 = starPF24.transform_to(system)
-            x06, y06 = starPF06.l.deg, starPF06.b.deg
-            x12, y12 = starPF12.l.deg, starPF12.b.deg
-            x18, y18 = starPF18.l.deg, starPF18.b.deg
-            x24, y24 = starPF24.l.deg, starPF24.b.deg
-        ax.plot(x06, y06, '.', c='skyblue',     transform=tax, ms=ms, zorder=1)
-        ax.plot(x12, y12, '.', c='deepskyblue', transform=tax, ms=ms, zorder=1)
-        ax.plot(x18, y18, '.', c='dodgerblue',  transform=tax, ms=ms, zorder=1)
-        ax.plot(x24, y24, '.', c='royalblue',   transform=tax, ms=ms, zorder=1)
 
+        for i,color in zip([0, 6, 12, 18, 24],
+                       ['k', 'skyblue', 'deepskyblue', 'dodgerblue', 'royalblue']):
+            if i in df.ncams.unique():
+                PF00 = df[ncam == i]
+                starPF00 = SkyCoord(PF00.ra*u.deg, PF00.dec*u.deg, frame='icrs', unit='deg')
+                if system == "icrs":
+                    x00, y00 = starPF00.ra.deg, starPF00.dec.deg
+                elif system == "galactic":
+                    starPF00 = starPF00.transform_to(system)
+                    x00, y00 = starPF00.l.deg, starPF00.b.deg
+                ax.plot(x00, y00, '.', c=color, transform=tax, ms=ms, zorder=1)
+                
     # Plot transparent layer of Galactic footprint
 
     if showGalactic:
         skip = 5
         df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
-        # if ncamMap == 'PLATO-CS': 
-        #     df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
-        #     skip = 5
-        # else:
-        #     df = pd.read_feather(f'{idir}/PlatoGO_PIC210_LOPS2.ftr')
-        #     skip = 8
         df = df.loc[::skip]
         # Convert to galactic coordinates
         starPF = SkyCoord(df.ra*u.deg, df.dec*u.deg, frame='icrs', unit='deg')
@@ -1444,9 +1442,12 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
             scatter = ax.scatter(xStarPF, yStarPF, s=dm, c=color, alpha=aa,
                                  transform=tax, marker=mark, ec=ec, lw=lw, zorder=5)
         else:
+            # Automatic scale of markers
+            if s is None:
+                s = ms_scatter(len(raStars))
             scatter = ax.scatter(xStarPF, yStarPF, s=s, c=c, cmap=cmap,
                                  transform=tax, marker=mark, ec=ec, lw=lw, zorder=5)
-            cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
+            cbar = plt.colorbar(scatter, extend=cbarExtend, pad=0.01, shrink=cbarShrink)
             cbar.set_label(clabel)
             
     # Plot pointing of each camera group
@@ -3633,30 +3634,28 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     f = h5py.File(filename, "r")
     simfile = SimFile(filename)
 
-    # Fetch the image names
-    imgNames   = list(f['Images'].keys())
-    imgNumbers = list(range(int(imgNames[0][5:]), int(imgNames[-1][5:])))
-    N          = len(imgNames)
+    # All images are stored in one dataset: (exposure, row, column).
+    # Index i holds exposure number BeginExposureNr + i.
+    images     = f['Images/subfield']
+    firstNr    = simfile.getFirstExposureNr()
+    imgIndices = list(range(images.shape[0]))
+    imgNumbers = [firstNr + i for i in imgIndices]
 
     # Skip N images to make animation faster
     if skipNimages is not None:
-        imgNames   = imgNames[0::skipNimages]
+        imgIndices = imgIndices[0::skipNimages]
         imgNumbers = imgNumbers[0::skipNimages]
-
-    # Fetch StarPosition keys (i.e. "Exposure000000", etc)
-    # TODO remove time column: -1 because Time is last column
-    exposureGroupNames = list(f['StarPositions'].keys())[:-1]
 
     # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
     ims = []
     fig, ax = plt.subplots(1,1,figsize=figsize)
 
-    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=ut.tqdmBar()), imgNames):
+    for imgNumber, imgIndex in zip(tqdm(imgNumbers, bar_format=ut.tqdmBar()), imgIndices):
 
         # Fetch each pixel image
-        
-        image = f["Images/{0}".format(imgName)]
+
+        image = images[imgIndex]
 
         # Fetch image dimention first time only
         

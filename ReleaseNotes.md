@@ -1,75 +1,101 @@
-* Changelog PlatoSim 3.7.1
+* Changelog PlatoSim 3.8.0
 
 
 
 ** Improvements
 
-*** Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4.
+*** *Breaking change:* New layout of the HDF5 output file. The pixel, smearing, bias, throughput, and sub-pixel maps of all exposures are now stored in one 3D dataset per map type (`Images/subfield`, `SmearingMaps/smearing`, `BiasMapsLeft/bias`, `BiasMapsRight/bias`, `ThroughputMaps/throughput`, and `SubPixelImages/images`) instead of one dataset per exposure. The cosmics are stored as ragged arrays with `offsets` and `pixelOffsets` tables, in one sub-group per map (`SubField`, `SmearingMap`, `BiasMapLeft`, and `BiasMapRight`), and no longer depend on `GroupByExposure`. The `SimFile` class has been updated accordingly; scripts that read the HDF5 file directly need to be adapted.
 
-*** Chaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
+*** *Breaking change:* The Python package management moved from Poetry to uv. `pyproject.toml` now uses the `[project]` table and `[dependency-groups]` (`picsim`, `varsim`, `platonium`, `pipeline`, `tools`, and `docs`). The lock file `uv.lock` is not tracked, so users resolve their own environment.
 
-*** Changed `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
+*** PlatoSim now requires Python >= 3.12 (and < 3.14).
 
-*** Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
+*** Updated the HDF5 library from v1.12.0 to v2.2.0, and made `HDF5File.cpp` C++14 compliant.
 
-*** Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
+*** Updated the Armadillo library from v6.500.4 to v15.6.0, and adapted its install script for Linux.
 
-*** Changed how the initial number of occupied traps is determined for the Short et al model.
+*** Updated the Faddeeva and yaml-cpp libraries to their latest versions.
 
-*** Changed the `install.sh` file so that it breaks when a dependency fails to install.
+*** `referenceFrames.skyToPixelCoordinates()` and `referenceFrames.getCCDandPixelCoordinates()` now accept vector input, as does the mapped distortion. Stars more than 90 degrees from the optical axis are now rejected.
 
-*** Changed `lightcurve.star()` to `lightcurve.target()` to be consistent with source not only being a star.
+*** Adapted `plot.plotSubfieldAnimation()` to the new HDF5 layout.
 
-*** Updated the `orbit.txt` file into `oribit_prime_10_years.txt` (See Issue #1163).
+*** The pipeline in `platonium.py` now calls `gen_aflux_ts` with `--post-corr-bg`, stores the COB L0 and L1 files for both the nominal and extended masks, and includes updates to work with the latest pipeline.
 
-*** Updated the technical Jupyter notebooks.
+*** `platonium.py` now accepts a target catalogue without a contaminant catalogue.
 
-*** Updated the BFE validation test more rebost for fainter targets.
+*** `setup.sh` now also exports `PYTHONPATH`.
 
-*** Updated the `setup.sh` file to file so that it breaks when a dependency fails to install.
+*** `validation.switchOffEffects()` now also switches off the bad pixel map.
 
-*** Variable cycleTime in Straylight can now be non-integer
+*** `statsmodels` is only imported in the function of `statistics.py` that needs it.
+
+*** Unpinned the versions of `notebook`, `jupyter-client`, `traitlets`, and `tornado`, and added `setuptools` and `ipympl` to the dependencies.
+
+*** Updated the tutorial and technical Jupyter notebooks (PIC, GO proposals, K-dwarf oscillators, Spikey, and Moonwalk).
+
+*** Removed Poetry support and the tracked `uv.lock` file.
+
+*** Removed the Python dependencies `holoviews` and `statsmodels`.
+
+*** Removed the deprecated argument `normal` of `referenceFrames.skyToPixelCoordinates()`.
+
+*** Removed the old dependency tarballs `hdf5-1.12.0.tar.gz` and `armadillo-6.500.4.tgz`.
+
+
+
+** Deprecations
+
+*** The Intel Mac (`osx-64`) Conda package is deprecated and will be dropped in a future release. Installing it shows a warning. Intel Mac users can move to an Apple Silicon Mac or Linux, or install PlatoSim from source.
 
 
 
 ** Bug fixes
 
-*** Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows).
+*** Fixed issue #1191: Removed a duplicate call to `applyThroughputEfficiency()` for the analytic Gaussian PSF, which applied the throughput efficiency twice.
 
-*** Fixed issue #1169: Bugfix when including bright (Yale) stars in `picsim.py`.
+*** Bugfix of the readout time, which used the number of bias prescan rows instead of the number of bias prescan columns (both in `Simulation.cpp` and `simulation.py`).
 
-*** Fixed issue #1157: Bugfix of time determination in aberration.
+*** Bugfix of the flatfield from file (`CCD/Flatfield/Source = FromFile`) for the mapped PSF, which expected a map at sub-pixel level. All PSF models now use the same pixel-level PRNU file.
 
-*** Fixed issue #1150: Issue with F-CAM simulations due to overload of HDF5 RAM memory.
+*** Bugfix of the cosmics, where the flux of the first pixel of a cosmic trail was counted twice.
 
-*** Bugfix in `varsim.py` for simulating only transits.
+*** Bugfix of the cosmics in the bias maps, where the entry columns were drawn over the width of the subfield instead of the width of the bias map.
 
-*** Bugfix in digital staturation test.
+*** `platosim` now exits with an error code and a log message instead of aborting (and dumping core) when a simulation fails.
 
-*** Bugfix in destructor of Detector.
+*** Bugfix of `picsim --vizier` when using the Gaia G magnitude.
+
+*** Bugfixes in `picsim.py`, `varsim.py`, `varsource.py`, `starquery.py`, `plot.py`, and `simfile.py` after the upgrade to Python 3.12.
+
+*** Bugfix of the target IDs in `platonium.py`.
+
+*** Bugfix in `platonium.py` when copying pipeline output to existing directories.
+
+*** Use raw strings for LaTeX in matplotlib labels to avoid warnings with Python 3.12.
+
+*** Corrected typo "Inuaguration" -> "Inauguration" in `picsim.py`, `varsim.py`, and `varsource.py`.
 
 
 
 ** New features/functionality
 
-*** Merged `sovt1` branch into `develop`. New features to setup the spacecraft in `platonium.py` according to latest performance tests.
+*** Added a bad pixel map, following a Bernoulli distribution: new configuration parameters `CCD/BadPixelMap/includeBadPixelMap`, `CCD/BadPixelMap/badPixelParameter`, `RandomSeeds/BadPixelSeed`, and `ControlHDF5Content/WriteBadPixelMap`. The map is written to the HDF5 group `BadPixelMap`.
 
-*** Added bias rows to the number of columns to read out in `simulation.py`.
+*** Added the option `--pipe_zarr_output` to `platonium.py` to store the pipeline output in zarr format.
 
-*** Added multithreaded compilation of dependencies.
+*** Added the script `scripts/yamlio.py` to compare two YAML files. `platonium.py -v 3` now writes a `.yaml_diff` file with the differences between the input and output configuration.
 
-*** Added PIC 2.1.0.1 (LOPS2) to the available `picsim` catalogues.
+*** Added the script `scripts/starcat2picsim.py` to convert a user ascii/csv catalogue into a PLATOnium target catalogue.
 
-*** Added additional Limb Darkening (LD) models to varsim.py [linear, quadratic, square-root, power-2].
+*** Added `simfile.showExtendedImage()`, `simfile.saveMapsToFITS()`, `simfile.getCosmicsGroup()`, and `simfile.getCosmicsOfExposure()`.
 
-*** Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
+*** Added `starquery.fetch_gaia_info()`, `plot.plot_aitoff()`, a plot function for bright stars in `platonium.py`, and new plot functions in `mocka.py`.
 
-*** Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`].
+*** Added validation tests for the cosmics in the new HDF5 layout.
 
-*** Added new section about the output files of the PLATOnium-L1 pipeline setup, plus updated figures and text in PLATOnium tutorials.
+*** Added new Jupyter notebooks for GO proposals, PIC, K-dwarf oscillators, target observability, and the Moonwalk paper.
 
-*** Added PRNU from file feature
+*** Added zlib support to the bundled HDF5 library (new install script `install_zlib.py`, run by `install.sh`), so that compressed (deflate) HDF5 datasets can be read and written.
 
-*** Added straylight feature
-
-*** Added bad pixel map feature
+*** *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file, which is not distributed yet. The default PSF model is still `AnalyticNonGaussian`.

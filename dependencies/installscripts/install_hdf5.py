@@ -60,12 +60,16 @@ installProcedure = "cd {build} &&                                   \
                              -DHDF5_ENABLE_ZLIB_SUPPORT=ON          \
                              -DHDF5_USE_ZLIB_STATIC=OFF             \
                              -DZLIB_ROOT={zlib}                     \
-                             -DCMAKE_INSTALL_RPATH={zlib}/lib &&    \
-                    cmake --build . &&                              \
+                             -DCMAKE_INSTALL_RPATH={zlib}/lib       \
+                             -DBUILD_TESTING=OFF                    \
+                             -DHDF5_BUILD_TOOLS=OFF                 \
+                             -DHDF5_BUILD_EXAMPLES=OFF &&           \
+                    cmake --build . --parallel {num_threads} &&     \
                     cmake --install .".format(build=buildDir,
                                               package=packageName,
                                               install=installDir,
-                                              zlib=zlibDir)
+                                              zlib=zlibDir,
+                                              num_threads=os.environ.get("INSTALL_NUM_THREADS", "4"))
 
 process = subprocess.run(installProcedure, shell=True, text=True)
 if process.returncode != 0:

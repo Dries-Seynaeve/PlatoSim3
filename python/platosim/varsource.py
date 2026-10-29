@@ -3648,7 +3648,6 @@ class DopplerBeaming(funcFit.OneDFit):
 
 
 class EllipsoidalDistortion(funcFit.OneDFit):
-
     """Class for the calculation of the ellipsoidal effect.
 
     The model presented here is a fusion between the simple analytical description
@@ -3741,7 +3740,7 @@ class PlanetMRforecast():
         try:
             h5 = h5py.File(hyper_file, 'r')
         except:
-            errorcode('message', 'Inuaguration: Welcome to the PLATO variability simulator!')
+            errorcode('message', 'Inauguration: Welcome to the PLATO variability simulator!')
             print(f"Downloading mass-radius parameterisation file...")
             ut.downloadFromFTP(hyper_file.name, hyper_file.parents[0], server='plato')
 

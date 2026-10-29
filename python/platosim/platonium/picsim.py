@@ -55,9 +55,6 @@ from astropy import units as u
 from tqdm import tqdm
 from prettytable import PrettyTable
 
-# Platonium extra
-import ligo.skymap.plot
-
 # PlatoSim functions
 import platosim.plot      as pt
 import platosim.utilities as ut
@@ -147,12 +144,31 @@ Notes on parsed argument "--pic":
   "star"   : Number of targets saved in catalog (Select "all" for all stars)
   "sample" : PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)
   "field"  : PLATO pointing field [LOPS2, LOPN1]
+
+        Information about PIC 2.2.0:
+- Number of stars in fields:
+  --------------------------
+  LOPS2      : 218,146
+    - Prime  :   1,500
+    - tPIC   : 182,581
+      - P1   :  11,730
+      - P2   :     712
+      - P4   :  12,749
+      - P5   : 157,773
+    - fgPIC  :   2,640
+    - cPIC   :  32,127
+    - scvPIC :  38,007
+  --------------------------
+- Notes about the catalogue:
+  - Magnitude completeness of contaminants    : Pmag < 19 mag
+  - Maximum radial target-contaminat distance : Rmax < 60 arcsec
+  - Calibration methods: Same as PIC 200.
        
 Information about PIC 2.1.0:
 - Number of stars in fields:
   --------------------------
-  LOPS2      : 315,385
-    - tPIC   : 218,820
+  LOPS2      : 218,146
+    - tPIC   : 182,782
       - P1   :  10,967
       - P2   :     690
       - P4   :  12,738
@@ -211,51 +227,42 @@ General notes:
 
         # Check field
         field = ['LOPS2', 'LOPN1']
-        if self.field == 'LOPN1' and args.release in [None, 'PIC210']:
-            errorcode('error', f'{self.field} is not in PIC210 yet! Use "--release PIC200"')
+        if self.field == 'LOPN1' and args.release in [None, 'PIC210', 'PIC220']:
+            errorcode('error', f'{self.field} is not in {PIC210, PIC220}! Use "--release PIC200"')
         if self.field not in field:
             errorcode('error', f'{self.field} is not defined! Use {field}')
-        
-        # Select PIC release (default is the latest version)
-        if args.release in [None, 'PIC210']:
-            self.pic = 'PIC210'
+
+        # Check PIC release
+        if args.release in [None, 'PIC220', 'PIC210']:
             self.mag_column = 'Pmag'
-            # Select the field
-            if self.field == 'LOPS2':
-                self.numPIC = 218162
+            # Use latest as default
+            if args.release in [None, 'PIC220']:
+                self.pic = 'PIC220'
+                self.numPIC = 218_146 # 289_253 with nCAM=0
             else:
-                errorcode('error', f'{self.field} is not defined! Use LOPS2')
-            # Select the sample
+                self.pic = 'PIC210'
+                self.numPIC = 218_162 # 309_787 with nCAM=0  
+            # Select the field
+            if self.field != 'LOPS2':
+                errorcode('error', f'{self.field} is not defined! Use LOPS2')            
+
         elif args.release == 'PIC200':
             self.pic = 'PIC200'
             self.mag_column = 'mag'
-            
             # Select the field
             if self.field == 'LOPS2':
-                self.numPIC = 179564
+                self.numPIC = 179_564
             elif self.field == 'LOPN1':
-                self.numPIC = 175325 # Original: 175,597
+                self.numPIC = 175_325 # 175_597 with nCAM=0
             else:
                 errorcode('error', f'{self.field} is not defined! Use {LOPS2, LOPN1}')
-        # TODO The PIC110 is not used anymore, but change to PLATO-CS (PCS100)
-        elif args.release == 'PIC110':
-            self.pic = 'PIC110'
-            self.mag_column = 'mag'
-            sample = ['P1', 'P1', 'P4', 'P5']
-            # Select the field
-            if self.field == 'SPF':
-                self.numPIC = 137052
-            elif self.field == 'NPF':
-                self.numPIC = 144507
-            else:
-                errorcode('error', f'{self.field} is not defined! Use {SPF, NPF}')
         else:
-            errorcode('error', f'No release named {args.release}! Usage in [PIC210, PIC200]')
+            errorcode('error', f'No release named {args.release}! Use {PIC220, PIC210, PIC200}')
                 
         # Available samples for release
-        if self.pic == 'PIC210':
+        if self.pic in ['PIC210', 'PIC220']:
             sample = [
-                'tPIC', 'P1', 'P2', 'P4', 'P5',
+                'tPIC', 'Prime', 'P1', 'P2', 'P4', 'P5',
                 'fgPIC', 'fgFb', 'fgFr',
                 'cPIC', 'R1F', 'R2F', 'R3F', 'R4F', 'R5F', 'R1N', 'R2N', 'R3N', 'R4N', 'R5N',
                 'scvPIC', 'SCV1a', 'SCV1b', 'SCV1c', 'SCV1d', 'SCV1e',
@@ -319,7 +326,7 @@ General notes:
         # Input directory        
         self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
         if not self.inputDir.is_dir():
-            errorcode('message', '\nInuaguration: Welcome to PIC of Destiny!')
+            errorcode('message', '\nInauguration: Welcome to PIC of Destiny!')
 
         # Name space for output files
         # Default is to use the latest PIC catalog saved
@@ -329,6 +336,7 @@ General notes:
 
             # Prefix name of output files
             self.outputPrefix = 'starcat'
+            if self.pic:    self.outputPrefix += '_'      + self.pic
             if self.sample: self.outputPrefix += '_'      + self.sample
             if self.field:  self.outputPrefix += '_'      + self.field
             if self.group:  self.outputPrefix += '_Group' + str(self.group)
@@ -439,18 +447,20 @@ General notes:
         # QUERY CUTS
         
         # Check sample flag
-        if self.pic == 'PIC210':
+        if self.pic in ['PIC220', 'PIC210']:
             # tPIC samples
             if self.sample == 'tPIC':
-                df = df.loc[df.source & 4 == 4]
+                df = df[df.source & 4 == 4]
             elif self.sample == 'P1':
-                df = df[df.tPIC == 1]
+                df = df[df.tPIC & 1 == 1]
             elif self.sample == 'P2':
-                df = df[df.tPIC == 3]
-            elif self.sample == 'P4':
-                df = df[df.tPIC == 8]
+                df = df[df.tPIC & 2 == 2]
             elif self.sample == 'P5':
-                df = df[df.tPIC == 4]
+                df = df[df.tPIC & 4 == 4]                
+            elif self.sample == 'P4':
+                df = df[df.tPIC & 8 == 8]
+            elif self.sample == 'Prime':
+                df = df[df.tPIC & 32 == 32]                
             # fgPIC samples        
             elif self.sample == 'fgPIC':
                 df = df.loc[df.source & 8 == 8]
@@ -801,12 +811,12 @@ General notes:
 
         # We need to set a sample because it is needed by platonium for the pipeline
         # (P1 treated differently from P5)
-        if args.pipe_sample in ['P1', 'P2', 'P4', 'P5', None]:
+        if args.pipe_sample in ['Prime', 'P1', 'P2', 'P4', 'P5', None]:
             self.pipeSample = args.pipe_sample
             if self.pipeSample is not None:
                 self.outputPrefix += f"{self.pipeSample}_"
         else:
-            errorcode('error', 'Not a valid PIC sample! Use --pipe_sample {P1, P2, P4, P5}')
+            errorcode('error', 'Not a valid PIC sample! Use --pipe_sample {Prime, P1, P2, P4, P5}')
 
         # We need to set a field because it is needed by platonium for the pipeline
         # (to dictate the pointing)
