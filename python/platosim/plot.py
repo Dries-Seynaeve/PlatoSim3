@@ -1324,9 +1324,13 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
         Axes matplotlib.pyplot handle object to be modified by the user
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
-    # Using code bits form:
-    # https://github.com/lpsinger/ligo.skymap/tree/main/ligo/skymap
-    import platosim.skymap
+    # ligo.skymap registers the sky projections used below ('astro degrees zoom', ...).
+    # It is only installed with the picsim dependency group.
+    try:
+        import ligo.skymap.plot  # noqa: F401
+    except ImportError as error:
+        raise ImportError("plotPlatoFOV() needs the package ligo.skymap: install the picsim "
+                          "dependency group (e.g. uv sync --group picsim)") from error
     
     # Fetch N-CAM map if requested
 

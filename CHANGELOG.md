@@ -53,7 +53,6 @@ Checklist to update for a future release:
 * Added the script `scripts/starcat2picsim.py` to convert a user ascii/csv catalogue into a PLATOnium target catalogue.
 * Added `simfile.showExtendedImage()`, `simfile.saveMapsToFITS()`, `simfile.getCosmicsGroup()`, and `simfile.getCosmicsOfExposure()`.
 * Added `starquery.fetch_gaia_info()`, `plot.plot_aitoff()`, a plot function for bright stars in `platonium.py`, and new plot functions in `mocka.py`.
-* Added `skymap.py` with the all-sky plotting code previously taken from `ligo.skymap`.
 * Added validation tests for the cosmics in the new HDF5 layout.
 * Added new Jupyter notebooks for GO proposals, PIC, K-dwarf oscillators, target observability, and the Moonwalk paper.
 
@@ -64,7 +63,7 @@ Checklist to update for a future release:
 ### Removed
 
 * Removed Poetry support and the tracked `uv.lock` file.
-* Removed the Python dependencies `holoviews`, `statsmodels`, and `ligo.skymap`.
+* Removed the Python dependencies `holoviews` and `statsmodels`.
 * Removed the deprecated argument `normal` of `referenceFrames.skyToPixelCoordinates()`.
 * Removed the old dependency tarballs `hdf5-1.12.0.tar.gz` and `armadillo-6.500.4.tgz`.
 

@@ -36,7 +36,7 @@
 
 *** Removed Poetry support and the tracked `uv.lock` file.
 
-*** Removed the Python dependencies `holoviews`, `statsmodels`, and `ligo.skymap`.
+*** Removed the Python dependencies `holoviews` and `statsmodels`.
 
 *** Removed the deprecated argument `normal` of `referenceFrames.skyToPixelCoordinates()`.
 
@@ -91,8 +91,6 @@
 *** Added `simfile.showExtendedImage()`, `simfile.saveMapsToFITS()`, `simfile.getCosmicsGroup()`, and `simfile.getCosmicsOfExposure()`.
 
 *** Added `starquery.fetch_gaia_info()`, `plot.plot_aitoff()`, a plot function for bright stars in `platonium.py`, and new plot functions in `mocka.py`.
-
-*** Added `skymap.py` with the all-sky plotting code previously taken from `ligo.skymap`.
 
 *** Added validation tests for the cosmics in the new HDF5 layout.
 
