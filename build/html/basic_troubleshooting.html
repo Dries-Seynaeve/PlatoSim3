@@ -49,7 +49,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#common-problems"><em>Common problems</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#report-a-problem"><em>Report a problem</em></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
@@ -101,33 +105,63 @@
              
   <section id="troubleshooting">
 <h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h1>
-<p>In case of problems and/or questions related to PlatoSim software we encourage you to use the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/issues">GitHub issue tracking system</a>, rather than sending one of the PlatoSim developers an email. This helps you and us to better keep track of <em>active</em> problems and what their status are.</p>
-<p>Browse to the PlatoSim repository on GitHub and select the Issues tab (see figure below). The issues we are currently working on are listed on this page, hence before opening a new issue, first check if your issue is not reported already.</p>
+<hr><section id="common-problems">
+<span id="basic-troubleshooting-common"></span><h2><em>Common problems</em><a class="headerlink" href="#common-problems" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt><strong>The build stops with an error about the CMake version.</strong></dt><dd><p>The bundled HDF5 library needs CMake 3.26 or more recent. Check your version with <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--version</span></code> and see the
+<a class="reference internal" href="install_overview.html#install-overview-requirements"><span class="std std-ref">requirements</span></a>.</p>
+</dd>
+<dt><strong>The build takes a very long time.</strong></dt><dd><p>Compiling the bundled libraries, in particular HDF5, takes a while. Compile more files in parallel, e.g. with 8
+cores: <code class="docutils literal notranslate"><span class="pre">./install.sh</span> <span class="pre">-j</span> <span class="pre">8</span></code> (see <a class="reference internal" href="install_source.html#install-source-dependencies"><span class="std std-ref">Step 3</span></a>).</p>
+</dd>
+<dt><strong>command not found: platosim</strong></dt><dd><p>For a source installation, add the <code class="docutils literal notranslate"><span class="pre">build/</span></code> directory to your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> (see <a class="reference internal" href="install_source.html#install-source-variables"><span class="std std-ref">Step 5</span></a>). For a Conda installation, activate your environment with <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">activate</span> <span class="pre">platosim</span></code>.</p>
+</dd>
+<dt><strong>KeyError: ‘PLATO_PROJECT_HOME’, or PlatoSim cannot find its input files.</strong></dt><dd><p>The environment variable <code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code> is not set, or points to the wrong directory. Check it with
+<code class="docutils literal notranslate"><span class="pre">echo</span> <span class="pre">$PLATO_PROJECT_HOME</span></code> (see <a class="reference internal" href="run_prerequisites.html"><span class="doc">Prerequisites</span></a>).</p>
+</dd>
+<dt><strong>ModuleNotFoundError: No module named ‘platosim’ (or another package).</strong></dt><dd><p>Activate the environment in which you installed the Python packages (<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">activate</span> <span class="pre">platosim</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">.venv/bin/activate</span></code> in the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory) and check that the installation of the Python packages
+finished without errors.</p>
+</dd>
+<dt><strong>PlatoSim stops with “Output file … already exists”.</strong></dt><dd><p>PlatoSim never overwrites an output file. Remove the file, choose another name, or use
+<code class="docutils literal notranslate"><span class="pre">sim.run(removeOutputFile=True)</span></code> in Python.</p>
+</dd>
+<dt><strong>PlatoSim stops with a configuration error.</strong></dt><dd><p>Your configuration file probably comes from an older version of PlatoSim. Update it with the <a class="reference internal" href="install_migtool.html"><span class="doc">migration tool</span></a>, or start again from a copy of the default <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code>.</p>
+</dd>
+</dl>
+<p>More causes of failed simulations are listed under <a class="reference internal" href="run_simulations.html#run-simulations-error"><span class="std std-ref">Error codes</span></a>.</p>
+<hr></section>
+<section id="report-a-problem">
+<span id="basic-troubleshooting-issue"></span><h2><em>Report a problem</em><a class="headerlink" href="#report-a-problem" title="Link to this heading"></a></h2>
+<p>If your problem is not listed above, please open an issue in our <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/issues">GitHub issue tracker</a> rather than e-mailing one of the developers. This helps us keep
+track of open problems and lets other users find the answer too. First check whether your problem has already been
+reported.</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="_images/github_issueTracking.png"><img alt="_images/github_issueTracking.png" src="_images/github_issueTracking.png" width="700" />
+<a class="reference internal image-reference" href="_images/github_issueTracking.png"><img alt="The Issues tab of the PlatoSim repository on GitHub, with the green New issue button." src="_images/github_issueTracking.png" width="700" />
 </a>
 </figure>
-<p>You can raise a new issue by clicking the green <code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">Issue</span></code> button. This will direct you to a page (shown in the figure below).</p>
+<p>Click the green <code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">issue</span></code> button to open a new issue:</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="_images/github_newIssue.png"><img alt="_images/github_newIssue.png" src="_images/github_newIssue.png" width="700" />
+<a class="reference internal image-reference" href="_images/github_newIssue.png"><img alt="The form to open a new issue on GitHub." src="_images/github_newIssue.png" width="700" />
 </a>
 </figure>
-<p>To make the issue tracking faster and smoother please provide the following information:</p>
+<p>To help us solve the problem quickly, please include:</p>
 <ul class="simple">
-<li><p>PlatoSim branch and version (use command: <code class="docutils literal notranslate"><span class="pre">platosim</span> <span class="pre">-version</span></code>)</p></li>
-<li><p>Appropriate issue label (see right-hand menu bottom <code class="docutils literal notranslate"><span class="pre">Labels</span></code>)</p></li>
-<li><p>Concise explanation of the problem</p></li>
-<li><p>What you have tried to solve the problem</p></li>
-<li><p>Please provide the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> and <code class="docutils literal notranslate"><span class="pre">log.txt</span></code> file (in debug mode, i.e. log level <code class="docutils literal notranslate"><span class="pre">3</span></code>, which is the default)</p></li>
-<li><p>In case of a installation or execution problem, please further provide:</p>
+<li><p>A short title and a clear description of the problem, and what you already tried to solve it.</p></li>
+<li><p>Whether it is a bug, a question, or a feature request.</p></li>
+<li><p>Your PlatoSim version (the output of <code class="docutils literal notranslate"><span class="pre">platosim</span> <span class="pre">-version</span></code>) and whether you installed it with Conda or from source.</p></li>
+<li><p>Your configuration file and the log file. Run the simulation with log level <code class="docutils literal notranslate"><span class="pre">3</span></code> (the default), which includes the
+debug messages.</p></li>
+<li><p>For problems with the installation or with running PlatoSim:</p>
 <ul>
-<li><p>Your operating system</p></li>
-<li><p>Version of gcc (<code class="docutils literal notranslate"><span class="pre">gcc</span> <span class="pre">--version</span></code>) or clang (<code class="docutils literal notranslate"><span class="pre">clang</span> <span class="pre">--version</span></code>)</p></li>
-<li><p>Version of CMake (<code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--version</span></code>)</p></li>
-<li><p>Version of Python (<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">--version</span></code>) and uv (<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">--version</span></code>)</p></li>
+<li><p>your operating system and its version;</p></li>
+<li><p>the versions of your compiler (<code class="docutils literal notranslate"><span class="pre">gcc</span> <span class="pre">--version</span></code> or <code class="docutils literal notranslate"><span class="pre">clang</span> <span class="pre">--version</span></code>) and CMake (<code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--version</span></code>);</p></li>
+<li><p>the versions of Python (<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">--version</span></code>) and uv (<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">--version</span></code>);</p></li>
+<li><p>the full error output (see <a class="reference internal" href="install_source.html#install-source-dependencies"><span class="std std-ref">The build fails?</span></a>).</p></li>
 </ul>
 </li>
 </ul>
+</section>
 </section>
 
 

@@ -1,9 +1,16 @@
 Overview
 ========
 
-The scheme below shows an overview of the procedure to run the PlatoSim3 software on your system. If you followed the installation procedure for developers, you have to build it in order to be able to run it. The first time you download the software and on the rare occasions we update the dependencies (i.e. software packages we use in the code and that are distributed together with the PlatoSim3 code), you will have to resolve the dependencies.
+Running PlatoSim always follows the same three steps:
 
-.. image:: ../figures/flowchart_howToRunPlatoSim.png
-   :align: center
-   :width: 450
-   :alt: Alternative text
+1. **Install PlatoSim**, either :doc:`with Conda <install_conda>` or :doc:`from source <install_source>` (see the
+   :doc:`installation overview <install_overview>`). When you update PlatoSim, rebuild the code (source installation
+   only) and update the Python packages as described on those pages.
+2. **Set the environment variables** that tell PlatoSim where it is installed and where your own files are (see
+   :doc:`Prerequisites <run_prerequisites>`).
+3. **Run a simulation**, from the command line or from Python (see :doc:`Run simulations <run_simulations>`). A
+   simulation is configured with a YAML :doc:`input file <run_input>` and writes its results to an HDF5 :doc:`output
+   file <run_output>`.
+
+The default configuration runs out of the box: you do not need to download extra data. Realistic (mapped) PSFs are
+optional and can be downloaded separately (see :ref:`PSF data packages <run_input_data>`).

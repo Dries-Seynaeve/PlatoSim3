@@ -101,52 +101,55 @@
              
   <section id="quickstart">
 <h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
-<p>The easiest way to install PlatoSim is through our <a class="reference internal" href="install_conda.html"><span class="doc">Conda installation</span></a> using the following set of terminal commands to install the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch:</p>
+<p>This page takes you from nothing to your first simulation in a few minutes, using the <a class="reference internal" href="install_conda.html"><span class="doc">Conda installation</span></a>. Each step is explained in more detail on that page.</p>
+<p><strong>What you need:</strong> a Linux or macOS computer (on Windows, use <a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/install">WSL</a>)
+with <a class="reference external" href="https://conda-forge.org/download/">Conda</a> (4.8 or more recent) and <a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv</a> (0.6.7 or more recent) installed.</p>
+<p><strong>1. Install PlatoSim</strong> in a new Conda environment called <code class="docutils literal notranslate"><span class="pre">platosim</span></code>:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>platosim<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12
 conda<span class="w"> </span>activate<span class="w"> </span>platosim
-conda<span class="w"> </span>config<span class="w"> </span>--add<span class="w"> </span>channels<span class="w"> </span>conda-forge
+conda<span class="w"> </span>config<span class="w"> </span>--env<span class="w"> </span>--add<span class="w"> </span>channels<span class="w"> </span>conda-forge
 conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>https://plato:miSotalP@jenkins.miricle.org/platosim/<span class="w"> </span>platosim
 </pre></div>
 </div>
-<p>Create a working directory for which you want to store all your future PlatoSim projects (e.g. using
-<code class="docutils literal notranslate"><span class="pre">platosim_workdir</span></code> as our project folder and create a first project called <code class="docutils literal notranslate"><span class="pre">quickstart</span></code>):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/platosim_workdir/quickstart
-</pre></div>
-</div>
-<p>Export the following paths (and add them to your bash file for future sessions):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_WORKDIR</span><span class="o">=</span><span class="nv">$HOME</span>/platosim_workdir
-<span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="nv">$PYTHONPATH</span>:<span class="nv">$PLATO_PROJECT_HOME</span>/python
-</pre></div>
-</div>
-<p>Install the Python packages with <a class="reference external" href="https://docs.astral.sh/uv/">uv</a> (see <a class="reference internal" href="install_conda.html#install-conda-python"><span class="std std-ref">Python packages</span></a>
-for details), using the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml">pyproject.toml</a> file
-of the branch you installed:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$CONDA_PREFIX</span>/python
-wget<span class="w"> </span>https://raw.githubusercontent.com/IvS-KULeuven/PlatoSim3/master/pyproject.toml
+<p><strong>2. Install the Python packages.</strong> This also creates a working directory, <code class="docutils literal notranslate"><span class="pre">$HOME/platosim_workdir</span></code>, for your own
+files:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/platosim_workdir
+<span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/platosim_workdir
+curl<span class="w"> </span>-LO<span class="w"> </span>https://raw.githubusercontent.com/IvS-KULeuven/PlatoSim3/master/pyproject.toml
 uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>pyproject.toml
 </pre></div>
 </div>
-<p>PlatoSim can also use a realistic (mapped) PSF, which is not included in the default distribution because of its size.
-If you want to use it, download it from our FTP site:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>-P<span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles<span class="w"> </span>ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5
+<p><strong>3. Set the environment variables.</strong> They are stored in the Conda environment, so you only do this once:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>config<span class="w"> </span>vars<span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span><span class="w"> </span><span class="nv">PLATO_WORKDIR</span><span class="o">=</span><span class="nv">$HOME</span>/platosim_workdir<span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span>/python
+conda<span class="w"> </span>deactivate
+conda<span class="w"> </span>activate<span class="w"> </span>platosim
 </pre></div>
 </div>
-<p>A simple test simulation from the command line looks like:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles/inputfile.yaml<span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>/quickstart/test.hdf5
+<p><strong>4. Run a test simulation</strong> from the command line. This simulates 10 exposures of a small part of a CCD with the
+default configuration:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
+platosim<span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles/inputfile.yaml<span class="w"> </span>test.hdf5
 </pre></div>
 </div>
-<p>A simple test simulation from Python looks like:</p>
+<p>This creates <code class="docutils literal notranslate"><span class="pre">test.hdf5</span></code> (the simulated images) and <code class="docutils literal notranslate"><span class="pre">log.txt</span></code> (the log messages). Or run the same simulation from
+Python:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">platosim.simulation</span><span class="w"> </span><span class="kn">import</span> <span class="n">Simulation</span>
-<span class="n">odir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">'PLATO_WORKDIR'</span><span class="p">)</span> <span class="o">+</span> <span class="s1">'/quickstart'</span>
-<span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span><span class="s1">'test'</span><span class="p">,</span> <span class="n">outputDir</span><span class="o">=</span><span class="n">odir</span><span class="p">)</span>
+
+<span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span><span class="s2">"test_python"</span><span class="p">,</span> <span class="n">outputDir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"PLATO_WORKDIR"</span><span class="p">))</span>
 <span class="n">simfile</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">simfile</span><span class="o">.</span><span class="n">getImage</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>    <span class="c1"># the first simulated image, as a 2D array</span>
 </pre></div>
 </div>
-<p>We also recommend using <a class="reference internal" href="platonium_overview.html"><span class="doc">Platonium</span></a>, a user-friendly PlatoSim toolkit with lots of extra
-functionalities that help you create and run simulation projects very efficiently. Install its extra packages with
-<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">pyproject.toml</span> <span class="pre">--group</span> <span class="pre">picsim</span> <span class="pre">--group</span> <span class="pre">varsim</span> <span class="pre">--group</span> <span class="pre">platonium</span></code> and follow <a class="reference internal" href="platonium_prerequisites.html"><span class="doc">Platonium’s prerequisites</span></a>.</p>
+<p><strong>Next steps</strong></p>
+<ul class="simple">
+<li><p>Learn how to <a class="reference internal" href="run_simulations.html"><span class="doc">run and configure simulations</span></a>, and what is in the <a class="reference internal" href="run_output.html"><span class="doc">output file</span></a>.</p></li>
+<li><p>Work through our <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials">Python tutorials</a>.</p></li>
+<li><p>For large simulation projects with many cameras, have a look at <a class="reference internal" href="platonium_overview.html"><span class="doc">PLATOnium</span></a>. Install its
+extra packages with <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">pyproject.toml</span> <span class="pre">--group</span> <span class="pre">picsim</span> <span class="pre">--group</span> <span class="pre">varsim</span> <span class="pre">--group</span> <span class="pre">platonium</span></code> and follow
+<a class="reference internal" href="platonium_prerequisites.html"><span class="doc">PLATOnium’s prerequisites</span></a>.</p></li>
+<li><p>By default, PlatoSim uses an analytic PSF. To use a realistic (mapped) PSF instead, download one of our <a class="reference internal" href="run_input.html#run-input-data"><span class="std std-ref">PSF files</span></a> (note: each file is about 9 GB).</p></li>
+</ul>
 </section>
 
 

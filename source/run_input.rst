@@ -1273,7 +1273,7 @@ The flatfield is only applied if ``IncludeFlatfield = yes``.
 
 .. note::
 
-   Before PlatoSim 3.8.0 this parameter was called ``CCD/FlatfieldNoiseRMS``. Use the :doc:`migration tool <install_migtool>` to update older configuration files.
+   Before PlatoSim 3.7.1 this parameter was called ``CCD/FlatfieldNoiseRMS``. Use the :doc:`migration tool <install_migtool>` to update older configuration files.
 
 **RelativeTransmissivity:**
 

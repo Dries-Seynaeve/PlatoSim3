@@ -109,7 +109,7 @@
 <p>To run simulations with PlatoSim, you will have to feed a <a class="reference internal" href="run_input.html#run-input-parameters"><span class="std std-ref">Configuration file</span></a> as input to the simulator, possibly together with a few additional <a class="reference internal" href="run_input.html#run-input-files"><span class="std std-ref">Supplementary files</span></a>. Launching simulations can be done either from the <a class="reference internal" href="#run-simulations-command"><span class="std std-ref">command line</span></a> or in <a class="reference internal" href="#run-simulations-python"><span class="std std-ref">Python</span></a> as explained on this page.</p>
 <hr><section id="command-line">
 <span id="run-simulations-command"></span><h2><em>Command line</em><a class="headerlink" href="#command-line" title="Link to this heading"></a></h2>
-<p>To run a simulation from the command line, simply type:</p>
+<p>Make sure the <a class="reference internal" href="run_prerequisites.html"><span class="doc">environment variables</span></a> are set. To run a simulation from the command line, type:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>&lt;inputFile&gt;<span class="w"> </span>&lt;outputFile&gt;<span class="w"> </span><span class="o">[</span>&lt;logFile&gt;<span class="w"> </span>&lt;logLevel&gt;<span class="o">]</span>
 </pre></div>
 </div>
@@ -124,11 +124,12 @@
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>-version
 </pre></div>
 </div>
-<p>A simple test simulation looks like:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>inputfile.yaml<span class="w"> </span>out.hdf5
+<p>For example, to run a simulation with your own copy of the configuration file (see <a class="reference internal" href="run_prerequisites.html#run-prerequisites-storage"><span class="std std-ref">Where to keep your files</span></a>):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
+platosim<span class="w"> </span>my_inputfile.yaml<span class="w"> </span>out.hdf5
 </pre></div>
 </div>
-<p>This will generate two files: the HDF5 output file containing the simulation and an ascii log file with the log messages from PlatoSim. Note that PlatoSim refuses to overwrite an existing output file.</p>
+<p>This generates two files: the HDF5 output file <code class="docutils literal notranslate"><span class="pre">out.hdf5</span></code> with the simulated data, and the text file <code class="docutils literal notranslate"><span class="pre">log.txt</span></code> with the log messages. PlatoSim refuses to overwrite an existing output file, so remove <code class="docutils literal notranslate"><span class="pre">out.hdf5</span></code> before you run the same command again.</p>
 <hr></section>
 <section id="python">
 <span id="run-simulations-python"></span><h2><em>Python</em><a class="headerlink" href="#python" title="Link to this heading"></a></h2>
@@ -171,22 +172,27 @@
 </ul>
 </div></blockquote>
 <p><strong>Modify configuration parameters</strong></p>
-<p>Individual configuration parameters can be modified in the copy of the configuration file (which will be stored with the name runName.yaml in the output directory) as follows:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="p">[</span><span class="s2">"&lt;block&gt;/&lt;parameter&gt;"</span><span class="p">]</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">new</span> <span class="n">value</span><span class="o">&gt;</span>
+<p>Change a configuration parameter by giving its full path in the YAML file, with the names of the blocks separated by slashes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="p">[</span><span class="s2">"ObservingParameters/NumExposures"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">sim</span><span class="p">[</span><span class="s2">"Platform/Orientation/Angles/RAPointing"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">90.0</span>
 </pre></div>
 </div>
-<p>for individual parameters in the block of the YAML file (e.g. <code class="docutils literal notranslate"><span class="pre">sim[&quot;Camera/FocalPlaneOrientation&quot;]</span> <span class="pre">=</span> <span class="pre">0</span></code>), or:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="p">[</span><span class="s2">"&lt;block&gt;/&lt;sub-block&gt;/&lt;parameter&gt;"</span><span class="p">]</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">new</span> <span class="n">value</span><span class="o">&gt;</span>
-</pre></div>
+<p>Read the current value in the same way, e.g. <code class="docutils literal notranslate"><span class="pre">print(sim[&quot;ObservingParameters/NumExposures&quot;])</span></code>, or print all parameters with <code class="docutils literal notranslate"><span class="pre">print(sim)</span></code>. The changes are stored in the copy <code class="docutils literal notranslate"><span class="pre">&lt;runName&gt;.yaml</span></code> in the output directory; the original configuration file is never modified. If you load another configuration file with <code class="docutils literal notranslate"><span class="pre">readConfigurationFile()</span></code>, all changes you made are lost.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Check the spelling of the parameter path carefully. If a path does not exist, PlatoSim prints <code class="docutils literal notranslate"><span class="pre">ERROR:</span> <span class="pre">no</span> <span class="pre">node</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">name</span> <span class="pre">...</span> <span class="pre">found</span> <span class="pre">in</span> <span class="pre">input</span> <span class="pre">yaml</span> <span class="pre">file</span></code> but does <strong>not</strong> stop: the simulation then runs with the default value. Also make sure the path ends at a parameter, not at a block: <code class="docutils literal notranslate"><span class="pre">sim[&quot;Camera/FocalLength&quot;]</span> <span class="pre">=</span> <span class="pre">0.25</span></code> replaces the whole <code class="docutils literal notranslate"><span class="pre">FocalLength</span></code> block, whereas <code class="docutils literal notranslate"><span class="pre">sim[&quot;Camera/FocalLength/ConstantValue&quot;]</span> <span class="pre">=</span> <span class="pre">0.25</span></code> changes the value.</p>
 </div>
-<p>for parameters in sub-block in the YAML file (e.g. <code class="docutils literal notranslate"><span class="pre">sim[&quot;Platform/Orientation/Angles/RAPointing&quot;]</span> <span class="pre">=</span> <span class="pre">90.0</span></code>). Note that the original YAML file is not modified. Only the copy of this file gets modified. In case you change the configuration file of the Simulation object, the copy <code class="docutils literal notranslate"><span class="pre">runName.yaml</span></code> file will be overwritten and all changes to the configuration parameters you have applied, will be lost.</p>
 <p><strong>Normal and fast cameras</strong></p>
 <p>The default configuration file describes a normal camera (N-CAM) with its <em>as required</em> performance at Beginning Of Life (BOL). To switch between camera types, and to account for ageing, use:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">useNormalCamera</span><span class="p">(</span><span class="n">performance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">timeFromBOL</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">sim</span><span class="o">.</span><span class="n">useFastCamera</span><span class="p">(</span><span class="n">passband</span><span class="o">=</span><span class="s2">"blue"</span><span class="p">,</span> <span class="n">performance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">timeFromBOL</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># or passband="red"</span>
 </pre></div>
 </div>
-<p>These methods update the parameters that differ between the camera types (e.g. <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code>, passband, cycle time, camera group, and quantum efficiency).</p>
+<p>These methods update the parameters that differ between the camera types (e.g. <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code>, passband, cycle time, camera group, and quantum efficiency). The optional arguments are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">performance</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;required&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;expected&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;designed&quot;</span></code> to use the corresponding values from the Mission Parameter Database for the detector gain and noise, transmission, and quantum efficiency. With the default <code class="docutils literal notranslate"><span class="pre">False</span></code>, these parameters are left unchanged.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeFromBOL</span></code>: time since the Beginning Of Life of the mission, <strong>in seconds</strong>, used to age the detector noise (only together with <code class="docutils literal notranslate"><span class="pre">performance</span></code>). For example, <code class="docutils literal notranslate"><span class="pre">timeFromBOL=2*365.25*86400</span></code> for two years into the mission.</p></li>
+</ul>
 <p><strong>Run the simulation</strong></p>
 <p>The simulation can be launched with the following command:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">simfile</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
