@@ -55,6 +55,8 @@ Checklist to update for a future release:
 * Added `starquery.fetch_gaia_info()`, `plot.plot_aitoff()`, a plot function for bright stars in `platonium.py`, and new plot functions in `mocka.py`.
 * Added validation tests for the cosmics in the new HDF5 layout.
 * Added new Jupyter notebooks for GO proposals, PIC, K-dwarf oscillators, target observability, and the Moonwalk paper.
+* Added zlib support to the bundled HDF5 library (new install script `install_zlib.py`, run by `install.sh`), so that compressed (deflate) HDF5 datasets can be read and written.
+* *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file, which is not distributed yet. The default PSF model is still `AnalyticNonGaussian`.
 
 ### Deprecated
 

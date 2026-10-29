@@ -34,7 +34,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         void configure(ConfigurationParameters &configParam);
         void updateParameters(double time) override;
-        bool addFluxToMap(arma::Mat<float>& map, double row0, double col0, double r, double p, double flux);
+        virtual bool addFluxToMap(arma::Mat<float>& map, double row0, double col0, double r, double p, double flux);
 
         tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         void addFlux(double flux) override;

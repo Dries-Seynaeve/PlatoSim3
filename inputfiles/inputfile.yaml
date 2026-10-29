@@ -3,14 +3,14 @@
 # N-CAM : simulation.useNormalCamera(performance=False, timeFromBOL=0)
 # N-CAMb: simulation.useFastCamera(passband="blue", performance=False, timeFromBOL=0)
 # N-CAMr: simulation.useFastCamera(passband="red",  performance=False, timeFromBOL=0)
-# We provide a NOTE for parameters that are different F-CAMs. 
+# We provide a NOTE for parameters that are different F-CAMs.
 ---
 
 General:
 
     ProjectLocation:                 ENV['PLATO_PROJECT_HOME']
 
-    
+
 ObservingParameters:
 
     MissionDuration:                 4.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
@@ -20,12 +20,12 @@ ObservingParameters:
     Fluxm0:                          1.00179e8       # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]. NOTE Different for F-CAMs
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
-    
+
 Sky:
 
     SkyBackground:                                   # Sky background (Built-in Zodiacal + Galactic, excl. transmission efficiency)
       UseConstantSkyBackground:      yes             # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
-      BackgroundValue:               -1              # Sky background value. Set negative to compute. [phot/pix/s]. NOTE Dependent on central passband wavelength 
+      BackgroundValue:               -1              # Sky background value. Set negative to compute. [phot/pix/s]. NOTE Dependent on central passband wavelength
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -45,13 +45,13 @@ Sky:
 Platform:
 
     Orientation:
-      Source:                        Angles          # Should be either "Angles" or "Quaternion" 
+      Source:                        Angles          # Should be either "Angles" or "Quaternion"
       Angles:
         RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate   [deg]
         DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate       [deg]
         SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation [deg]
       Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
-        Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
+        Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]
                                                      # [q0, qx, qy, qz] with norm = 1.0
     UseJitter:                       yes             # Whether or not to incldue jitter. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # Jitter model: {FromFile, FromRedNoise, FromNetwork}
@@ -61,7 +61,7 @@ Platform:
     JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
 
-    
+
 Telescope:
 
     GroupID:                         Custom          # Camera groups: {1, 2, 3, 4, Fast, Custom}
@@ -119,7 +119,7 @@ Camera:
 
 PSF:
 
-    Model:                           AnalyticNonGaussian      # PSF model: MappedFromFile or AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian      # PSF model: MappedFromFile, AnalyticNonGaussian or Cpsf
     MappedFromFile:                                           # Read a Zemax (fixed) PSF from an HDF5 file
         Filename:                    inputfiles/PSF_Focus_0mu.hdf5
         NumberOfPixels:              8                        # The number of pixels in the field for which the PSF is generated
@@ -138,6 +138,22 @@ PSF:
             Source:                  ConstantValue            # Either ConstantValue (constant in time) or FromFile (time dependent)
             ConstantValue:           0.5                      # Used in case Source is ConstantValue  [pix]
             FromFile:                inputfiles/sigmaPSF.txt  # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
+    Cpsf:                                                     # EXPERIMENTAL. Analytic representation of the ray-traced PSFs (PLATO-KUL-PL-TN-0030).
+                                                              # The coefficient file below is not distributed yet.
+                                                              # NOTE the AnalyticNonGaussian block above must stay present: this model
+                                                              # derives from that detector, whose configure() reads it. Its parametric
+                                                              # response is built but never evaluated.
+        CoefficientFileName:         inputfiles/cpsf_coeffs_PSF_Focus_0mu.h5  # Coefficient table; one defocus setting per run
+        NumberOfPixels:              8                        # Footprint of the ray-traced PSF; must divide 512 [pixels]
+        PreloadCoefficients:         yes                      # yes: hold the whole ~760 MiB table in memory. no: read rows on
+                                                              # demand and cache them, which is cheaper for a partial field
+        ChargeDiffusionStrength:     0.2                      # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
+        IncludeChargeDiffusion:      yes                      # Include charge diffusion [yes or no]
+        FieldCacheStep:              0.25                     # Field-angle quantisation of the OTF cache. Smaller is more accurate and
+                                                              # slower; 0 disables the cache and evaluates every star exactly [deg]
+        OutsideFieldLimit:           20.0                     # Field RADIUS beyond which no PSF is available and the star is skipped [deg]
+        FieldSignX:                  1.0                      # Orientation of the coefficient-table field grid w.r.t. the PlatoSim
+        FieldSignY:                  1.0                      # focal-plane axes. REVIEW: confirm against a known field position.
 
 
 FEE:

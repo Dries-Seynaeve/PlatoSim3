@@ -34,6 +34,7 @@ TODO
 
 generated/version.h
 dependencies/Downloads/hdf5/
+dependencies/Downloads/zlib-1.3.2/
 dependencies/Downloads/yaml-cpp/
 
 # Compile command json file for neovim LSP:
