@@ -1,52 +1,36 @@
 For Users (via Conda)
 =====================
 
-To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we use `Jenkins
-<https://www.jenkins.io/>`_ to automatically build PlatoSim. Jenkins enables you to download the latest successfully
-built version of the :ref:`master or develop branch <install_source_branching>`, or any specific version(s) of these.
-For more information, see the :ref:`section about Jenkins <install_conda_jenkins>`. The flowchart below summarises the steps
-you have to take.
+This is the easiest way to install PlatoSim if you only want to *use* it. You install a pre-built version of PlatoSim
+into a Conda environment, and then add PlatoSim's Python packages to the same environment with uv. Check the
+:ref:`requirements <install_overview_requirements>` first.
 
-.. image:: ../figures/flowchart_installPlatoSimViaConda.png
-   :align: center
-   :width: 1000
-   :alt: Alternative text 
-	 
+.. note::
 
-
+   Pre-built packages exist for Linux (x86-64) and for Apple Silicon and Intel Macs. The **Intel Mac** (``osx-64``)
+   package is deprecated and will be dropped in a future release; installing it shows a warning. Intel Mac users can
+   move to an Apple Silicon Mac or Linux, or :doc:`install PlatoSim from source <install_source>`.
 
 .. raw:: html
 
    <hr>
-   
+
 .. _install_conda_prerequisites:
 
-*Prerequisites*
----------------
+*Step 1: Install Conda and uv*
+------------------------------
 
-.. important::
-   
-   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.12**.
+**Conda.** If you do not have Conda yet, install `Miniforge <https://conda-forge.org/download/>`_ (or Miniconda, or
+Anaconda). You need Conda 4.8 or more recent; check with ``conda --version``.
 
-First, create a Conda environment (e.g. called ``platosim``):
-
-.. code-block:: shell
-		
-   conda create -n platosim python=3.12
-
-Activate your new conda environment:
+**uv.** Install uv (0.6.7 or more recent) by following `uv's documentation
+<https://docs.astral.sh/uv/getting-started/installation/>`_, for example:
 
 .. code-block:: shell
 
-   conda activate platosim		
-   
-It is advised to use multiple Conda environments if you want to be able to switch between versions and/or branches in a
-smooth way (e.g. between ``platosim_master`` and ``platosim_develop``). We also recommend to create a new Conda
-environment, rather than trying to update your existing one, when you switch to a different version of Python. Find
-more information on how to use and manage `Conda environments
-<https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
+   curl -LsSf https://astral.sh/uv/install.sh | sh
 
-
+Open a new terminal afterwards, so that the ``conda`` and ``uv`` commands are found.
 
 .. raw:: html
 
@@ -54,36 +38,107 @@ more information on how to use and manage `Conda environments
 
 .. _install_conda_installing:
 
-*Installing* 
-------------
+*Step 2: Install PlatoSim*
+--------------------------
 
-Start by activating your desired Conda environment. The installation procedures below will automatically detect which operating system you are running and will install the appropriate packages for you.
-
-Before you install PlatoSim via conda, for the first time in this environment, type: 
-
-.. code-block:: shell
-		
-   conda config --add channels conda-forge
-   
-We recommend to install the ``master`` branch, unless you are interested in a feature that only exists on the ``develop`` branch. To install the latest version of the ``master`` branch use:
+Create a new Conda environment called ``platosim`` with Python 3.12, and activate it:
 
 .. code-block:: shell
 
-   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
+   conda create -n platosim python=3.12
+   conda activate platosim
 
-To install the latest version of the ``develop`` branch, use:
+Add the conda-forge channel to this environment (only needed once per environment):
 
 .. code-block:: shell
 
-   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
+   conda config --env --add channels conda-forge
 
-To install a specific version of either the ``master`` or ``develop`` branch, simply append ``platosim=<version>`` to the above commands. 
+Install PlatoSim. We recommend the ``master`` branch, which holds the latest stable release. List ``conda-forge``
+first, so that the libraries PlatoSim needs (HDF5, Armadillo, ...) come from conda-forge:
 
+.. code-block:: shell
 
+   conda install -c conda-forge -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 
+.. admonition:: Other versions
 
+   * For the latest development version (``develop`` branch), use the channel
+     ``https://plato:miSotalP@jenkins.miricle.org/platosim.devel/`` instead.
+   * For a specific version, replace ``platosim`` at the end of the command by ``platosim=<version>``, e.g.
+     ``platosim=3.8.0``. Older versions were built against libraries from the PlatoSim channel itself; if installing
+     one fails, swap the order of the two ``-c`` options.
+   * To keep several versions side by side, install each one in its own Conda environment (e.g.
+     ``platosim_master`` and ``platosim_develop``).
 
+.. raw:: html
 
+   <hr>
+
+.. _install_conda_python:
+
+*Step 3: Install the Python packages*
+-------------------------------------
+
+Conda installs the simulator itself, but not the Python packages that PlatoSim's Python interface needs. These are
+listed in the file ``pyproject.toml``. Make sure your ``platosim`` environment is still active, then download the
+``pyproject.toml`` file of the branch you installed and install the packages with uv:
+
+.. code-block:: shell
+
+   mkdir -p $HOME/platosim_workdir
+   cd $HOME/platosim_workdir
+   curl -LO https://raw.githubusercontent.com/IvS-KULeuven/PlatoSim3/master/pyproject.toml
+   uv pip install -r pyproject.toml
+
+If you installed the ``develop`` branch, replace ``master`` by ``develop`` in the download link. Because the Conda
+environment is active, uv installs the packages into that environment. Check the result with ``uv pip list``.
+
+This installs everything you need to run the `Jupyter notebook tutorials
+<https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_ and most of PlatoSim's Python modules. Extra
+packages are organised in *dependency groups* (see the :ref:`list of groups <install_source_groups>`). Install them
+with ``--group``, for example for the HDF5 viewer argos:
+
+.. code-block:: shell
+
+   uv pip install -r pyproject.toml --group tools
+
+.. raw:: html
+
+   <hr>
+
+.. _install_conda_variables:
+
+*Step 4: Set the environment variables*
+---------------------------------------
+
+PlatoSim needs a few :ref:`environment variables <run_prerequisites_export>`. Store them in your Conda environment, so
+that they are set automatically every time you activate it. The working directory ``$HOME/platosim_workdir`` is an
+example; you can choose any directory outside the Conda environment.
+
+.. code-block:: shell
+
+   conda env config vars set PLATO_PROJECT_HOME=$CONDA_PREFIX PLATO_WORKDIR=$HOME/platosim_workdir PYTHONPATH=$CONDA_PREFIX/python
+   conda deactivate
+   conda activate platosim
+
+.. raw:: html
+
+   <hr>
+
+.. _install_conda_verify:
+
+*Step 5: Check the installation*
+--------------------------------
+
+With the ``platosim`` environment active, both of the following commands should run without errors:
+
+.. code-block:: shell
+
+   platosim -version
+   python -c "import platosim"
+
+You are ready to :doc:`run your first simulation <run_simulations>`.
 
 .. raw:: html
 
@@ -91,72 +146,24 @@ To install a specific version of either the ``master`` or ``develop`` branch, si
 
 .. _install_conda_updating:
 
-*Updating* 
+*Updating*
 ----------
 
-You may wish to update your installation when a new PlatoSim release becomes available. To update the ``master``
-branch, simply use:
+To update to the latest version of the ``master`` branch, activate your environment and run:
 
 .. code-block:: shell
 
-   conda update --force-reinstall -c  https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
-      
-Accordingly, if you want to update the ``develop`` branch, type:
+   conda update --force-reinstall -c conda-forge -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 
-.. code-block:: shell
+(use the ``platosim.devel`` channel for the ``develop`` branch). A new version may need different Python packages, so
+download the ``pyproject.toml`` file again and repeat ``uv pip install -r pyproject.toml`` (see :ref:`Step 3
+<install_conda_python>`).
 
-   conda update --force-reinstall -c  https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
+.. warning::
 
+   Updating replaces everything inside the Conda environment. Keep your own configuration files and simulations in
+   your working directory, not in ``$CONDA_PREFIX``.
 
-
-
-
-
-
-
-.. raw:: html
-
-   <hr>
-   
-.. _install_conda_python:
-
-*Python packages*
------------------
-
-Conda, for which Jenkins depends on, is unfortunately not capable of installing the full suite of Python packages needed to use PlatoSim's built-in Python interface. Thus, minimally you need to install the packages listed under the section ``[project] dependencies`` in the file `pyproject.toml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_. Rather than installing each of the Python libraries one-by-one yourself, we use `uv <https://docs.astral.sh/uv/>`_ to install all packages in one command. Older PlatoSim versions used Poetry, which is no longer supported.
-
-**Install uv**
-
-First install uv by following `uv's documentation <https://docs.astral.sh/uv/getting-started/installation/>`_, e.g.:
-
-.. code-block:: shell
-
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-
-**Install Python packages**
-
-As a user, you need to download the ``pyproject.toml`` file from either the `master branch <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_ or the `develop branch <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/pyproject.toml>`_, depending on which branch you have installed. We recommend to store this file in your ``$CONDA_PREFIX/python`` directory which accordingly points to your active Conda environment.
-
-Activate your Conda environment, move to the directory where the ``pyproject.toml`` file is located, and install the packages with:
-
-.. code-block:: shell
-
-   uv pip install -r pyproject.toml
-
-Because a Conda environment is active, uv installs the packages into that environment (rather than creating a new virtual environment). Verify the success of the installation by typing ``uv pip list``.
-
-You have now installed the default Python package distribution of PlatoSim, which is sufficient for running the `Jupyter notebook tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_ and to use most of PlatoSim's Python modules for scripting. Always remember to activate your Conda environment before using PlatoSim's Python interface.
-
-Extra packages are organised in dependency groups (``picsim``, ``varsim``, ``platonium``, ``pipeline``, ``tools``, and ``docs``; see :ref:`Python packages for developers <install_source_python>`). Install them with ``--group``, e.g. for the HDF5 viewer argos:
-
-.. code-block:: shell
-
-   uv pip install -r pyproject.toml --group tools
-
-
-
-
-   
 .. raw:: html
 
    <hr>
@@ -166,12 +173,12 @@ Extra packages are organised in dependency groups (``picsim``, ``varsim``, ``pla
 *A word about Jenkins*
 ----------------------
 
-We are using `Jenkins <https://www.jenkins.io/>`_ to automatically build PlatoSim and make pre-built software available for a myriad of operating systems. The figure below summarises how we want to use it.
-
-Each time code is pushed to the repository (either to the ``master`` or the ``develop`` branch) or a pull request is merged in GitHub, Jenkins will start building the new code, resolve the dependencies for you, and make it available via the Conda installation command. In case the build was successful, users can install this build on their system.
-
-To monitor the status of the PlatoSim builds, check `here <https://jenkins.miricle.org/view/Platosim/>`_.
+We use `Jenkins <https://www.jenkins.io/>`_ to build PlatoSim automatically. Each time code is merged into the
+``master`` or ``develop`` branch on GitHub, Jenkins builds the new version and, if the build succeeds, makes it
+available through the Conda channels above. You can follow the status of the builds on the `Jenkins page
+<https://jenkins.miricle.org/view/Platosim/>`_.
 
 .. image:: ../figures/github_jenkins.png
    :align: center
    :width: 1000
+   :alt: Developers push code to GitHub, Jenkins builds it automatically, and users install the latest or a specific version and report issues.
