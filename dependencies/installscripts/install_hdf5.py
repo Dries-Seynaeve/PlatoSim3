@@ -47,11 +47,14 @@ installProcedure = "cd {build} &&                                   \
                     rm -rf build &&                                 \
                     mkdir build &&                                  \
                     cd build &&                                     \
-                    cmake .. -DCMAKE_INSTALL_PREFIX={install} -DHDF5_BUILD_CPP_LIB=ON &&    \
-                    cmake --build . &&                              \
+                    cmake .. -DCMAKE_INSTALL_PREFIX={install} -DHDF5_BUILD_CPP_LIB=ON \
+                             -DBUILD_TESTING=OFF -DHDF5_BUILD_TOOLS=OFF                \
+                             -DHDF5_BUILD_EXAMPLES=OFF &&                              \
+                    cmake --build . --parallel {num_threads} &&     \
                     cmake --install .".format(build=buildDir,
                                               package=packageName,
-                                              install=installDir)
+                                              install=installDir,
+                                              num_threads=os.environ.get("INSTALL_NUM_THREADS", "4"))
 
 process = subprocess.run(installProcedure, shell=True, text=True)
 if process.returncode != 0:

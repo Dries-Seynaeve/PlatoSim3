@@ -33,7 +33,7 @@ TODO
 # File generated during building and installation:
 
 generated/version.h
-dependencies/Downloads/hdf5-1.12.0/
+dependencies/Downloads/hdf5/
 dependencies/Downloads/yaml-cpp/
 
 # Compile command json file for neovim LSP:

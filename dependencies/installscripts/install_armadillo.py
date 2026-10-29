@@ -47,7 +47,7 @@ installProcedure = "cd {build};                                     \
                     make -j {num_threads};                          \
                     make install DESTDIR={install}".format(build=buildDir, 
                                                            package=packageName, 
-                                                           num_threads=os.environ.get("INSTALL_NUM_THREADS"), 
+                                                           num_threads=os.environ.get("INSTALL_NUM_THREADS", "4"), 
                                                            install=installDir)
 
 process = subprocess.run(installProcedure, shell=True)
