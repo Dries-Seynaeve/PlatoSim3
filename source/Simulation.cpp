@@ -195,6 +195,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         detector = detectorFactory->createDetectorWithAnalyticNonGaussianPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
+    else if (psfModel == "Cpsf")
+    {
+        detector = detectorFactory->createDetectorWithCpsfPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+    }
     else
     {
         string errorMessage = "Simulation: PSF Model '" + psfModel + "' is not supported.";
@@ -362,6 +366,7 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 	int numColumnsBiasMap =  configParams.getInteger("SubField/NumBiasPrescanColumns");     // [pixels]
 	int numBiasPrescanRows = configParams.getInteger("SubField/NumBiasPrescanRows");        // [pixels]
+	int numBiasPrescanColumns = configParams.getInteger("SubField/NumBiasPrescanColumns");  // [pixels]
 	int numRowsSmearingMap = configParams.getInteger("SubField/NumSmearingOverscanRows");   // [pixels]
 
 
@@ -373,7 +378,7 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
         //              - serial pre-scan
         //              - Parallel pre-scan
 
-        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows;
+        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanColumns;
 
         // How many rows will be actually read out by the FEE?
         //      - nominal mode: image area + parallel over-scan

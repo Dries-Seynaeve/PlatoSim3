@@ -43,13 +43,12 @@ class DetectorWithMappedPSF : public Detector
         void initHDF5Groups() override;
         void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         bool isInSubPixelMap(double row, double column);
-        void applyFlatfield() override;
+        void applyFlatfieldAtSubpixel();
         void applyDiffusionKernel(double row, double column, double flux);
         void generateFlatfieldMap();
         void readInFlatfieldMap();
         void generateDiffusionKernel(double kernelWidth);
         void rebin();
-        void writeSubPixelMapToHDF5(int exposureNr);
         void setPsfForSubfield();
         void convolveWithPsf();
         void addBackgroundMapToSubpixelMap(Camera &camera, double startTime);
@@ -59,7 +58,7 @@ class DetectorWithMappedPSF : public Detector
         arma::Mat<float> subPixelBackgroundMap;
         arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
-        arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
+        arma::Mat<float> flatfieldSubpixelMap;          // Intra-pixel flatfield map
         arma::Mat<float> unDistortedX;
         arma::Mat<float> unDistortedY;
         vector<std::array<double, 4>> distortionMap;

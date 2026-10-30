@@ -8,22 +8,24 @@ This file contains tools to generate and anslyse noise signals.
 import os
 import sys
 import datetime
+from pathlib import Path
 
 # PlatoSim standard
-import scipy
-from scipy.interpolate import make_interp_spline
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
+import scipy
 from scipy.signal import periodogram
-from pathlib import Path
-from numba import njit
+from scipy.interpolate import make_interp_spline
+import astropy.timeseries as apy
+from tqdm import tqdm
 
 # PlatoSim imports
 import platosim.plot            as pt
 import platosim.utilities       as ut
+import platosim.statistics      as st
 import platosim.referenceFrames as rf
-from platosim.utilities    import errorcode
+from platosim.utilities import errorcode
 
 #--------------------------------------------------------------#
 #                        FREQUENCY DOMAIN                      #
@@ -36,12 +38,19 @@ def numpyFFT(signal, timestep):
     automatically). Normalisation is such that a signal A*sin(2*pi*nu_0*t)
     gives power A^2 at nu=nu_0  (IF nu_0 is in the 'freq' array)
     
-    @param signal: the time series [0..Ntime-1]
-    @type signal: ndarray
-    @param timestep: time step fo the equidistant time series
-    @type timestep: float
-    @return: frequencies and the power spectrum
-    @rtype: array,array
+    Parameters
+    ----------
+    signal : ndarray
+        The time series [0..Ntime-1]
+    timestep : float
+        Time step fo the equidistant time series
+
+    Returns
+    -------
+    freq : ndarray 
+        Frequencies of FFT
+    power : ndarray
+        Amplitudes of FFT
     """
     # Compute the FFT of a real-valued signal. If N is the number
     # of points of the original signal, 'Nfreq' is (N/2+1).
@@ -166,11 +175,9 @@ def scipyPSD(signal, time_interval=25, window='boxcar', nfft=None, one_sided=Fal
     return freq, psd
 
 
-
 def astropyLombScargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
-
-    import astropy.timeseries as apy
-
+    """Computes Lomb Scargle periodogram using normalisation.
+    """
     # times and signal are mean subtracted (reduce correlation and avoid peak at f=0)
     mean_t = np.mean(times)
     mean_s = np.mean(signal)
@@ -210,7 +217,6 @@ def astropyLombScargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
 #--------------------------------------------------------------#
 
 def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=False):
-
     """Generate light curve from Fourier info.
 
     Paramters
@@ -234,7 +240,6 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     Conversion: 1 ppt (ppm) = 1.0863 mmag (mumag)
     Following: m1-m2 = -2.5 log(f2/f1) => dm = -2.5 log(1-df)
     """
-
     # Number of modes
     N = len(freq)
 
@@ -290,13 +295,8 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     return signal
 
 
-
-
-
 def timeSeriesFromMeanPSD(freq, psd):
-
-    """
-    PURPOSE: Given the average noise profile in the power spectral density, compute the 
+    """PURPOSE: Given the average noise profile in the power spectral density, compute the 
              corresponding noisy time series. 
 
     INPUT: freq: Array containing {n / N / deltat } with n in [0,..,Ntime/2],
@@ -323,48 +323,34 @@ def timeSeriesFromMeanPSD(freq, psd):
 
     NOTE: - N points in the time domain correspond to N/2+1 points in the frequency 
             domain (not N/2), where the division is an _integer_ division (rounded down).
-
     """
-
     # Determine the number of time points. 
-
     Nfreq = len(freq)
     Ntime = 2*(Nfreq-1)
 
     # Determine the frequency resolution
-    # Note: N points in the time domain corresponds to N/2+1 points in the frequency domain (not N/2).
-
+    # Note: N points in the time domain corresponds to N/2+1 points in the freq domain (not N/2).
     freqStep = freq[1] - freq[0]
     timeStep = 1./(freqStep*Ntime)
 
     # Generate the time points of the signal
-
     time = np.arange(Ntime) * timeStep
 
     # Generate the real and imaginary parts of the fourier transform with gaussian noise
-
     realPart = normal(0., 1., Nfreq)
     imagPart = normal(0., 1., Nfreq)
 
     # Construct the full fourier spectrum, using the proper scale factor
-    
     fourier = np.sqrt(psd * Nfreq / timeStep) * (realPart + imagPart * 1j)
 
     # Inverse-FFT the fourier transform to generate the time series [ppm]
-
     signal = np.real(np.fft.irfft(fourier)) 
 
     # That's it!
-
     return time, signal
 
 
-
-
-
-
 def apodization_correction(nu, dt):
-
     """Amplitude correction due to apodization.
 
     This function calculates the amplitude correction needed to account
@@ -387,10 +373,8 @@ def apodization_correction(nu, dt):
     Apodization factor to be multiplied with observed amplitudes 
     c.f. Bowman & Kurtz (2018).
     """
-
     # Nyquist frequency of instrument [c/d]
     nu_Nyquist = 86400 / (2 * dt)
-
     return np.sqrt(np.sinc(nu/nu_Nyquist)**(-2))
 
 
@@ -398,9 +382,7 @@ def apodization_correction(nu, dt):
 #                     OPTIMUM SNR CRITERION                    #
 #--------------------------------------------------------------#
 
-
 def getNoisePeakSNR(cadence, quarters=1, N=1000, odir=None):
-
     """Find SNR of largest noise peak.
 
     This function generates a white noise PLATO light curve with
@@ -425,11 +407,7 @@ def getNoisePeakSNR(cadence, quarters=1, N=1000, odir=None):
 
     NOTE this function needs platonium packages.
     """
-        
-    from tqdm import tqdm
-
     # Prepare for calculation
-    
     texp = cadence / 86400.
     tdur = quarters * (quarter() - 2)
     time = np.arange(0, tdur, texp)
@@ -437,18 +415,14 @@ def getNoisePeakSNR(cadence, quarters=1, N=1000, odir=None):
     snr  = np.zeros(N)
 
     # Loop over N iterations
-    
     for i in tqdm(range(N), bar_format=tqdmBar()):
-        
         noise = np.random.normal(0, 1, len(time))
         freq, ampl = astropyLombScargle(time, noise, df=df)        
         ampl /= np.median(ampl)
         snr[i] = np.max(ampl) / np.median(ampl)
 
-    dx = pd.DataFrame({'snr':snr})
-
     # Save output file
-    
+    dx = pd.DataFrame({'snr':snr})    
     if odir:
         filename = f'{odir}/snr_quarters{quarters}_cadence{cadence}.ftr'
         dx.to_feather(filename)
@@ -456,11 +430,7 @@ def getNoisePeakSNR(cadence, quarters=1, N=1000, odir=None):
     return dx
 
 
-
-
-
 def plotNoisePeakSNR(path, cadence, quarters, fap=0.1, bins=50, figsize=(8,5)):
-
     """Plot SNR histogram of largest noise peak and FAP.
 
     Parameters
@@ -484,18 +454,13 @@ def plotNoisePeakSNR(path, cadence, quarters, fap=0.1, bins=50, figsize=(8,5)):
 
     NOTE this function needs platonium packages.
     """
-
-    import platosim.statistics as st
-
     # Load file with SNR values    
-    
     filename = f'{path}/snr_quarters{quarters}.ftr'
     dx = pd.read_feather(filename)
     dx = dx[f'snr{cadence}']
     
     # Calculate requested FAP
     snr_fap = st.hist_fap(dx, fap=fap)[0]
-
     # Start plotting
 
     fig, ax = plt.subplots(1,1, figsize=figsize)
@@ -503,22 +468,15 @@ def plotNoisePeakSNR(path, cadence, quarters, fap=0.1, bins=50, figsize=(8,5)):
     ax.hist(dx, bins=bins, histtype='step', label=r'$\Delta t = $'+f' {cadence}s',
             fc='b', ec='b', fill=True, alpha=0.3)
     ax.axvline(x=snr_fap, c="b", ls="--", lw=1.5, zorder=2)
-    # Settings
     ax.set_xlabel(r'SNR amplitude')
     ax.set_ylabel('Number of stars')
-    # Settings
     ax.legend(loc='upper right')
     plt.tight_layout()
     plt.show()
 
     # Print best SNR criterions
-    print(snr_fap)
-    
+    print(snr_fap)    
     return fig, ax
-
-
-
-
 
 
 def getMultiCadenceNoisePeakSNR(quarters=1, N=1000, odir=None):
@@ -543,11 +501,7 @@ def getMultiCadenceNoisePeakSNR(quarters=1, N=1000, odir=None):
 
     NOTE this function needs platonium packages.
     """
-    
-    from tqdm import tqdm
-
     # Prepare for calculation
-    
     tdur = quarters * (quarter() - 2)
     cadence = np.array([25, 50, 600]) / 86400
     time0 = np.arange(0, tdur, cadence[0])
@@ -559,56 +513,31 @@ def getMultiCadenceNoisePeakSNR(quarters=1, N=1000, odir=None):
     snr = np.zeros((N, 3))
 
     # Loop over N iterations
-    
     for i in tqdm(range(N), bar_format=tqdmBar()):
-    
         noise0 = np.random.normal(0, 1, len(time0))
         noise1 = np.random.normal(0, 1, len(time1))
         noise2 = np.random.normal(0, 1, len(time2))
-
-        # Introduce 2 day gaps (do not work with simple DFT)
-        # for i in range(1, quarters+1):
-        #     t0 = (i * quarter()) - 2
-        #     t1 =  i * quarter()
-        #     dex0 = np.where((time0 > t0) & (time0 < t1))
-        #     dex1 = np.where((time1 > t0) & (time1 < t1))
-        #     dex2 = np.where((time2 > t0) & (time2 < t1))
-        #     time0  = np.delete(time0, dex0)
-        #     time1  = np.delete(time1, dex1)
-        #     time2  = np.delete(time2, dex2)
-        #     noise0 = np.delete(noise0, dex0)
-        #     noise1 = np.delete(noise1, dex1)
-        #     noise2 = np.delete(noise2, dex2)
-        
         freq0, ampl0 = astropyLombScargle(time0, noise0, df=df0)
         freq1, ampl1 = astropyLombScargle(time1, noise1, df=df1)
         freq2, ampl2 = astropyLombScargle(time2, noise2, df=df2)
-        
         ampl0 /= np.median(ampl0)
         ampl1 /= np.median(ampl1)
         ampl2 /= np.median(ampl2)
-    
         snr[i, 0] = np.max(ampl0) / np.median(ampl0)
         snr[i, 1] = np.max(ampl1) / np.median(ampl1)
         snr[i, 2] = np.max(ampl2) / np.median(ampl2)
-
     dx = pd.DataFrame({'snr25':snr[:,0], 'snr50':snr[:,1], 'snr600':snr[:,2]})
 
-    # Save output to file
-    
+    # Save output to file    
     if odir:
         filename = f'{path}/snr_quarters{quarters}.ftr'
         dx.to_feather(filename)
 
     return dx
-    
-
-
 
 
 def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
                                  show_snr=False, figsize=(8,5)):
-
     """Plot SNR histogram of largest noise peak and FAP.
     
     This is a custom function to plot the SNR for
@@ -633,22 +562,17 @@ def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
 
     NOTE this function needs platonium packages.
     """
-    
-    import platosim.statistics as st
-
     # Load file with SNR values
     
     filename = f'{odir}/snr_quarters{quarters}.ftr'
     dx = pd.read_feather(filename)
 
     # Calculate requested FAP
-    
     snr_fap0 = st.hist_fap(dx.iloc[:,0], fap=fap)[0]
     snr_fap1 = st.hist_fap(dx.iloc[:,1], fap=fap)[0]
     snr_fap2 = st.hist_fap(dx.iloc[:,2], fap=fap)[0]
 
     # Start plotting
-    
     fig, ax = plt.subplots(1,1, figsize=figsize)
     # Plots
     aa = 0.4
@@ -677,53 +601,39 @@ def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
     return fig, ax
 
 
-
-
-
 #--------------------------------------------------------------#
 #                    STOCASHIC NOISE SOURCES                   #
 #--------------------------------------------------------------#
 
-
-@njit
 def getRedNoise(time, currenttime, kicktimestep, Ntime,
                 timescale, varscale, noise, mu, sigma,
-                rng):
-        
+                rng):        
     signal = np.zeros(Ntime)
     
     for i in range(Ntime):
 
         # Compute the contribution of each component separately.
         # First advance the time series right *before* the time point i,
-
         while ((currenttime + kicktimestep) < time[i]):
             noise = noise * (1.0 - kicktimestep/timescale) + rng.normal(mu[0], sigma[0])
             currenttime = currenttime + kicktimestep
 
         # Then advance the time series with a small time step right *on* time[i]
-
-        delta  = time[i] - currenttime
+        delta = time[i] - currenttime
  
         # Correction factor to have varscale in RMS arcsec
-
         #sigma1 = np.sqrt(delta/timescale)*varscale
         sigma1 = varscale * 0.66
         noise  = noise * (1.0 - delta/timescale) + rng.normal(mu[0], sigma1[0])
         currenttime = time[i]
 
         # Add the different components to the signal. 
-
         signal[i] = np.sum(noise)
 
     return signal
 
 
-
-
-
 def modelRedNoise(time, timescale, varscale, kickscale=100, n_warmup=2000, seed=None):
-
     """Function to generate a red noise time series.
     
     Parameters
@@ -740,44 +650,33 @@ def modelRedNoise(time, timescale, varscale, kickscale=100, n_warmup=2000, seed=
     signal : ndarray
         Signal containing all red noise components: signal[0..Ntime-1]
     """
-    
     # Initialise random generator
     rng = ut.rng(seed=seed)
-
     Ntime = len(time)
     Ncomp = len(timescale)
 
     # Set the kick (= excitation) timestep to be one 100th of the
     # shortest noise time scale (i.e. kick often enough).
-
-    timescale = np.sqrt(timescale)
-    
+    timescale    = np.sqrt(timescale)
     kicktimestep = min(timescale) / kickscale
     currenttime  = time[0] - kicktimestep
     
     # Predefine some arrays
-
     delta = 0.0
     noise = np.zeros(Ncomp)
     mu    = np.zeros(Ncomp)
     sigma = np.sqrt(kicktimestep / timescale) * varscale
 
     # Warm up the first-order autoregressive process
-
     for i in range(n_warmup):
         noise = noise * (1 - kicktimestep / timescale) + rng.normal(mu, sigma)
 
     # Start simulating the granulation time series
-    signal_red = getRedNoise(time, currenttime, kicktimestep, Ntime,
-                             timescale, varscale, noise, mu, sigma, rng)
-    return signal_red
-    
-
-
+    return getRedNoise(time, currenttime, kicktimestep, Ntime,
+                       timescale, varscale, noise, mu, sigma, rng)
 
 
 def modelRedNoisePSD(freq, timescale, varscale):
-
     """Function to generate a red noise model from the PSD.
 
     Compute the mean power spectral density (PSD) corresponding to the 
@@ -789,7 +688,6 @@ def modelRedNoisePSD(freq, timescale, varscale):
 
     OUTPUT: psd:  power spectral density   [ppm^2/microHz | ppm^2/microHz | ppm^2/microHz]
     """
-
     psd = np.zeros_like(freq)
 
     for n in range(len(timescale)):
@@ -800,17 +698,12 @@ def modelRedNoisePSD(freq, timescale, varscale):
     return psd
 
 
-
-
-
 #--------------------------------------------------------------#
 #                   SYSTEMATIC NOISE SOURCES                   #
 #--------------------------------------------------------------#
 
-
 def getPRE(alpha, delta, kappa, quarter, sigma=3,
            seed=None, ofile=False, table=False, plot=False):
-
     """Pointing Reproducibility Error (PRE) in PLM reference frame.
     
     Paramters
@@ -902,11 +795,13 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     fig, ax = plt.subplots(1, 2, figsize=(9,4))
 
     # Plot PDF
-    ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
+    
+    plt.rcParams['text.usetex'] = True
+    ax[0].set_title(rf'PRE distributions at {sigma}$\sigma$')        
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
     ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
-    ax[0].set_ylabel('Probability (PDF) [\%]')
+    ax[0].set_ylabel(r'Probability (PDF) [\%]')
     ax[0].set_xlim(xx[0], xx[-1])
     ax[0].legend()
 
@@ -914,7 +809,7 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     ax[1].grid(zorder=0)
     ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
     for i in range(len(alpha0)):
-        ax[1].scatter(alpha0[i], delta0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
+        ax[1].scatter(alpha0[i], delta0[i], marker=f".", s=50, alpha=0.8, zorder=2)
     ax[1].set_title('Distribution on Sky')
     ax[1].set_xlabel('RA [pixel]')
     ax[1].set_ylabel('Dec [pixel]')
@@ -938,12 +833,8 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     return PRE
 
 
-
-
-
 def getAPE(alpha, delta, kappa, sigma=3,
            seed=None, ofile=False, table=False, plot=False):
-
     """Pointing Reproducibility Error (PRE) in P/L reference frame.
 
     The mission reuquirements are 4.5 arcmin in X and Y, and 9 arcmin
@@ -972,7 +863,6 @@ def getAPE(alpha, delta, kappa, sigma=3,
     - A pandas dataframe with APE data
     - Optionally a feather output file
     """
-
     # APE in the PLM reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and [deg]    
     # NOTE: Performance values "as required"
@@ -1013,9 +903,9 @@ def getAPE(alpha, delta, kappa, sigma=3,
     # Plot PDF
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Trans.')
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rot.')
-    ax[0].set_title(f'APE distributions at {sigma}$\sigma$')
+    ax[0].set_title(rf'APE distributions at {sigma}$\sigma$')
     ax[0].set_xlabel('Camera misalignment in FPA [pixel]')
-    ax[0].set_ylabel('Probability (PDF) [\%]')
+    ax[0].set_ylabel(r'Probability (PDF) [\%]')
     ax[0].set_xlim(xx[0], xx[-1])
     ax[0].legend()
 
@@ -1054,12 +944,8 @@ def getAPE(alpha, delta, kappa, sigma=3,
     return APE
 
 
-
-
-
 def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
            ofile=False, seed=None, table=False, plot=False):
-
     """Generate a Themo-Elastic Drift (TED) file.
    
     This function generates a complete TED model returned in euler angles.
@@ -1081,7 +967,6 @@ def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
     ------
     Output file if requested.
     """
-
     # Random number generator
     rng = ut.rng(seed)
 
@@ -1238,12 +1123,8 @@ def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
         df_4.to_csv(f'{ofile[:-4]}_group4.csv', sep=" ", header=False, index=False)
         fig.savefig(f'{ofile[:-4]}.png', bbox_inches='tight', dpi=200)
 
-
-
-
             
 def getACS(time, rms=[0.038, 0.038, 0.040], ofile=False, plot=False):
-
     """Generate a Attitude and orbit Control System (ACS) jitter file.
    
     This function generates a complete ACS model returned in euler angles.
@@ -1261,9 +1142,7 @@ def getACS(time, rms=[0.038, 0.038, 0.040], ofile=False, plot=False):
     ------
     Output file if requested.
     """
-
     # Generate red noise components
-
     tau = time[1] - time[0]
     df = pd.DataFrame()
     df['t'] = time
@@ -1272,25 +1151,19 @@ def getACS(time, rms=[0.038, 0.038, 0.040], ofile=False, plot=False):
         df[n] = modelRedNoise(time, timescale=np.array([tau]), varscale=np.array(rms[i]))
 
     # Plot time series and PSD
-
     fig1, ax = pt.plotYawPitchRollTimeSeries(df.t/3600, np.array([df.x, df.y, df.z]),
                                              units=["hours", "arcsec"])
     fig2, ax = pt.plotYawPitchRollPSD(df.t, np.array([df.x, df.y, df.z]))
     if plot: plt.show()
         
     # Save data in one jitter file
-    
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
         fig1.savefig(f"{ofile[:-4]}_timeseries.png", bbox_inches='tight', dpi=200)
         fig2.savefig(f"{ofile[:-4]}_psd.png", bbox_inches='tight', dpi=200)
     
-    
-
-
 
 def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
-
     """Function to create data gaps in time series.
 
     All time gaps are based on knowledge from the Kepler mission.
@@ -1332,7 +1205,6 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     (probably due to an increased gain) an exponentially decrease to the
     count level before the event over a period of a few days.
     """
-
     # Random number generator
     rng = ut.rng(seed)
 
@@ -1516,7 +1388,6 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     if plot: plt.show()
 
     # Create pandas data frame for different flags    
-
     df = pd.DataFrame()
     df["time"]    = time
     df["roll"]    = roll
@@ -1527,13 +1398,11 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     df["all"]     = roll + station + jitter + safe
         
     # Compute event times
-
     t0 = np.concatenate((roll_event0, station_event0, jitter_event0, safe_event0))
     t1 = np.concatenate((roll_event1, station_event1, jitter_event1, safe_event1))
     dt = pd.DataFrame({'t0':t0, 'td':t1-t0})
     
     # Save file (and plot) if requested
-    
     if ofile:
         df.reset_index(drop=True, inplace=True)
         df.to_feather(ofile)
@@ -1541,16 +1410,11 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
         fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
-    
     return df, t0, t1-t0
-
-
-
 
 
 def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.1,timeSpan=30,
                           timeScale=False, amplitude=False, ofile=False, plot=False):
-
     """Function to model detector temperature transients.
 
     Parameters
@@ -1576,8 +1440,7 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
     NOTE: The following code snippet removes the data gaps from the df:
     >> df0 = df.drop(df[(df.roll == True)   | (df.link == True) |
                         (df.jitter == True) | (df.safe == True)].index)
-    """
-    
+    """    
     # Secure numpy syntax
     if isinstance(time, pd.Series):
         time = time.to_numpy()
@@ -1672,14 +1535,8 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
     return temp
 
 
-
-
-
-
 def getGain(sigma=3, gain0CCD=False, seed=None, ofile=False, plot=False):
-
-    """ointing Reproducibility Error (PRE) in PLM reference frame.
-    
+    """ointing Reproducibility Error (PRE) in PLM reference frame.    
     TODO under construction!
 
     Paramters
@@ -1688,44 +1545,63 @@ def getGain(sigma=3, gain0CCD=False, seed=None, ofile=False, plot=False):
     Return
     ------
     """
-
+    #---------------------------------------- Development for platonium
+    # GAIN TRANSIENTS
+    # NOTE typical seen in Kepler data, but not expected for Plato as per PPT.
+    # NOTE We keep it here in case we seen this in flight and it needs modelling.
+    # Apply step if CCD(T) file exists
+    # inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
+    # if inputFileGTT.is_file():
+    #     if self.verbose > 1:
+    #         print('Running transient  model : gain(T)')
+    #     # Load CCD gain temperature file
+    #     dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
+    #     dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
+    #     temp = dt.temp.to_numpy()
+    #     # Fetch the gap durations
+    #     inputFileGap = self.inputDir.joinpath('instrumentGAP.tab')
+    #     dg = pd.read_feather(inputFileGap)
+    #     tdur = dg.td.iloc[0] / 86400
+    #     # Use correct gain from either F or E side
+    #     tempNominal   = sim['CCD/NominalOperatingTemperature']
+    #     gainCCD       = sim['CCD/Gain/RefValueRight']
+    #     gainFEE       = sim['FEE/Gain/RefValueRight']
+    #     gainStability = sim['FEE/Gain/Stability']
+    #     # Perfect correction
+    #     lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
+    #                     replace=True, plot=self.plotPost)
+    #---------------------------------------- Development        
     
     # Initialise random generator
     rng = np.random.default_rng()
     
     # Total number of CCD x 2 halves
-
     nCCD = 104
     
     # Find distribution within 3 sigma of req.
-
     if not gain0CCD: gain0CCD = 1.8
     gainRef = gain0CCD / sigma
     deltaGainF = np.array([rng.normal(0, gainRef) for i in range(nCCD)])
     deltaGainE = np.array([rng.normal(0, gainRef) for i in range(nCCD)])
     
     # Plot distributions
-    
     t *= 3600
     b *= 3600
     y = t/sigma
     z = 3 * y
     x = np.abs(b/sigma - z)
     xx = np.linspace(-10*x, 10*x, 1000)
-
     ra0  = (df1.RA-ra)   * 3600 / 18
     dec0 = (df1.Dec-dec) * 3600 / 18
 
     fig, ax = plt.subplots(1, 2, figsize=(9,4))
-
-    ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
+    ax[0].set_title(rf'PRE distributions at {sigma}$\sigma$')        
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
     ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
     ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
-    ax[0].set_ylabel('Probability (PDF) [\%]')
+    ax[0].set_ylabel(r'Probability (PDF) [\%]')
     ax[0].set_xlim(xx[0], xx[-1])
     ax[0].legend()
-
     ax[1].grid(zorder=0)
     ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
     for i in range(len(ra0)):
@@ -1734,7 +1610,6 @@ def getGain(sigma=3, gain0CCD=False, seed=None, ofile=False, plot=False):
     ax[1].set_xlabel('RA [pixel]')
     ax[1].set_ylabel('Dec [pixel]')
     ax[1].set_aspect('equal', adjustable='box')
-
     lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
     lim += lim/10.
     ax[1].set_xlim(-lim, +lim)
@@ -1742,15 +1617,12 @@ def getGain(sigma=3, gain0CCD=False, seed=None, ofile=False, plot=False):
     plt.tight_layout()
 
     # Plot figure above 
-    
     if plot: plt.show()
         
     # Save file with relative pointing errors [deg]
-    
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
         fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
-    
     return PRE

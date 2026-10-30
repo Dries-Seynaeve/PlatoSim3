@@ -5,17 +5,20 @@ This python module contains all statistical data analysis utilities
 to more easily analysing PlatoSim data products. 
 """
 
+# Python standard
 import os
 import sys
 import glob
+
+# PlatoSim standard
 import numpy as np
 import pandas as pd
 from colorama import Back, Fore, Style
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
-import statsmodels.api as sm
-from statsmodels.graphics.gofplots import qqplot
 
+# PlatoSim imports
+import platosim.statistics as st
 
 #--------------------------------------------------------------#
 #                       OLS/WLS STATISTICS                     #
@@ -133,7 +136,7 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
                     df_predictions.obs_ci_lower, 
                     df_predictions.obs_ci_upper, 
                     alpha=0.2, color=color[-1], zorder=3)
-    ax.plot(data[reg], df_predictions.obs_ci_lower, '-', c=color[-1], lw=1, zorder=2, label=str((1-CI[0])*100)+'\% PI')
+    ax.plot(data[reg], df_predictions.obs_ci_lower, '-', c=color[-1], lw=1, zorder=2, label=str((1-CI[0])*100)+r'\% PI')
     ax.plot(data[reg], df_predictions.obs_ci_upper, '-', c=color[-1], lw=1, zorder=2)
     
     # Plot best fit and data
@@ -208,6 +211,7 @@ def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS', figsize=
 
     """Function to plot Q-Q plot.
     """
+    from statsmodels.graphics.gofplots import qqplot
     
     # Choose correct residuals
     
@@ -376,5 +380,4 @@ def model_selection(AIC_j, BIC_j, method='BIC', show=False):
     if method == 'AIC':
         return best_aic
     elif method == 'BIC':
-        return best_bic
-    
+        return best_bic    

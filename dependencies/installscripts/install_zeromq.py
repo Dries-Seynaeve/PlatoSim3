@@ -63,7 +63,7 @@ installProcedure = "cd {build};                                         \
                              package1=packageName1, 
                              package2=packageName2, 
                              install=installDir,
-                             num_threads=os.environ.get("INSTALL_NUM_THREADS"))
+                             num_threads=os.environ.get("INSTALL_NUM_THREADS", "4"))
 
 process = subprocess.run(installProcedure, shell=True)
 if not process.returncode == 0:

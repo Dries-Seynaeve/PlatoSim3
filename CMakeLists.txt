@@ -68,8 +68,8 @@ configure_file(
 include_directories(
 	${CMAKE_BINARY_DIR}/generated
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.12.0/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-2.2.0/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-15.6.0/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/include
@@ -102,8 +102,8 @@ add_library(platosimLibrary ${platosimSourceFiles})
 # Specify the location of the dependency libraries
 
 link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.12.0/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-2.2.0/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-15.6.0/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/lib

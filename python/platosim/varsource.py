@@ -1133,7 +1133,7 @@ class StellarFlares(object):
         A_range = np.linspace(0, 10, N)
         A_func  = 10**(a_A * A_range + b_A)
         self.ampl = pd.Series(A_range).sample(n_flares,
-                                              weights=A_func,
+                                              weights=A_func, replace=True,
                                               random_state=self.rng).to_numpy() / 1e3
         
         # Secure lower amplitudes for less active stars
@@ -2189,18 +2189,16 @@ class Pulsator(object):
 class EclipsingBinary(object):
     """Models Eclipsing Binaries (EBs).
     """
+    
     def __init__(self, time, seed=None, verbose=2):
-
         """Open the HDF5 output file
         """
-
         self.time = time
         self.rng  = ut.rng(seed)
         self.verbose = verbose
 
 
     def read_parameters_hdf5(self, file_name, verbose=False):
-
         """Copy of method from STARSHADOW:
         Read the full model parameters of the linear, sinusoid
         and eclipse models to an hdf5 file.
@@ -2331,11 +2329,9 @@ class EclipsingBinary(object):
         return results
 
         
-    def initIJspeert2023(self, odir, starID=None):
-
+    def initIJspeert2024(self, odir, starID=None):
         """Draw frequencies from Kepler g-Dor legacy.
         """
-
         # Name of folder on FTP server
         filename = 'varsource_ebs_ijspeert2021'
         dataDir  = Path(f'{odir}/{filename}')
@@ -3652,7 +3648,6 @@ class DopplerBeaming(funcFit.OneDFit):
 
 
 class EllipsoidalDistortion(funcFit.OneDFit):
-
     """Class for the calculation of the ellipsoidal effect.
 
     The model presented here is a fusion between the simple analytical description

@@ -326,8 +326,7 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     if (writeCosmics)
     {
-            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
-            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+        writeCosmicHitsToHDF5(exposureNr);
     }
 
     // Advance the internal clock
@@ -382,12 +381,6 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     {
         addBackgroundMapToPixelMap(camera, startTime);
     }
-
-    // Apply throughput efficiency on the pixel map.
-    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
-    // PixelMap units change from [photons] to [electrons]
-
-    applyThroughputEfficiency();
 
     // Apply throughput efficiency on the pixel map.
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
@@ -656,39 +649,5 @@ void DetectorWithAnalyticGaussianPSF::addFlux(double flux)
                       numRowsPixelMap - coveredTop - 1,
                       numColumnsPixelMap - coveredRight - 1) += flux;
     }
-}
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Multiply the sub-pixel map with the flatfield.
- *
- * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
- *       map does not. These edge pixels are excluded from this flatfield
- *       multiplication.
- *
- * \pre Unit of the sub-pixels: [photons].
- * \pre Flatfield map at sub-pixel level, excl. edge pixels.
- * \pre Pixel, bias register, and smearing maps filled with zeroes.
- *
- * \post Pixel value in the sub-pixel map: [photons].
- * \post Pixel, bias, and smearing maps filled with zeroes.
- */
-
-void DetectorWithAnalyticGaussianPSF::applyFlatfield()
-{
-    const unsigned int beginRow = numEdgePixels;
-    const unsigned int beginCol = numEdgePixels;
-    const unsigned int endRow = numRowsPixelMap - numEdgePixels - 1;
-    const unsigned int endCol = numColumnsPixelMap - numEdgePixels - 1;
-
-    pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
 

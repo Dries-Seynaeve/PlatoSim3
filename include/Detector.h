@@ -109,7 +109,7 @@ class Detector: public HDF5Writer
         virtual void checkGain();
         virtual void readBfeCoefficients(string filename);
 
-        virtual void applyFlatfield() = 0;
+        virtual void applyFlatfield();
         virtual void applyThroughputEfficiency();
         virtual void applyBFE();
         virtual void addDarkSignal(float exposureTime);
@@ -134,6 +134,11 @@ class Detector: public HDF5Writer
         void generateBadPixelMap();
         void applyBadPixelMap();
 
+        RaggedArray subFieldCosmics;
+        RaggedArray smearingCosmics;
+        RaggedArray leftBiasCosmics;
+        RaggedArray rightBiasCosmics;
+
         StrayLight *straylight;
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
@@ -147,10 +152,10 @@ class Detector: public HDF5Writer
 
         virtual void initHDF5Groups() override;
         // TODO implement writing of time here
-        //virtual void writeTimeToHDF5(int exposureNr);
+
         virtual void writePixelMapsToHDF5(int exposureNr);
-        virtual void writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr);
-        virtual void writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr);
+
+        virtual void writeCosmicHitsToHDF5(int exposureNr);
         virtual void writeBackgroundMapToHDF5();
         virtual void writeCTIToHDF5();
         void writeBadPixelMapToHDF5();
@@ -181,6 +186,7 @@ class Detector: public HDF5Writer
         int coveredBottom, coveredTop;
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
+        arma::Mat<float> flatfieldMap;           // Pixel flatfield map
         arma::Mat<float> backgroundMap;          // Sub-pixel map, incl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
@@ -391,5 +397,7 @@ class Detector: public HDF5Writer
 
         void readCTIinputFile(string ctiInputFile);
 };
+
+arma::Mat<uint16_t> floatToUint(arma::Mat<float> &A, string mapName);
 
 #endif

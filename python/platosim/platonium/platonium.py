@@ -26,18 +26,20 @@ import tracemalloc
 from pathlib import Path
 
 # PlatoSim standard
+import yaml
+import dictdiffer
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 # PlatoSim functions
+import platosim.plot            as pt
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 import platosim.statistics      as st
 from platosim.simulation   import Simulation
 from platosim.simfile      import SimFile
-from platosim.utilities    import errorcode, getPointingField
-from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
+from platosim.utilities    import errorcode
 from platosim.matplotlibrc import setup; setup()
 
 # pylint: disable=line-too-long
@@ -64,7 +66,7 @@ class PLATOnium(object):
         
         # PARSED ARGUMENTS
 
-        self.targetNo = args.starID
+        self.targetID = args.starID
         self.group    = args.groupID
         self.camera   = args.cameraID
         self.quarter  = args.quarter
@@ -118,7 +120,14 @@ class PLATOnium(object):
         self.pipeJitDriftOff  = args.pipe_jit_off
         self.pipeExtendedMask = args.pipe_emask
         self.pipePlots        = args.pipe_plots
+        self.pipeZarrOutput   = args.pipe_zarr_output
         
+        # edit file suffix if using zarr format
+        if self.pipeZarrOutput:
+            self.pipeSuffix = "zarr"
+        else:
+            self.pipeSuffix = "hdf5"
+
         # Debug L1 without re-simulating all platosim data
         self.l1_only = False
 
@@ -136,20 +145,20 @@ class PLATOnium(object):
                 self.groupID = self.group
             else:
                 errorcode('error', 'Camera can only be [1, 2, 3, 4, 5, 6]')
+            self.cameraID = (self.group-1)*6 + self.camera 
         elif self.group == 5:
             self.groupID = 'Fast'
             if self.camera == 1:
-                self.cameraID = 'blue'
+                self.cameraID = 25 # 'blue'
             elif self.camera == 2:
-                self.cameraID = 'red'
+                self.cameraID = 26 # 'red'
             else:
                 errorcode('error', 'Fast camera can only be [1, 2] = [blue, red]')
         else:
             errorcode('error', 'Camera-group can only be [1, 2, 3, 4, 5] (Fast = 5)')
-
         # Select full-frame CCD
         if self.fullFrame:
-            self.ccdCode = self.targetNo
+            self.ccdCode = self.targetID
             if not self.ccdCode in [1, 2, 3, 4]:
                 errorcode('error', 'CCD code can only be [1, 2, 3, 4]')
 
@@ -322,7 +331,7 @@ class PLATOnium(object):
             self.simPrefix = ''
 
         # Set general output filename
-        self.starID = f'{self.targetNo}'.zfill(9)
+        self.starID = f'{self.targetID}'.zfill(9)
 
         # Select suffix of observation
         if self.groupID == 'Fast':
@@ -486,7 +495,7 @@ class PLATOnium(object):
                 self.targetDex = 0
                 self.df = df.loc[self.targetDex]
                 self.dc = df.iloc[1:]
-
+                print(self.df); exit()
             # Fetch stars from PIC and Gaia DR3 catalogues
             else:
                 
@@ -507,14 +516,23 @@ class PLATOnium(object):
                 except IndexError:
                     errorcode('error', f'Stellar catalogue "{self.sample}" does not exist!')
                 else:
+                    print(catTarName)
                     try:
                         self.catTarFile = glob.glob(catTarName)[0]
-                        self.catConFile = glob.glob(catConName)[0]
                     except IndexError:
-                        errorcode('error', 'Stellar contaminant catalogue does not exist! ' +
-                                  'To generate full-frame CCD images, use "--fullframe"')
+                        errorcode('error', 'Stellar target catalogue does not exist: "*_targets.ftr"')
                     else:
                         df = pd.read_feather(self.catTarFile)
+                    try:
+                        self.catConFile = glob.glob(catConName)[0]
+                    except IndexError:
+                        errorcode('warning', 'Stellar contaminant catalogue does not exist: ' +
+                                  'Continuing without it..')
+                        # Quick fix to allow for target catalogues only
+                        dc = df * 0
+                        dc['dis'] = 0
+                        self.catConFile = Path(self.catTarFile).stem[:-7] + 'contaminants.ftr' 
+                    else:
                         dc = pd.read_feather(self.catConFile)
                     
                 # Check if target and contaminant catalogues are consistent
@@ -524,7 +542,7 @@ class PLATOnium(object):
                               'Use --field to specify a LOP or alter the YAML')
 
                 # Correct indicing and allow a specific star to be choosen
-                if self.targetNo == 0:
+                if self.targetID == 0:
                     errorcode('error', 'Star ID indicing starts from 1 and not 0!')
                 elif self.picID is not None:
                     if 'gaiaDR3' in df or 'source_gaia_dr3' in df:
@@ -536,7 +554,7 @@ class PLATOnium(object):
                                   f'\n{self.catTarFile}')
                 else:
                     # Set index of target
-                    self.targetDex = self.targetNo - 1
+                    self.targetDex = self.targetID - 1
                             
                 # Select target star
                 self.df = df.iloc[self.targetDex]
@@ -579,9 +597,9 @@ class PLATOnium(object):
             self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
             self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
             if not self.conNone:
-                self.ds['ids'] = np.arange(1, self.numCon+2)
+                self.ds['ids'] = np.append([self.targetID], int(10**8)+np.arange(1, self.numCon+1))
             else:
-                self.ds['ids'] = 1
+                self.ds['ids'] = self.targetID
 
         
     def init_sim(self):
@@ -603,7 +621,11 @@ class PLATOnium(object):
         # NOTE Parameter "normal" is used in the subfield selection
         if self.groupID == 'Fast':
             self.normal = False
-            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
+            if(self.cameraID==25):
+                passband = 'blue'
+            else:
+                passband = 'red'
+            sim.useFastCamera(passband, self.performance, self.timeStart)
         else:
             self.normal = True
             sim.useNormalCamera(self.performance, self.timeStart)
@@ -698,7 +720,7 @@ class PLATOnium(object):
                     print('Setting platform pointing    (PLM FromFile: Quaternion)')
         else:
             # Select PLATO pointing field from inputfile
-            alpha, delta, kappa = getPointingField(self.pointingField)
+            alpha, delta, kappa = ut.getPointingField(self.pointingField)
             sim["Platform/Orientation/Angles/RAPointing"]  = alpha
             sim["Platform/Orientation/Angles/DecPointing"] = delta
             # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
@@ -972,7 +994,14 @@ class PLATOnium(object):
             sim["CCD/TemperatureFileName"] = inputFileGTT
             if self.verbose > 1:
                 print('Applying thermal transients  (GTT FromFile)')
-                
+
+        # Options specific to the pipeline
+        if self.pipeline:
+            if sim["CCD/BadPixelMap/includeBadPixelMap"]:
+                errorcode('warning', 'includeBadPixelMap is True, this is not compatible' +
+                          'with the pipeline ->  the parameter is forced to False')
+                sim["CCD/BadPixelMap/includeBadPixelMap"] = False
+
         # CONFIGURE FULL-FRAME OR SUBFIELD SIMULATION
         
         if self.fullFrame:
@@ -1046,10 +1075,10 @@ class PLATOnium(object):
         # If successful, the CCD and subfield parameters is sets in the 'sim' object.        
         info = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
                                                    numColSubfield, numRowSubfield,
-                                                   normal=self.normal, returnInfo=True)
+                                                   returnInfo=True)
         if info[0] == None:
             if self.verbose > 0:
-                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
+                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetID}) " +
                             'do not fall on any of the CCDs for N-CAM ' +
                             f'{self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -1085,7 +1114,7 @@ class PLATOnium(object):
         # Account for maximum optical distortion: rAO = 19.8deg -> T = 1%
         if self.rOA > sim['CCD/RelativeTransmissivity/RadiusFOV']:
             if self.verbose > 0:
-                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
+                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetID}) " +
                             f'is outside camera FOV (rOA={self.rOA:.2f} deg) ' +
                             f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -1106,7 +1135,7 @@ class PLATOnium(object):
 
         # Seeds needs to be available for L1 pipeline
         self.seedJitter = seed * self.quarter
-        self.seedTarget = seed * self.quarter + 1000 * self.targetNo + self.group * self.camera
+        self.seedTarget = seed * self.quarter + 1000 * self.targetID + self.group * self.camera
 
         # Jitter (relevant for red noise) only depends on the quarter
         if sim["Platform/UseJitter"] == 'yes' and sim["Platoform/JitterSource"] == 'RedNoise':
@@ -1180,7 +1209,7 @@ class PLATOnium(object):
                 if self.varSourceFile.is_file():
                     # Automaticallt create and save varSourceList to file
                     self.varSourceList = f'{self.outputDir}/{self.outputFileName}.var'
-                    sim.createVariableSourceList('1', str(self.varSourceFile), self.varSourceList)
+                    sim.createVariableSourceList(str(self.targetID), str(self.varSourceFile), self.varSourceList)
                 else:
                     errorcode('error', 'VariableSourceFile do not exist, check file path!')
                 # Print to bash
@@ -1192,14 +1221,13 @@ class PLATOnium(object):
         # NOTE if a user defined file name for the photometry file is parsed
         # then a photometry file list is created automatically
         if sim['Photometry/IncludePhotometry'] is True:
-            photometryList = self.inputDir.joinpath('photometry.txt')
-            if os.path.exists(photometryList) is False:
-                np.savetxt(photometryList, np.array([]), header='1', comments='')
-            sim["Photometry/TargetFileName"] = photometryList
+            self.photometryList = self.outputDir.joinpath(f'{self.outputFileName}.phot')
+            np.savetxt(self.photometryList, np.array([]), header=str(self.targetID), comments='')
+            sim["Photometry/TargetFileName"] = self.photometryList
             self.photometry = True
             # Print to bash
             if self.verbose > 1:
-                print(f'Applying on-board photometry  ({photometryList.name})')
+                print(f'Applying on-board photometry  ({self.photometryList.name})')
         else:
             self.photometry = False
 
@@ -1226,7 +1254,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteStarPositions"] = True
 
         # Add photometric mask to plot if available
-        if sim['Photometry/IncludePhotometry']: mask = 1
+        if sim['Photometry/IncludePhotometry']: mask = self.targetID
         else: mask = None
             
         # Run simulation for first image cadence
@@ -1247,10 +1275,11 @@ class PLATOnium(object):
         # TODO plot do not work for F-CAM yet!
         if not self.fullFrame and not self.groupID == 'Fast':
             fig1 = plt.figure(figsize=(12,10))
-            drawStarInCCDfocalPlane(fig1, sim,
-                                    self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
-                                    self.df0['CCD'][0], self.group, alpha, delta, kappa)
-
+            pt.drawStarInCCDfocalPlane(
+                fig1, sim,
+                self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
+                self.df0['CCD'][0], self.group, alpha, delta, kappa
+            )
         # Show subfield for first cadence
         if self.fullFrame:
             figsize = (12,12)
@@ -1292,6 +1321,27 @@ class PLATOnium(object):
             figsize=figsize
         )
 
+        #---------------------------------------- Debugging
+        # Uncommet for plotting extended masks
+        # if self.df0.mag.iloc[0] < 6:
+        #     # Plot for bright stars (GO proposals)
+        #     fig2, _ = f.showExtendedImage(
+        #         self.beginExposureNr,
+        #         showStarPositions=showStarPositions,
+        #         showMaskOfStarID=mask,
+        #         useTitle=f'N-CAM {self.group}.{self.camera} observation of' +
+        #                  f'{self.sample} (Gaia DR3 {title[7:27]})',
+        #         #useTitle=f'F-CAM red observation of {self.sample} (Gaia DR3 {title[7:27]})',
+        #         colorMap=cmap,
+        #         colorBar=False,
+        #         imgScale='log', clip=20,
+        #         showGrid=True,
+        #         flipAxes=True,
+        #         ds=self.ds,
+        #         figsize=(15, 5)
+        #     )
+        #---------------------------------------- Debugging
+            
         # Save figure if requested
         if self.savePlot:
             filename1 = f'{self.outputDir}/focalplane_{self.outputFileName}.png'
@@ -1349,7 +1399,7 @@ class PLATOnium(object):
                 if yaml.is_file(): yaml.unlink()
             if self.varSourceFile:
                 Path(self.varSourceList).unlink()
-
+                
         # Define output file name
         outputFile = f'{self.outputSimName}.hdf5'
 
@@ -1398,19 +1448,21 @@ class PLATOnium(object):
             if   self.cadence ==  25.0: fps, nskip = 50, 800
             elif self.cadence ==  50.0: fps, nskip = 25, 500
             elif self.cadence == 600.0: fps, nskip = 25, 50
-            plotSubfieldAnimation(outputFile,
-                                  outputFileName=str(self.outputSimName),
-                                  cadence=self.cadence,
-                                  frameRate=fps,
-                                  skipNimages=nskip,
-                                  numImages=False,
-                                  colorMap="magma",
-                                  clipPercentile=5.0, 
-                                  showStarPositions='PIC',
-                                  showMaskOfStarID='1',
-                                  useTitle=True,
-                                  showGrid=True,
-                                  figsize=(6,6))
+            pt.plotSubfieldAnimation(
+                outputFile,
+                outputFileName=str(self.outputSimName),
+                cadence=self.cadence,
+                frameRate=fps,
+                skipNimages=nskip,
+                numImages=False,
+                colorMap="magma",
+                clipPercentile=5.0, 
+                showStarPositions='PIC',
+                showMaskOfStarID='1',
+                useTitle=True,
+                showGrid=True,
+                figsize=(6,6)
+            )
 
         # RESOURCES
         
@@ -1438,36 +1490,6 @@ class PLATOnium(object):
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5', path=self.outputDir)
 
-        # GAIN TRANSIENTS
-        # TODO check exp model! Ask Pierre for correction 
-
-        # Apply step if CCD(T) file exists
-        # inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
-
-        # if inputFileGTT.is_file():
-        #     if self.verbose > 1:
-        #         print('Running transient  model : gain(T)')
-
-        #     # Load CCD gain temperature file
-        #     dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
-        #     dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
-        #     temp = dt.temp.to_numpy()
-
-        #     # Fetch the gap durations
-        #     inputFileGap = self.inputDir.joinpath('instrumentGAP.tab')
-        #     dg = pd.read_feather(inputFileGap)
-        #     tdur = dg.td.iloc[0] / 86400
-
-        #     # Use correct gain from either F or E side
-        #     tempNominal   = sim['CCD/NominalOperatingTemperature']
-        #     gainCCD       = sim['CCD/Gain/RefValueRight']
-        #     gainFEE       = sim['FEE/Gain/RefValueRight']
-        #     gainStability = sim['FEE/Gain/Stability']
-
-        #     # Perfect correction
-        #     lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
-        #                     replace=True, plot=self.plotPost)
-
         # DETRENDING
         
         if self.detrend is not None:
@@ -1483,7 +1505,6 @@ class PLATOnium(object):
             if self.verbose > 1:
                 self.tocDetrend = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
-
 
         # STITCH MASK-UPDATES
         
@@ -1562,7 +1583,7 @@ class PLATOnium(object):
         #                      xlab='Time [days]', ylab='Residuals [ppt]')
         #     st.plot_residuals(lc, lsFit, theme='g')
         #     st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
-        #-------------------------------------------------------------------
+        #---------------------------------------- Debugging
         
     #--------------------------------------------------------------#
     #                    L1 PIPELINE MODULES                       #
@@ -1613,7 +1634,7 @@ class PLATOnium(object):
         sim['ObservingParameters/CycleTime']    = 25
 
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
-        # NOTE Here a new file is created with a appropriate time column to match the observation
+        # NOTE A new file is created with a appropriate time column to match the observation
         # NOTE This is done once per quarter and CCD time-shift and the file is saved to the
         # simulation folder
         spiralFileName     = 'microscan_spiral_8Hz_3h_BC.txt'
@@ -1668,8 +1689,8 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
         # Save catalog and load it into the inputfile
-        numStar = self.numCon + 1
-        self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1) + 1
+        # numStar = self.numCon + 1
+        # self.ds.ids = np.arange(self.targetID, self.targetID + numStar, 1) + 1
 
         # Run the microscan simulation
         if self.verbose > 1:
@@ -1694,7 +1715,10 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --cam-id {self.cameraID:02d} --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        comm = f'psim2datastruc --cam-id {self.cameraID:02d} --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError}'
+        if self.pipeZarrOutput:
+            comm += " --optimised_file_format"
+        comm += f' --target_id {int(self.starID)} . {self.starID} {self.starID} 6'
         # Debugging
         if self.verbose > 2:
             print(os.getcwd())
@@ -1706,7 +1730,10 @@ class PLATOnium(object):
         # Get the inverted PSF
         if self.verbose > 1:
             errorcode('message', '\n[gen_psfinv]: Run the PSF inversion')
-        comm = f"gen_psfinv --bsres {self.bsres} 1 {self.starID} {self.microscanDirInvers}"
+        comm = f"gen_psfinv --bsres {self.bsres}"
+        if self.pipeZarrOutput:
+            comm += " --optimised_file_format"
+        comm += f" {int(self.starID)} {self.starID} {self.microscanDirInvers}"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
@@ -1715,7 +1742,7 @@ class PLATOnium(object):
         # Check the performance of the inversion!
         if self.verbose > 1:
             errorcode('message', '\n[psfinv_quality]: Check the PSF inversion quality')
-        comm = f"psfinv_quality {self.microscanDirInvers}/000000001_inverse_psf.hdf5 {self.starID}/000000001_psf.hdf5"
+        comm = f"psfinv_quality {self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5 {self.starID}/{self.starID}_psf.hdf5"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
@@ -1741,7 +1768,10 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --cam-id {self.cameraID:02d} --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        comm = f'psim2datastruc --cam-id {self.cameraID:02d} --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError}'
+        if self.pipeZarrOutput:
+            comm += " --optimised_file_format"
+        comm += f' --target_id {int(self.starID)} . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
         cmd = os.system(comm)
@@ -1756,7 +1786,7 @@ class PLATOnium(object):
         # NOTE: the psf fittign currently struggles at <0.25 separation with contaminants
         # Reza suggested setting this limit to 0.5 pixels for safety
         if self.pipePsfMethod == 'microscan':
-            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+            psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
             comm = f"gen_pflux_ts --psf {psf_path} --distance-min 0.5"
         else:
             psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
@@ -1765,7 +1795,9 @@ class PLATOnium(object):
             comm += " -P"
         if self.noAberrCorr:
             comm += " --ignore-aberration"
-        comm += f" 1 {self.starID} {self.starID}"
+        if self.pipeZarrOutput:
+            comm += " --optimised_file_format --zarr-output"
+        comm += f" {int(self.starID)} {self.starID} {self.starID}"
         print(comm)
 
         # run the gen_pflux command
@@ -1799,7 +1831,10 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --cam-id {self.cameraID:02d} --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        comm = f'psim2datastruc --cam-id {self.cameraID:02d} --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError}'
+        if self.pipeZarrOutput:
+            comm += " --optimised_file_format"
+        comm += f' --target_id {int(self.starID)} . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
         cmd = os.system(comm)
@@ -1812,11 +1847,11 @@ class PLATOnium(object):
 
         # build the gen_aflux command
         if self.pipePsfMethod == "microscan":
-            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+            psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
+            comm = f"gen_aflux_ts --onboard-lc --post-corr-bg --n-average {n_average} --psf {psf_path}"
         else:
             psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
-            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf-library {psf_lib_path}"
+            comm = f"gen_aflux_ts --onboard-lc --post-corr-bg --n-average {n_average} --psf-library {psf_lib_path}"
 
         if self.pipeExtendedMask:
             comm += " --emask"
@@ -1824,7 +1859,9 @@ class PLATOnium(object):
             comm += " -P"
         if self.noAberrCorr:
             comm += " --ignore-aberration"
-        comm += f" 1 {self.starID} {self.starID}"
+        if self.pipeZarrOutput:
+            comm += " --optimised_file_format --zarr-output"
+        comm += f" {int(self.starID)} {self.starID} {self.starID}"
         print(comm)
 
         # run the gen_aflux command
@@ -1839,16 +1876,18 @@ class PLATOnium(object):
 
             # build apply_ltdjit_corr command
             if self.pipePsfMethod == "microscan":
-                psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+                psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
             else:
-                psf_path = f"{self.outputDirStarIDsim}/000000001_interpolated_psf.hdf5"
+                psf_path = f"{self.outputDirStarIDsim}/{self.starID}_interpolated_psf.hdf5"
 
             comm = f"apply_ltdjit_corr --psf {psf_path}"
             if self.pipeExtendedMask:
                 comm += " --emask"
             if self.pipePlots:
                 comm += " -P"
-            comm += f" 1 {self.starID} {self.starID}"
+            if self.pipeZarrOutput:
+                comm += " --optimised_file_format --zarr-output"
+            comm += f" {int(self.starID)} {self.starID} {self.starID}"
             print(comm)
 
             # run apply_ltdjit_corr command
@@ -1866,12 +1905,30 @@ class PLATOnium(object):
     #                            OUTPUTS                           #
     #--------------------------------------------------------------#
 
+    def create_yaml_io_diff(self, iyaml, oyaml, ofile=None, show=False):
+        """Module to create a diff YAML file.
+        This is done to increase the transparency of what platonium
+        is actually changing at run time.
+        """
+        with open(iyaml,'r') as rdr: iyaml = rdr.read()
+        with open(oyaml,'r') as rdr: oyaml = rdr.read()
+        iyaml_dict = yaml.load(iyaml, Loader=yaml.FullLoader)
+        oyaml_dict = yaml.load(oyaml, Loader=yaml.FullLoader)
+        if show:
+            for diff in list(dictdiffer.diff(iyaml_dict, oyaml_dict)):
+                print(diff)
+        if ofile:
+            with open(ofile, 'w+') as f:
+                for diff in list(dictdiffer.diff(iyaml_dict, oyaml_dict)):
+                    print(diff, file=f)
+
+            
     def create_sim_table(self, odir):
         """Module to create a overview table of the simulation.
         """
         # Write PlatoSim info to a table
         filename = f'{odir}/{self.outputFileName}.table'
-        data = {"ID":       self.targetNo,
+        data = {"ID":       self.targetID,
                 self.colID: self.df[self.colID],
                 "ra":       self.df.ra,
                 "dec":      self.df.dec,
@@ -1887,21 +1944,21 @@ class PLATOnium(object):
                 "yFP":      self.yFP,
                 "ncon":     self.numCon,
         }
-        df1 = pd.DataFrame(data, index=[0])
+        df = pd.DataFrame(data, index=[0])
 
         # Add SPR if available
         if self.photometry:
             f = SimFile(f'{self.outputSimName}.hdf5')
             try:
-                mask = f.getApertureMask(1)
+                mask = f.getApertureMask(self.targetID)
             except:
                 pass
             else:
-                df1['SPR'] = np.mean(mask[5])
-                df1['NSR'] = np.mean(mask[4])
+                df['SPR'] = np.mean(mask[5])
+                df['NSR'] = np.mean(mask[4])
 
         # Save simulation table
-        df1.to_feather(filename)
+        df.to_feather(filename)
 
         
     def failed(self, message):
@@ -1931,6 +1988,12 @@ class PLATOnium(object):
         if self.postProcess and self.verbose < 3:
             os.remove(f'{self.outputSimName}.hdf5')
 
+        # Create a YAML I/O diff file
+        if self.verbose == 3:
+            outputFile = Path(str(self.outputSimName) + '.yaml')
+            outputDiff = Path(str(self.outputSimName) + '.yaml_diff')
+            self.create_yaml_io_diff(self.inputFile, outputFile, ofile=outputDiff)
+            
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}*')
 
@@ -1978,7 +2041,7 @@ class PLATOnium(object):
 
         # Select prefix-files
         self.outputFileName = f'{self.starID}_{self.obsPrefix}'
-        prefixInversion = self.microscanDirInvers / '000000001'
+        prefixInversion = self.microscanDirInvers / f'{self.starID}'
         prefixStarIDsim = self.outputDirStarIDsim / self.starID
         prefixStarIDnew = self.outputDirStarIDnew / self.outputFileName
         print(f"prefixInversion {prefixInversion}")
@@ -1991,23 +2054,23 @@ class PLATOnium(object):
 
         # Fetch P1 light curve
         if args.sample == 'P1':
-            lc_file = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_IMAGETTE_c{self.cameraID:02d}_p000000001.hdf5"
-            cob_file = f"{self.outputDirStarIDsim}/COB_OG_c{self.cameraID:02d}_p000000001.hdf5"
-            skypos_file = f"{self.outputDirStarIDsim}/SKYPOS_L1A_IMAGETTE_c{self.cameraID:02d}_p000000001.hdf5"
-            star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
+            lc_file = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_IMAGETTE_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+            cob_file = f"{self.outputDirStarIDsim}/COB_L1A_IMAGETTE_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+            skypos_file = f"{self.outputDirStarIDsim}/SKYPOS_L1A_IMAGETTE_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+            star_file = f"{self.outputDirStarIDsim}/{self.starID}_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
             if self.pipePsfMethod == "microscan":
                 psf_file = f"{prefixInversion}_inverse_psf.hdf5"
             else:
-                psf_file = f"{self.outputDirStarIDsim}/000000001_interpolated_psf.hdf5"
-            pbkg_plot = f"{self.outputDirStarIDsim}/000000001_pBKG.png"
-            pcobx_plot = f"{self.outputDirStarIDsim}/000000001_pCOBx.png"
-            pcoby_plot = f"{self.outputDirStarIDsim}/000000001_pCOBy.png"
-            pflux_plot = f"{self.outputDirStarIDsim}/000000001_pFLUX.png"
+                psf_file = f"{self.outputDirStarIDsim}/{self.starID}_interpolated_psf.hdf5"
+            pbkg_plot = f"{self.outputDirStarIDsim}/{self.starID}_pBKG.png"
+            pcobx_plot = f"{self.outputDirStarIDsim}/{self.starID}_pCOBx.png"
+            pcoby_plot = f"{self.outputDirStarIDsim}/{self.starID}_pCOBy.png"
+            pflux_plot = f"{self.outputDirStarIDsim}/{self.starID}_pFLUX.png"
 
-            lc_file_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A_IMAGETTE.hdf5"
-            cob_file_out = f"{prefixStarIDnew}_COB_OG.hdf5"
-            skypos_file_out = f"{prefixStarIDnew}_SKYPOS_L1A_IMAGETTE.hdf5"
+            lc_file_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A_IMAGETTE.{self.pipeSuffix}"
+            cob_file_out = f"{prefixStarIDnew}_COB_L1A_IMAGETTE.{self.pipeSuffix}"
+            skypos_file_out = f"{prefixStarIDnew}_SKYPOS_L1A_IMAGETTE.{self.pipeSuffix}"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
             if self.pipePsfMethod == "microscan":
@@ -2028,12 +2091,17 @@ class PLATOnium(object):
             print(f"Move {psf_file} -> {psf_file_out}")
             # Move the phot files to sotrage
             try:
-                shutil.copy(lc_file, lc_file_out)
-                shutil.copy(cob_file, cob_file_out)
-                shutil.copy(skypos_file, skypos_file_out)
+                if self.pipeZarrOutput:
+                    shutil.copytree(lc_file, lc_file_out, dirs_exist_ok=True)
+                    shutil.copytree(cob_file, cob_file_out, dirs_exist_ok=True)
+                    shutil.copytree(skypos_file, skypos_file_out, dirs_exist_ok=True)
+                else:
+                    shutil.copy(lc_file, lc_file_out)
+                    shutil.copy(cob_file, cob_file_out)
+                    shutil.copy(skypos_file, skypos_file_out)
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
-                shutil.move(psf_file, psf_file_out)
+                shutil.copy(psf_file, psf_file_out)
             except:
                 self.failed('Moving PSF photometry files failed...')
 
@@ -2043,49 +2111,53 @@ class PLATOnium(object):
                 print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
                 print(f"Move {pflux_plot} -> {pflux_plot_out}")
                 try:
-                    shutil.move(pbkg_plot, pbkg_plot_out)
-                    shutil.move(pcobx_plot, pcobx_plot_out)
-                    shutil.move(pcoby_plot, pcoby_plot_out)
-                    shutil.move(pflux_plot, pflux_plot_out)
+                    shutil.copy(pbkg_plot, pbkg_plot_out)
+                    shutil.copy(pcobx_plot, pcobx_plot_out)
+                    shutil.copy(pcoby_plot, pcoby_plot_out)
+                    shutil.copy(pflux_plot, pflux_plot_out)
                 except:
                     self.failed('Moving PSF photometry plots failed...')
 
         # Fetch P5 light curve
         if args.sample == 'P5':
             if self.pipeExtendedMask:
-                lc_file1 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L0_c{self.cameraID:02d}_p000000001.hdf5"
-                lc_file2 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L1A_c{self.cameraID:02d}_p000000001.hdf5"
-                cob_file = f"{self.outputDirStarIDsim}/E-COB_L0_c{self.cameraID:02d}_p000000001.hdf5"
-                skypos_file = f"{self.outputDirStarIDsim}/E-SKYPOS_L1A_c{self.cameraID:02d}_p000000001.hdf5"
+                lc_file1 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L0_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                lc_file2 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L1A_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                cob_file1 = f"{self.outputDirStarIDsim}/E-COB_L0_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                cob_file2 = f"{self.outputDirStarIDsim}/E-COB_L1A_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                skypos_file = f"{self.outputDirStarIDsim}/E-SKYPOS_L1A_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
             else:
-                lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{self.cameraID:02d}_p000000001.hdf5"
-                lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{self.cameraID:02d}_p000000001.hdf5"
-                cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{self.cameraID:02d}_p000000001.hdf5"
-                skypos_file = f"{self.outputDirStarIDsim}/SKYPOS_L1A_c{self.cameraID:02d}_p000000001.hdf5"
+                lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                cob_file1 = f"{self.outputDirStarIDsim}/COB_L0_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                cob_file2 = f"{self.outputDirStarIDsim}/COB_L1A_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
+                skypos_file = f"{self.outputDirStarIDsim}/SKYPOS_L1A_c{self.cameraID:02d}_p{self.starID}.{self.pipeSuffix}"
             if self.pipePsfMethod == "microscan":
                 psf_file = f"{prefixInversion}_inverse_psf.hdf5"
             else:
-                psf_file = f"{self.outputDirStarIDsim}/000000001_interpolated_psf.hdf5"
-            star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
+                psf_file = f"{self.outputDirStarIDsim}/{self.starID}_interpolated_psf.hdf5"
+            star_file = f"{self.outputDirStarIDsim}/{self.starID}_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
-            acobx_plot = f"{self.outputDirStarIDsim}/000000001_aCOBx.png"
-            acoby_plot = f"{self.outputDirStarIDsim}/000000001_aCOBy.png"
-            spr_plot = f"{self.outputDirStarIDsim}/000000001_SPR_TOT-TS.png"
-            valid_plot = f"{self.outputDirStarIDsim}/000000001_Valid_points.png"
-            abkg_plot = f"{self.outputDirStarIDsim}/000000001_aBKG.png"
-            aflux_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX.png"
-            aflux_corr_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX-CORR.png"
+            acobx_plot = f"{self.outputDirStarIDsim}/{self.starID}_aCOBx.png"
+            acoby_plot = f"{self.outputDirStarIDsim}/{self.starID}_aCOBy.png"
+            spr_plot = f"{self.outputDirStarIDsim}/{self.starID}_SPR_TOT-TS.png"
+            valid_plot = f"{self.outputDirStarIDsim}/{self.starID}_Valid_points.png"
+            abkg_plot = f"{self.outputDirStarIDsim}/{self.starID}_aBKG.png"
+            aflux_plot = f"{self.outputDirStarIDsim}/{self.starID}_aFLUX.png"
+            aflux_corr_plot = f"{self.outputDirStarIDsim}/{self.starID}_aFLUX-CORR.png"
 
             if self.pipeExtendedMask:
-                lc_file1_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L0.hdf5"
-                lc_file2_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L1A.hdf5"
-                cob_file_out = f"{prefixStarIDnew}_E-COB_L0.hdf5"
-                skypos_file_out = f"{prefixStarIDnew}_E-SKYPOS_L1A.hdf5"
+                lc_file1_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L0.{self.pipeSuffix}"
+                lc_file2_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L1A.{self.pipeSuffix}"
+                cob_file1_out = f"{prefixStarIDnew}_E-COB_L0.{self.pipeSuffix}"
+                cob_file2_out = f"{prefixStarIDnew}_E-COB_L1A.{self.pipeSuffix}"
+                skypos_file_out = f"{prefixStarIDnew}_E-SKYPOS_L1A.{self.pipeSuffix}"
             else:
-                lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
-                lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
-                cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
-                skypos_file_out = f"{prefixStarIDnew}_SKYPOS_L1A.hdf5"
+                lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.{self.pipeSuffix}"
+                lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.{self.pipeSuffix}"
+                cob_file1_out = f"{prefixStarIDnew}_COB_L0.{self.pipeSuffix}"
+                cob_file2_out = f"{prefixStarIDnew}_COB_L1A.{self.pipeSuffix}"
+                skypos_file_out = f"{prefixStarIDnew}_SKYPOS_L1A.{self.pipeSuffix}"
             if self.pipePsfMethod == "microscan":
                 psf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
             else:
@@ -2103,16 +2175,25 @@ class PLATOnium(object):
             # copy the main files to a long term area with the correct filenames
             print(f"Move {lc_file1} -> {lc_file1_out}")
             print(f"Move {lc_file2} -> {lc_file2_out}")
-            print(f"Move {cob_file} -> {cob_file_out}")
+            print(f"Move {cob_file1} -> {cob_file1_out}")
+            print(f"Move {cob_file2} -> {cob_file2_out}")
             print(f"Move {skypos_file} -> {skypos_file_out}")
             print(f"Move {psf_file} -> {psf_file_out}")
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
             try:
-                shutil.copy(lc_file1, lc_file1_out)
-                shutil.copy(lc_file2, lc_file2_out)
-                shutil.copy(cob_file, cob_file_out)
-                shutil.copy(skypos_file, skypos_file_out)
+                if self.pipeZarrOutput:
+                    shutil.copytree(lc_file1, lc_file1_out, dirs_exist_ok=True)
+                    shutil.copytree(lc_file2, lc_file2_out, dirs_exist_ok=True)
+                    shutil.copytree(cob_file1, cob_file1_out, dirs_exist_ok=True)
+                    shutil.copytree(cob_file2, cob_file2_out, dirs_exist_ok=True)
+                    shutil.copytree(skypos_file, skypos_file_out, dirs_exist_ok=True)
+                else:
+                    shutil.copy(lc_file1, lc_file1_out)
+                    shutil.copy(lc_file2, lc_file2_out)
+                    shutil.copy(cob_file1, cob_file1_out)
+                    shutil.copy(cob_file2, cob_file2_out)
+                    shutil.copy(skypos_file, skypos_file_out)
                 shutil.copy(psf_file, psf_file_out)
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
@@ -2218,7 +2299,7 @@ parser.add_argument('-v', '--verbose', metavar='NR', type=int, help='Verbosity l
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('starID',   type=int, help='Star ID in target list (or CCD in [1, 2, 3, 4] using --fullframe)')
 man_group.add_argument('groupID',  type=int, help='Camera group ID [1, 2, 3, 4, 5] (F-CAM = 5)')
-man_group.add_argument('cameraID', type=int, help='N-CAM in [1, 2, 3, 4, 5, 6]; F-CAM in {1, 2}')
+man_group.add_argument('cameraID', type=int, help='N-CAM in [1, 2, 3, 4, 5, 6]; F-CAM in [1, 2]')
 man_group.add_argument('quarter',  type=int, help='Mission quarter in [1, 2, 3, 4, ..]')
 
 rec_group = parser.add_argument_group('RECOMMENTED PARAMETERS')
@@ -2265,15 +2346,16 @@ phot_group.add_argument('--clip_window', metavar='FLOAT', type=float, help='Wind
 phot_group.add_argument('--check',       action='store_true',         help='Flag to plot the requested post-processing steps')
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
-pip_group.add_argument('--pipeline',      action='store_true',             help='Flag to activate proto-type pipeline')
-pip_group.add_argument('--pipe_psf',      metavar='NAME',      type=str,   help='Pipeline PSF method [microscan | library]')
-pip_group.add_argument('--pipe_cadence',  metavar='INT',       type=int,   help='Cadence for pipeline (P1=25s, P5=50 or 600s)')
-pip_group.add_argument('--pipe_flux_err', metavar='PERCENT',   type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
-pip_group.add_argument('--pipe_cen_err',  metavar='PIXEL',     type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
-pip_group.add_argument('--pipe_prnu_err', metavar='PERCENT',   type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
-pip_group.add_argument('--pipe_jit_off',  action='store_true',             help='Flag to turn-off the jitter/drift correction in apply_ltdcorr')
-pip_group.add_argument('--pipe_emask',    action='store_true',             help='Flag to turn-on the extended flux mask in gen_aflux_ts')
-pip_group.add_argument('--pipe_plots',    action='store_true',             help='Enable pipeline output plots')
+pip_group.add_argument('--pipeline',         action='store_true',             help='Flag to activate proto-type pipeline')
+pip_group.add_argument('--pipe_psf',         metavar='NAME',      type=str,   help='Pipeline PSF method [microscan | library]')
+pip_group.add_argument('--pipe_cadence',     metavar='INT',       type=int,   help='Cadence for pipeline (P1=25s, P5=50 or 600s)')
+pip_group.add_argument('--pipe_flux_err',    metavar='PERCENT',   type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
+pip_group.add_argument('--pipe_cen_err',     metavar='PIXEL',     type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
+pip_group.add_argument('--pipe_prnu_err',    metavar='PERCENT',   type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
+pip_group.add_argument('--pipe_jit_off',     action='store_true',             help='Flag to turn-off the jitter/drift correction in apply_ltdcorr')
+pip_group.add_argument('--pipe_emask',       action='store_true',             help='Flag to turn-on the extended flux mask in gen_aflux_ts')
+pip_group.add_argument('--pipe_plots',       action='store_true',             help='Enable pipeline output plots')
+pip_group.add_argument('--pipe_zarr_output', action='store_true',             help='Enable optimised file format for pipeline')
 
 full_group = parser.add_argument_group('FULL-FRAME CCD PARAMETERS')
 full_group.add_argument('--fullframe', action='store_true', help='Flag to simulate a full-frame CCD -> CCDcode = starID')
@@ -2290,6 +2372,7 @@ p.create_seeds(sim)
 # skip if only doing L1
 if not p.l1_only:
     p.create_inputfiles(sim)
+p.control_hdf5()
 
 if args.plot:
     # Only show subfield
