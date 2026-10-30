@@ -74,7 +74,7 @@ instead, switch to the ``master`` branch (see :ref:`Branches and releases <insta
 *Step 3: Build PlatoSim*
 ------------------------
 
-PlatoSim uses a number of C++ libraries (HDF5, yaml-cpp, Armadillo, FFTW, Faddeeva, and ZeroMQ). They are included in
+PlatoSim uses a number of C++ libraries (zlib, HDF5, yaml-cpp, Armadillo, FFTW, Faddeeva, and ZeroMQ). They are included in
 the ``dependencies/`` directory, so you do not have to download them yourself. The script ``install.sh`` builds these
 libraries and then PlatoSim itself. From the ``PlatoSim3`` directory, run:
 
@@ -93,11 +93,13 @@ The script stops as soon as something fails. When it finishes successfully, the 
 
    * Check that your CMake and compiler meet the :ref:`requirements <install_overview_requirements>`. An old CMake is
      the most common cause.
-   * Build the libraries one by one to find out which one fails (run these from the ``PlatoSim3`` directory). Each
-     script compiles 4 files in parallel; to change that, first run e.g. ``export INSTALL_NUM_THREADS=8``.
+   * Build the libraries one by one to find out which one fails (run these from the ``PlatoSim3`` directory, in this
+     order: HDF5 needs zlib). Each script compiles 4 files in parallel; to change that, first run e.g.
+     ``export INSTALL_NUM_THREADS=8``.
 
      .. code-block:: shell
 
+        python3 ./dependencies/installscripts/install_zlib.py
         python3 ./dependencies/installscripts/install_hdf5.py
         python3 ./dependencies/installscripts/install_yaml.py
         python3 ./dependencies/installscripts/install_armadillo.py

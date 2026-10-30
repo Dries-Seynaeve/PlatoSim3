@@ -158,7 +158,7 @@ code</span></a>.</p>
 <hr></section>
 <section id="step-3-build-platosim">
 <span id="install-source-dependencies"></span><h2><em>Step 3: Build PlatoSim</em><a class="headerlink" href="#step-3-build-platosim" title="Link to this heading"></a></h2>
-<p>PlatoSim uses a number of C++ libraries (HDF5, yaml-cpp, Armadillo, FFTW, Faddeeva, and ZeroMQ). They are included in
+<p>PlatoSim uses a number of C++ libraries (zlib, HDF5, yaml-cpp, Armadillo, FFTW, Faddeeva, and ZeroMQ). They are included in
 the <code class="docutils literal notranslate"><span class="pre">dependencies/</span></code> directory, so you do not have to download them yourself. The script <code class="docutils literal notranslate"><span class="pre">install.sh</span></code> builds these
 libraries and then PlatoSim itself. From the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory, run:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./install.sh<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
@@ -175,9 +175,11 @@ The script stops as soon as something fails. When it finishes successfully, the 
 <ul>
 <li><p>Check that your CMake and compiler meet the <a class="reference internal" href="install_overview.html#install-overview-requirements"><span class="std std-ref">requirements</span></a>. An old CMake is
 the most common cause.</p></li>
-<li><p>Build the libraries one by one to find out which one fails (run these from the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory). Each
-script compiles 4 files in parallel; to change that, first run e.g. <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">INSTALL_NUM_THREADS=8</span></code>.</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>./dependencies/installscripts/install_hdf5.py
+<li><p>Build the libraries one by one to find out which one fails (run these from the <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> directory, in this
+order: HDF5 needs zlib). Each script compiles 4 files in parallel; to change that, first run e.g.
+<code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">INSTALL_NUM_THREADS=8</span></code>.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>./dependencies/installscripts/install_zlib.py
+python3<span class="w"> </span>./dependencies/installscripts/install_hdf5.py
 python3<span class="w"> </span>./dependencies/installscripts/install_yaml.py
 python3<span class="w"> </span>./dependencies/installscripts/install_armadillo.py
 python3<span class="w"> </span>./dependencies/installscripts/install_fftw.py
