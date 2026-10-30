@@ -98,4 +98,4 @@
 
 *** Added zlib support to the bundled HDF5 library (new install script `install_zlib.py`, run by `install.sh`), so that compressed (deflate) HDF5 datasets can be read and written.
 
-*** *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file, which is not distributed yet. The default PSF model is still `AnalyticNonGaussian`.
+*** *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file. The default PSF model is still `AnalyticNonGaussian`.
