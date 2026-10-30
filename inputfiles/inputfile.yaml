@@ -139,7 +139,6 @@ PSF:
             ConstantValue:           0.5                      # Used in case Source is ConstantValue  [pix]
             FromFile:                inputfiles/sigmaPSF.txt  # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
     Cpsf:                                                     # EXPERIMENTAL. Analytic representation of the ray-traced PSFs (PLATO-KUL-PL-TN-0030).
-                                                              # The coefficient file below is not distributed yet.
                                                               # NOTE the AnalyticNonGaussian block above must stay present: this model
                                                               # derives from that detector, whose configure() reads it. Its parametric
                                                               # response is built but never evaluated.

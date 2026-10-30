@@ -2,6 +2,16 @@
 
 
 
+** Before you update
+
+*** *Source installation:* this release changes the bundled C++ libraries (HDF5 2.2.0, Armadillo 15.6.0, newer yaml-cpp and Faddeeva, and zlib as a new library). After updating, remove the old libraries and run the full installation again, from the `PlatoSim3` directory: `rm -rf dependencies/Installs` followed by `./install.sh`. Otherwise PlatoSim is built against the old libraries or does not build at all. The bundled HDF5 now needs CMake 3.26 or more recent.
+
+*** *Python packages:* Poetry is no longer supported. Install the Python packages again with uv (`uv sync` for a source installation, `uv pip install -r pyproject.toml` for a Conda installation).
+
+*** *Conda installation:* no extra steps; update the package as usual.
+
+
+
 ** Improvements
 
 *** *Breaking change:* New layout of the HDF5 output file. The pixel, smearing, bias, throughput, and sub-pixel maps of all exposures are now stored in one 3D dataset per map type (`Images/subfield`, `SmearingMaps/smearing`, `BiasMapsLeft/bias`, `BiasMapsRight/bias`, `ThroughputMaps/throughput`, and `SubPixelImages/images`) instead of one dataset per exposure. The cosmics are stored as ragged arrays with `offsets` and `pixelOffsets` tables, in one sub-group per map (`SubField`, `SmearingMap`, `BiasMapLeft`, and `BiasMapRight`), and no longer depend on `GroupByExposure`. The `SimFile` class has been updated accordingly; scripts that read the HDF5 file directly need to be adapted.
@@ -98,4 +108,4 @@
 
 *** Added zlib support to the bundled HDF5 library (new install script `install_zlib.py`, run by `install.sh`), so that compressed (deflate) HDF5 datasets can be read and written.
 
-*** *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file, which is not distributed yet. The default PSF model is still `AnalyticNonGaussian`.
+*** *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file. The default PSF model is still `AnalyticNonGaussian`.

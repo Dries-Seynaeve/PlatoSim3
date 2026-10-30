@@ -12,6 +12,8 @@ Checklist to update for a future release:
 
 ## Upcoming release: 3.8.0
 
+**Before you update a source installation:** this release changes the bundled C++ libraries (HDF5 2.2.0, Armadillo 15.6.0, newer yaml-cpp and Faddeeva, and zlib as a new library). After updating, remove the old libraries and run the full installation again: `rm -rf dependencies/Installs` followed by `./install.sh` (needs CMake 3.26 or more recent). Install the Python packages again with uv, since Poetry is no longer supported.
+
 ### Fixed
 
 * Fixed issue #1191: Removed a duplicate call to `applyThroughputEfficiency()` for the analytic Gaussian PSF, which applied the throughput efficiency twice.
@@ -56,7 +58,7 @@ Checklist to update for a future release:
 * Added validation tests for the cosmics in the new HDF5 layout.
 * Added new Jupyter notebooks for GO proposals, PIC, K-dwarf oscillators, target observability, and the Moonwalk paper.
 * Added zlib support to the bundled HDF5 library (new install script `install_zlib.py`, run by `install.sh`), so that compressed (deflate) HDF5 datasets can be read and written.
-* *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file, which is not distributed yet. The default PSF model is still `AnalyticNonGaussian`.
+* *Experimental:* Added the PSF model `Cpsf` (coefficient PSF) to include defocused PSFs, based on an analytic representation of the ray-traced PSFs (new configuration block `PSF/Cpsf`). It needs a PSF coefficient file. The default PSF model is still `AnalyticNonGaussian`.
 
 ### Deprecated
 
