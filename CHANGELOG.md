@@ -12,6 +12,8 @@ Checklist to update for a future release:
 
 ## Upcoming release: 3.8.0
 
+**Before you update a source installation:** this release changes the bundled C++ libraries (HDF5 2.2.0, Armadillo 15.6.0, newer yaml-cpp and Faddeeva, and zlib as a new library). After updating, remove the old libraries and run the full installation again: `rm -rf dependencies/Installs` followed by `./install.sh` (needs CMake 3.26 or more recent). Install the Python packages again with uv, since Poetry is no longer supported.
+
 ### Fixed
 
 * Fixed issue #1191: Removed a duplicate call to `applyThroughputEfficiency()` for the analytic Gaussian PSF, which applied the throughput efficiency twice.
